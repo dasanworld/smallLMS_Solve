@@ -12,8 +12,11 @@
 /Docs/Userflow.md
 
 .ruler/
-.ruler/AGENTS.md
-.ruler/supabase.md
+#.ruler/AGENTS.md
+#.ruler/supabase.md
+
+.prompt/ 
+
 
 # Dependencies
 node_modules/
