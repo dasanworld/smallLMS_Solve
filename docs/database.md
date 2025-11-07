@@ -113,11 +113,11 @@ CREATE INDEX idx_courses_category_id ON courses(category_id);
 CREATE INDEX idx_courses_difficulty_id ON courses(difficulty_id);
 CREATE INDEX idx_courses_created_at ON courses(created_at);
 CREATE INDEX idx_courses_published_at ON courses(published_at);
+```
 
 ```sql
--- 코멘트: enrollment_count는 비정규화된 칼럼이므로 트리거로만 갱신한다.
--- enrollments에 status='active'로 INSERT될 때 +1, 기존 레코드가 status='cancelled'로 UPDATE될 때 -1을 수행하는 트리거 구현을 권장한다.
-```
+-- 코멘트: enrollment_count는 비정규화된 칼럼으로, 데이터 정합성을 위해 데이터베이스 트리거(Trigger)를 사용하여 관리하는 것을 권장한다. 
+-- enrollments 테이블에 status='active'로 레코드가 INSERT 될 때 +1, status가 'cancelled'로 UPDATE 될 때 -1을 수행하는 트리거를 생성한다.
 ```
 
 ### 5. enrollments - 수강 등록 정보
@@ -257,4 +257,4 @@ CREATE INDEX idx_reports_resolved_by ON reports(resolved_by);
 3. 과제는 'published' 상태일 때만 학습자가 열람/제출 가능
 4. 마감일 후에는 과제 제출이 불가능 (지각 허용 정책에 따라 예외 가능)
 5. 점수는 0~100 범위로 제한
-6. 동일 코스 내 assignments.points_weight 총합은 1.0을 초과할 수 없으며, 과제 생성·수정 API 비즈니스 로직에서 검증한다.
+6. 한 코스에 속한 모든 과제의 `points_weight` 총합은 1.0 (100%)을 초과할 수 없다. 이 제약은 과제를 생성하거나 수정하는 **API의 비즈니스 로직 레벨에서 검증**한다.
