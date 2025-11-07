@@ -69,7 +69,8 @@ export const RoleSelectionForm = () => {
     
     try {
       // 비밀번호 확인은 프론트엔드에서만 검증하고, 백엔드에는 confirmPassword를 제외하고 전달
-      const { confirmPassword, ...signupData } = data;
+      const { confirmPassword, email, password, role, name, phone, termsAgreed } = data;
+      const signupData = { email, password, role, name, phone, termsAgreed };
       const result = await signupMutation.mutateAsync(signupData);
 
       // Redirect based on role
@@ -119,9 +120,9 @@ export const RoleSelectionForm = () => {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4" aria-hidden="true" />
-                    ) : (
                       <Eye className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <EyeOff className="h-4 w-4" aria-hidden="true" />
                     )}
                   </Button>
                 </div>
@@ -155,9 +156,9 @@ export const RoleSelectionForm = () => {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" aria-hidden="true" />
-                    ) : (
                       <Eye className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <EyeOff className="h-4 w-4" aria-hidden="true" />
                     )}
                   </Button>
                 </div>

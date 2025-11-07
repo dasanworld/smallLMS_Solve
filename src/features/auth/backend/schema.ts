@@ -16,10 +16,6 @@ export const signupRequestSchema = z.object({
 export type SignupRequest = z.infer<typeof signupRequestSchema>;
 
 export const signupResponseSchema = z.object({
-  user: z.object({
-    id: z.string(),
-    email: z.string().nullable(),
-  }),
   redirectTo: z.string(),
 });
 

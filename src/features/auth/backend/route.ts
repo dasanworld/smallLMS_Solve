@@ -14,8 +14,7 @@ import {
   signupRequestSchema 
 } from '@/features/auth/backend/schema';
 import { 
-  signupErrorCodes, 
-  type SignupServiceError 
+  signupErrorCodes
 } from '@/features/auth/backend/error';
 import { signupUserService } from './service';
 
@@ -30,7 +29,7 @@ export const registerAuthRoutes = (app: Hono<AppEnv>) => {
         c,
         failure(
           400,
-          signupErrorCodes.validationError,
+          signupErrorCodes.SIGNUP_VALIDATION_ERROR,
           '입력 데이터가 유효하지 않습니다.',
           parsedBody.error.format(),
         ),
@@ -45,14 +44,14 @@ export const registerAuthRoutes = (app: Hono<AppEnv>) => {
     const result = await signupUserService(deps, parsedBody.data);
 
     if (!result.ok) {
-      const errorResult = result as ErrorResult<SignupServiceError, unknown>;
+      const errorResult = result as unknown as ErrorResult<typeof signupErrorCodes[keyof typeof signupErrorCodes], unknown>;
 
       // Log specific errors
-      if (errorResult.error.code === signupErrorCodes.authCreationError) {
+      if (errorResult.error.code === signupErrorCodes.AUTH_CREATION_ERROR) {
         logger.error('Auth creation failed', errorResult.error.message);
-      } else if (errorResult.error.code === signupErrorCodes.profileCreationError) {
+      } else if (errorResult.error.code === signupErrorCodes.PROFILE_CREATION_ERROR) {
         logger.error('Profile creation failed', errorResult.error.message);
-      } else if (errorResult.error.code === signupErrorCodes.termsAgreementError) {
+      } else if (errorResult.error.code === signupErrorCodes.TERMS_AGREEMENT_ERROR) {
         logger.error('Terms agreement recording failed', errorResult.error.message);
       } else {
         logger.error('Signup process failed', errorResult.error.message);

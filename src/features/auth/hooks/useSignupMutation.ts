@@ -10,7 +10,6 @@ import { SignupResponse } from '../lib/dto';
 type SignupVariables = {
   email: string;
   password: string;
-  confirmPassword: string;
   role: 'learner' | 'instructor';
   name: string;
   phone: string;
