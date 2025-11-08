@@ -1,48 +1,81 @@
 "use client";
 
-import Image from "next/image";
+import { LearnerDashboard } from "@/features/dashboard/components/LearnerDashboard";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
+import { apiClient, extractApiErrorMessage } from "@/lib/remote/api-client";
+import { useQuery } from "@tanstack/react-query";
+import { type UserProfileResponse } from "@/features/auth/lib/dto";
 
 type DashboardPageProps = {
   params: Promise<Record<string, never>>;
 };
 
+const fetchUserProfile = async () => {
+  try {
+    const { data } = await apiClient.get('/api/auth/profile');
+    return data;
+  } catch (error) {
+    const message = extractApiErrorMessage(error, 'Failed to fetch user profile.');
+    throw new Error(message);
+  }
+};
+
 export default function DashboardPage({ params }: DashboardPageProps) {
   void params;
-  const { user } = useCurrentUser();
+  const { user, isLoading: isAuthLoading } = useCurrentUser();
+  
+  // Fetch user profile to get the role
+  const { 
+    data: userProfile, 
+    isLoading: isProfileLoading, 
+    isError 
+  } = useQuery<UserProfileResponse>({
+    queryKey: ['user-profile', user?.id],
+    queryFn: () => fetchUserProfile(),
+    enabled: !!user?.id, // Only run if user is authenticated
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  if (isAuthLoading || isProfileLoading) {
+    return (
+      <div className="mx-auto max-w-4xl px-6 py-8">
+        <div className="text-center">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !userProfile) {
+    return (
+      <div className="mx-auto max-w-4xl px-6 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">사용자 정보를 불러올 수 없습니다</h1>
+          <p className="text-slate-500">
+            다시 시도해 주세요.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user is a learner
+  const isLearner = userProfile.role === 'learner';
+
+  if (!isLearner) {
+    return (
+      <div className="mx-auto max-w-4xl px-6 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">접근 권한이 없습니다</h1>
+          <p className="text-slate-500">
+            이 대시보드는 학습자 전용입니다.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-12">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold">대시보드</h1>
-        <p className="text-slate-500">
-          {user?.email ?? "알 수 없는 사용자"} 님, 환영합니다.
-        </p>
-      </header>
-      <div className="overflow-hidden rounded-xl border border-slate-200">
-        <Image
-          alt="대시보드"
-          src="https://picsum.photos/seed/dashboard/960/420"
-          width={960}
-          height={420}
-          className="h-auto w-full object-cover"
-        />
-      </div>
-      <section className="grid gap-4 md:grid-cols-2">
-        <article className="rounded-lg border border-slate-200 p-4">
-          <h2 className="text-lg font-medium">현재 세션</h2>
-          <p className="mt-2 text-sm text-slate-500">
-            Supabase 미들웨어가 세션 쿠키를 자동으로 동기화합니다.
-          </p>
-        </article>
-        <article className="rounded-lg border border-slate-200 p-4">
-          <h2 className="text-lg font-medium">보안 체크</h2>
-          <p className="mt-2 text-sm text-slate-500">
-            보호된 App Router 세그먼트로 라우팅되며, 로그인 사용
-            자만 접근할 수 있습니다.
-          </p>
-        </article>
-      </section>
-    </div>
+    <LearnerDashboard />
   );
 }

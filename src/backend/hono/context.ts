@@ -1,5 +1,6 @@
 import type { Context } from 'hono';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient, User } from '@supabase/supabase-js';
+import { createServiceClient } from '@/backend/supabase/client';
 
 export type AppLogger = Pick<Console, 'info' | 'error' | 'warn' | 'debug'>;
 
@@ -36,3 +37,34 @@ export const getLogger = (c: AppContext) =>
 
 export const getConfig = (c: AppContext) =>
   c.get(contextKeys.config) as AppConfig;
+
+/**
+ * Extract and verify the authenticated user from the request
+ * Tries to get the session token from Authorization header
+ */
+export const getAuthUser = async (c: AppContext): Promise<User | null> => {
+  const config = getConfig(c);
+  const supabase = createServiceClient(config.supabase);
+  
+  // Get token from Authorization header
+  const authHeader = c.req.header('Authorization');
+  let token = null;
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  }
+  
+  if (!token) {
+    return null;
+  }
+  
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error) {
+      return null;
+    }
+    return user;
+  } catch {
+    return null;
+  }
+};
