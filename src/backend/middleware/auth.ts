@@ -65,3 +65,69 @@ export const isAuthenticated = (c: Parameters<Parameters<typeof createMiddleware
 export const getAuthenticatedUser = (c: Parameters<Parameters<typeof createMiddleware>[0]>[0]) => {
   return c.get('user');
 };
+
+/**
+ * Role-based authorization middleware
+ * Verifies that the authenticated user has the required role(s)
+ */
+export const requireRole = (roles: string | string[]) => {
+  return createMiddleware<AppEnv>(async (c, next) => {
+    const user = getAuthenticatedUser(c);
+    
+    if (!user) {
+      return respond(
+        c,
+        failure(
+          401,
+          AUTHENTICATION_ERROR.UNAUTHORIZED,
+          'User must be authenticated to access this resource.',
+        ),
+      );
+    }
+
+    // Get user role from Supabase user metadata or a separate role table
+    // This assumes roles are stored in user's app_metadata or user_profiles table
+    let userRole = user.app_metadata?.role || user.user_metadata?.role;
+    
+    // If role is not in user metadata, fetch from profiles table
+    if (!userRole) {
+      const supabase = getSupabase(c);
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user role:', error.message);
+        return respond(
+          c,
+          failure(
+            403,
+            'INSUFFICIENT_PERMISSIONS',
+            'Could not determine user role.',
+          ),
+        );
+      }
+
+      userRole = profile?.role;
+    }
+
+    // Normalize roles to array
+    const requiredRoles = Array.isArray(roles) ? roles : [roles];
+
+    // Check if user has any of the required roles
+    if (!requiredRoles.includes(userRole)) {
+      return respond(
+        c,
+        failure(
+          403,
+          'INSUFFICIENT_PERMISSIONS',
+          `User does not have required role(s): ${requiredRoles.join(', ')}. Current role: ${userRole}`,
+        ),
+      );
+    }
+
+    await next();
+  });
+};
