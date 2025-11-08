@@ -12,6 +12,10 @@ import {
 import {
   getPublishedCoursesRequestSchema,
   createEnrollmentRequestSchema,
+  createCourseRequestSchema,
+  updateCourseRequestSchema,
+  updateCourseStatusRequestSchema,
+  getInstructorCoursesResponseSchema,
 } from '@/features/course/backend/schema';
 import {
   getPublishedCoursesService,
@@ -20,6 +24,12 @@ import {
   getUserEnrollmentsService,
   checkEnrollmentStatusService,
   getActiveMetadataService,
+  getInstructorCoursesService,
+  createCourseService,
+  getCourseByIdService,
+  updateCourseService,
+  updateCourseStatusService,
+  deleteCourseService,
   courseErrorCodes,
 } from './service';
 
@@ -387,6 +397,514 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
       logger.error('Failed to fetch active metadata', result.error);
       return respond(c, result);
     }
+
+    return respond(c, result);
+  });
+
+  // Get instructor's courses
+  app.get('/api/courses/my', async (c) => {
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+
+    // Get the authorization token from the header
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHENTICATED',
+          'User must be authenticated to view their courses.',
+        ),
+      );
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Use the token to get user info from Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      logger.error('Failed to get user from auth token', error?.message);
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHENTICATED',
+          'Invalid or expired authentication token.',
+        ),
+      );
+    }
+
+    // Build query parameter object manually
+    const queryParams = {
+      search: c.req.query('search') || undefined,
+      status: c.req.query('status') || undefined,
+      category_id: c.req.query('category_id') || undefined,
+      difficulty_id: c.req.query('difficulty_id') || undefined,
+      sort: c.req.query('sort') || undefined,
+      page: c.req.query('page') || undefined,
+      limit: c.req.query('limit') || undefined,
+    };
+
+    const deps = { supabase, logger };
+
+    // Convert string values to appropriate types
+    const filters = {
+      userId: user.id,
+      search: queryParams.search,
+      status: queryParams.status ? queryParams.status as 'draft' | 'published' | 'archived' : undefined,
+      category_id: queryParams.category_id ? Number(queryParams.category_id) : undefined,
+      difficulty_id: queryParams.difficulty_id ? Number(queryParams.difficulty_id) : undefined,
+      sort: queryParams.sort ? (queryParams.sort === 'popular' ? 'popular' : 'newest') : 'newest',
+      page: queryParams.page ? Number(queryParams.page) : 1,
+      limit: queryParams.limit ? Number(queryParams.limit) : 10,
+    };
+
+    const result = await getInstructorCoursesService(deps, filters);
+
+    if (!result.ok) {
+      const errorResult = result as unknown as ErrorResult<typeof courseErrorCodes[keyof typeof courseErrorCodes], unknown>;
+
+      if (errorResult.error.code === courseErrorCodes.COURSES_FETCH_ERROR) {
+        logger.error('Failed to fetch instructor courses', errorResult.error.message);
+      } else {
+        logger.error('Instructor courses request failed', errorResult.error.message);
+      }
+
+      return respond(c, result);
+    }
+
+    return respond(c, result);
+  });
+
+  // Create new course
+  app.post('/api/courses', async (c) => {
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+
+    // Get the authorization token from the header
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHENTICATED',
+          'User must be authenticated to create a course.',
+        ),
+      );
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Use the token to get user info from Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      logger.error('Failed to get user from auth token', error?.message);
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHENTICATED',
+          'Invalid or expired authentication token.',
+        ),
+      );
+    }
+
+    const requestBody = await c.req.json();
+    const parsedBody = createCourseRequestSchema.safeParse(requestBody);
+
+    if (!parsedBody.success) {
+      return respond(
+        c,
+        failure(
+          400,
+          'INVALID_COURSE_REQUEST',
+          'Invalid course data provided.',
+          parsedBody.error.format(),
+        ),
+      );
+    }
+
+    const deps = { supabase, logger };
+
+    const result = await createCourseService(deps, {
+      userId: user.id,
+      title: parsedBody.data.title,
+      description: parsedBody.data.description,
+      category_id: parsedBody.data.category_id,
+      difficulty_id: parsedBody.data.difficulty_id,
+    });
+
+    if (!result.ok) {
+      const errorResult = result as unknown as ErrorResult<typeof courseErrorCodes[keyof typeof courseErrorCodes], unknown>;
+
+      if (errorResult.error.code === courseErrorCodes.COURSE_TITLE_DUPLICATE) {
+        logger.info('Course title duplicate', errorResult.error.message);
+      } else if (errorResult.error.code === courseErrorCodes.COURSE_CREATION_ERROR) {
+        logger.error('Course creation failed', errorResult.error.message);
+      } else {
+        logger.error('Course creation request failed', errorResult.error.message);
+      }
+
+      return respond(c, result);
+    }
+
+    logger.info('Course created successfully', {
+      userId: user.id,
+      courseId: result.data.id,
+    });
+
+    return respond(c, result);
+  });
+
+  // Get specific course details
+  app.get('/api/courses/:id', async (c) => {
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+
+    // Get the authorization token from the header
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHENTICATED',
+          'User must be authenticated to view course details.',
+        ),
+      );
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Use the token to get user info from Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      logger.error('Failed to get user from auth token', error?.message);
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHENTICATED',
+          'Invalid or expired authentication token.',
+        ),
+      );
+    }
+
+    const courseId = c.req.param('id');
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(courseId)) {
+      return respond(
+        c,
+        failure(
+          400,
+          'INVALID_COURSE_ID',
+          'Invalid course ID format.',
+        ),
+      );
+    }
+
+    const deps = { supabase, logger };
+
+    const result = await getCourseByIdService(deps, {
+      courseId,
+      userId: user.id,
+    });
+
+    if (!result.ok) {
+      const errorResult = result as unknown as ErrorResult<typeof courseErrorCodes[keyof typeof courseErrorCodes], unknown>;
+
+      if (errorResult.error.code === courseErrorCodes.COURSE_NOT_FOUND) {
+        logger.info('Course not found', errorResult.error.message);
+      } else {
+        logger.error('Course details request failed', errorResult.error.message);
+      }
+
+      return respond(c, result);
+    }
+
+    return respond(c, result);
+  });
+
+  // Update course details
+  app.put('/api/courses/:id', async (c) => {
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+
+    // Get the authorization token from the header
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHENTICATED',
+          'User must be authenticated to update a course.',
+        ),
+      );
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Use the token to get user info from Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      logger.error('Failed to get user from auth token', error?.message);
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHENTICATED',
+          'Invalid or expired authentication token.',
+        ),
+      );
+    }
+
+    const courseId = c.req.param('id');
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(courseId)) {
+      return respond(
+        c,
+        failure(
+          400,
+          'INVALID_COURSE_ID',
+          'Invalid course ID format.',
+        ),
+      );
+    }
+
+    const requestBody = await c.req.json();
+    const parsedBody = updateCourseRequestSchema.safeParse(requestBody);
+
+    if (!parsedBody.success) {
+      return respond(
+        c,
+        failure(
+          400,
+          'INVALID_COURSE_UPDATE_REQUEST',
+          'Invalid course update data provided.',
+          parsedBody.error.format(),
+        ),
+      );
+    }
+
+    const deps = { supabase, logger };
+
+    const result = await updateCourseService(deps, {
+      courseId,
+      userId: user.id,
+      title: parsedBody.data.title,
+      description: parsedBody.data.description,
+      category_id: parsedBody.data.category_id,
+      difficulty_id: parsedBody.data.difficulty_id,
+    });
+
+    if (!result.ok) {
+      const errorResult = result as unknown as ErrorResult<typeof courseErrorCodes[keyof typeof courseErrorCodes], unknown>;
+
+      if (errorResult.error.code === courseErrorCodes.COURSE_NOT_FOUND) {
+        logger.info('Course not found for update', errorResult.error.message);
+      } else if (errorResult.error.code === courseErrorCodes.COURSE_TITLE_DUPLICATE) {
+        logger.info('Course title duplicate during update', errorResult.error.message);
+      } else if (errorResult.error.code === courseErrorCodes.COURSE_UPDATE_ERROR) {
+        logger.error('Course update failed', errorResult.error.message);
+      } else {
+        logger.error('Course update request failed', errorResult.error.message);
+      }
+
+      return respond(c, result);
+    }
+
+    logger.info('Course updated successfully', {
+      userId: user.id,
+      courseId,
+    });
+
+    return respond(c, result);
+  });
+
+  // Update course status
+  app.patch('/api/courses/:id/status', async (c) => {
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+
+    // Get the authorization token from the header
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHENTICATED',
+          'User must be authenticated to update course status.',
+        ),
+      );
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Use the token to get user info from Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      logger.error('Failed to get user from auth token', error?.message);
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHENTICATED',
+          'Invalid or expired authentication token.',
+        ),
+      );
+    }
+
+    const courseId = c.req.param('id');
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(courseId)) {
+      return respond(
+        c,
+        failure(
+          400,
+          'INVALID_COURSE_ID',
+          'Invalid course ID format.',
+        ),
+      );
+    }
+
+    const requestBody = await c.req.json();
+    const parsedBody = updateCourseStatusRequestSchema.safeParse(requestBody);
+
+    if (!parsedBody.success) {
+      return respond(
+        c,
+        failure(
+          400,
+          'INVALID_COURSE_STATUS_UPDATE_REQUEST',
+          'Invalid course status update data provided.',
+          parsedBody.error.format(),
+        ),
+      );
+    }
+
+    const deps = { supabase, logger };
+
+    const result = await updateCourseStatusService(deps, {
+      courseId,
+      userId: user.id,
+      status: parsedBody.data.status,
+    });
+
+    if (!result.ok) {
+      const errorResult = result as unknown as ErrorResult<typeof courseErrorCodes[keyof typeof courseErrorCodes], unknown>;
+
+      if (errorResult.error.code === courseErrorCodes.COURSE_NOT_FOUND) {
+        logger.info('Course not found for status update', errorResult.error.message);
+      } else if (errorResult.error.code === courseErrorCodes.COURSE_STATUS_CHANGE_ERROR) {
+        logger.info('Course status change not allowed', errorResult.error.message);
+      } else {
+        logger.error('Course status update request failed', errorResult.error.message);
+      }
+
+      return respond(c, result);
+    }
+
+    logger.info('Course status updated successfully', {
+      userId: user.id,
+      courseId,
+      status: parsedBody.data.status,
+    });
+
+    return respond(c, result);
+  });
+
+  // Delete course (soft delete)
+  app.delete('/api/courses/:id', async (c) => {
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+
+    // Get the authorization token from the header
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHENTICATED',
+          'User must be authenticated to delete a course.',
+        ),
+      );
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Use the token to get user info from Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      logger.error('Failed to get user from auth token', error?.message);
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHENTICATED',
+          'Invalid or expired authentication token.',
+        ),
+      );
+    }
+
+    const courseId = c.req.param('id');
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(courseId)) {
+      return respond(
+        c,
+        failure(
+          400,
+          'INVALID_COURSE_ID',
+          'Invalid course ID format.',
+        ),
+      );
+    }
+
+    const deps = { supabase, logger };
+
+    const result = await deleteCourseService(deps, {
+      courseId,
+      userId: user.id,
+    });
+
+    if (!result.ok) {
+      const errorResult = result as unknown as ErrorResult<typeof courseErrorCodes[keyof typeof courseErrorCodes], unknown>;
+
+      if (errorResult.error.code === courseErrorCodes.COURSE_NOT_FOUND) {
+        logger.info('Course not found for deletion', errorResult.error.message);
+      } else if (errorResult.error.code === courseErrorCodes.COURSE_HAS_ACTIVE_ENROLLMENTS) {
+        logger.info('Attempted to delete course with active enrollments', errorResult.error.message);
+      } else if (errorResult.error.code === courseErrorCodes.COURSE_DELETE_ERROR) {
+        logger.error('Course deletion failed', errorResult.error.message);
+      } else {
+        logger.error('Course deletion request failed', errorResult.error.message);
+      }
+
+      return respond(c, result);
+    }
+
+    logger.info('Course deleted successfully', {
+      userId: user.id,
+      courseId,
+    });
 
     return respond(c, result);
   });
