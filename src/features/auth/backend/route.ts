@@ -1,5 +1,5 @@
 import type { Hono } from 'hono';
-import { 
+import {
   failure,
   respond,
   type ErrorResult,
@@ -9,14 +9,15 @@ import {
   getSupabase,
   type AppEnv,
 } from '@/backend/hono/context';
-import { 
+import {
   SignupRequest,
-  signupRequestSchema 
+  signupRequestSchema
 } from '@/features/auth/backend/schema';
-import { 
+import {
   signupErrorCodes
 } from '@/features/auth/backend/error';
 import { signupUserService } from './service';
+import { getUserProfileService } from './profile-service';
 
 export const registerAuthRoutes = (app: Hono<AppEnv>) => {
   app.post('/api/auth/signup', async (c) => {
@@ -38,7 +39,7 @@ export const registerAuthRoutes = (app: Hono<AppEnv>) => {
 
     const supabase = getSupabase(c);
     const logger = getLogger(c);
-    
+
     const deps = { supabase, logger };
 
     const result = await signupUserService(deps, parsedBody.data);
@@ -60,10 +61,55 @@ export const registerAuthRoutes = (app: Hono<AppEnv>) => {
       return respond(c, result);
     }
 
-    logger.info('User signup completed successfully', { 
+    logger.info('User signup completed successfully', {
       email: parsedBody.data.email,
       role: parsedBody.data.role
     });
+
+    return respond(c, result);
+  });
+
+  // GET /api/auth/profile - Get authenticated user's profile
+  app.get('/api/auth/profile', async (c) => {
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+
+    // Get the authorization token from the header
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHORIZED',
+          'Authorization header missing or invalid.',
+        ),
+      );
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Use the token to get user info from Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      logger.error('Failed to get user from auth token', error?.message);
+      return respond(
+        c,
+        failure(
+          401,
+          'UNAUTHORIZED',
+          'Invalid or expired authentication token.',
+        ),
+      );
+    }
+
+    const result = await getUserProfileService(supabase, user.id);
+
+    if (!result.ok) {
+      logger.error('Failed to fetch user profile', (result as any).error.message);
+      return respond(c, result);
+    }
 
     return respond(c, result);
   });
