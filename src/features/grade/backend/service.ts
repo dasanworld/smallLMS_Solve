@@ -215,3 +215,394 @@ export const getLearnerGradesService = async (
     );
   }
 };
+
+/**
+ * Grade a submission with score and feedback
+ * @param client Supabase client
+ * @param instructorId ID of the authenticated instructor
+ * @param submissionId ID of the submission to grade
+ * @param score Score to assign (0-100)
+ * @param feedback Feedback text for the learner
+ * @param action Action to take ('grade' or 'resubmission_required')
+ * @returns Updated submission data
+ */
+export const gradeSubmissionService = async (
+  client: SupabaseClient,
+  instructorId: string,
+  submissionId: string,
+  score: number,
+  feedback: string,
+  action: 'grade' | 'resubmission_required'
+): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionGradingSchema>, GradeServiceError, unknown>> => {
+  try {
+    // Validate score range
+    if (score < 0 || score > 100) {
+      return failure(400, gradeErrorCodes.INVALID_SCORE_RANGE, 'Score must be between 0 and 100');
+    }
+
+    // Validate feedback is provided when grading
+    if (action === 'grade' && (!feedback || feedback.trim().length === 0)) {
+      return failure(400, gradeErrorCodes.MISSING_FEEDBACK, 'Feedback is required when grading');
+    }
+
+    // Get submission with assignment and course details to check permissions
+    const { data: submission, error: submissionError } = await client
+      .from(SUBMISSIONS_TABLE)
+      .select(`
+        id,
+        assignment_id,
+        user_id,
+        content,
+        link,
+        submitted_at,
+        is_late,
+        score,
+        feedback,
+        status,
+        assignments!inner(
+          course_id,
+          courses!inner(instructor_id)
+        )
+      `)
+      .eq('id', submissionId)
+      .single();
+
+    if (submissionError || !submission) {
+      return failure(404, gradeErrorCodes.SUBMISSION_NOT_FOUND, 'Submission not found');
+    }
+
+    // Check if instructor has permission to grade this submission
+    if (submission.assignments.courses.instructor_id !== instructorId) {
+      return failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions to grade this submission');
+    }
+
+    // Check if submission is already graded
+    if (submission.status === 'graded') {
+      return failure(400, gradeErrorCodes.SUBMISSION_ALREADY_GRADED, 'Submission is already graded');
+    }
+
+    // Prepare update data based on action
+    let updateData: any = {
+      feedback: feedback || null,
+    };
+
+    if (action === 'grade') {
+      updateData.score = score;
+      updateData.status = 'graded';
+      updateData.graded_at = new Date().toISOString();
+    } else if (action === 'resubmission_required') {
+      updateData.status = 'resubmission_required';
+      updateData.score = null;
+      updateData.graded_at = null;
+    }
+
+    // Update the submission
+    const { data: updatedSubmission, error: updateError } = await client
+      .from(SUBMISSIONS_TABLE)
+      .update(updateData)
+      .eq('id', submissionId)
+      .select(`
+        id,
+        assignment_id,
+        user_id,
+        content,
+        link,
+        submitted_at,
+        is_late,
+        score,
+        feedback,
+        status
+      `)
+      .single();
+
+    if (updateError) {
+      return failure(500, gradeErrorCodes.GRADES_FETCH_ERROR, 'Failed to update submission', updateError.message);
+    }
+
+    // Get user information
+    const { data: user, error: userError } = await client
+      .from(USERS_TABLE)
+      .select('name')
+      .eq('id', submission.user_id)
+      .single();
+
+    if (userError) {
+      return failure(500, gradeErrorCodes.GRADES_FETCH_ERROR, 'Failed to fetch user information', userError.message);
+    }
+
+    // Get assignment and course information
+    const { data: assignment, error: assignmentError } = await client
+      .from(ASSIGNMENTS_TABLE)
+      .select('title')
+      .eq('id', submission.assignment_id)
+      .single();
+
+    if (assignmentError) {
+      return failure(500, gradeErrorCodes.ASSIGNMENT_NOT_FOUND, 'Failed to fetch assignment information', assignmentError.message);
+    }
+
+    const { data: course, error: courseError } = await client
+      .from(COURSES_TABLE)
+      .select('title')
+      .eq('id', submission.assignments.course_id)
+      .single();
+
+    if (courseError) {
+      return failure(500, gradeErrorCodes.GRADES_FETCH_ERROR, 'Failed to fetch course information', courseError.message);
+    }
+
+    // Construct the response data
+    const responseData = {
+      id: updatedSubmission.id,
+      assignment_id: updatedSubmission.assignment_id,
+      user_id: updatedSubmission.user_id,
+      user_name: user.name || 'Unknown User',
+      content: submission.content,
+      link: submission.link,
+      submitted_at: submission.submitted_at,
+      is_late: submission.is_late,
+      score: updatedSubmission.score,
+      feedback: updatedSubmission.feedback,
+      status: updatedSubmission.status as 'submitted' | 'graded' | 'resubmission_required',
+      assignment_title: assignment.title,
+      course_title: course.title,
+    };
+
+    // Validate response data using the schema from the schema file
+    const { SubmissionGradingSchema } = await import('@/features/grade/backend/schema');
+    const parsed = SubmissionGradingSchema.safeParse(responseData);
+    if (!parsed.success) {
+      return failure(
+        500,
+        gradeErrorCodes.GRADES_VALIDATION_ERROR,
+        'Submission response failed validation.',
+        parsed.error.format(),
+      );
+    }
+
+    return success(parsed.data);
+  } catch (error) {
+    console.error('Error in gradeSubmissionService:', error);
+    return failure(
+      500,
+      gradeErrorCodes.GRADES_FETCH_ERROR,
+      error instanceof Error ? error.message : 'An unknown error occurred',
+    );
+  }
+};
+
+/**
+ * Get submission details for grading
+ * @param client Supabase client
+ * @param instructorId ID of the authenticated instructor
+ * @param submissionId ID of the submission to retrieve
+ * @returns Submission data for grading
+ */
+export const getSubmissionForGradingService = async (
+  client: SupabaseClient,
+  instructorId: string,
+  submissionId: string
+): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionGradingSchema>, GradeServiceError, unknown>> => {
+  try {
+    // Get submission with assignment and course details to check permissions
+    const { data: submission, error: submissionError } = await client
+      .from(SUBMISSIONS_TABLE)
+      .select(`
+        id,
+        assignment_id,
+        user_id,
+        content,
+        link,
+        submitted_at,
+        is_late,
+        score,
+        feedback,
+        status,
+        assignments!inner(
+          title,
+          course_id,
+          courses!inner(
+            title,
+            instructor_id
+          )
+        )
+      `)
+      .eq('id', submissionId)
+      .single();
+
+    if (submissionError || !submission) {
+      return failure(404, gradeErrorCodes.SUBMISSION_NOT_FOUND, 'Submission not found');
+    }
+
+    // Check if instructor has permission to view this submission
+    if (submission.assignments.courses.instructor_id !== instructorId) {
+      return failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions to view this submission');
+    }
+
+    // Get user information
+    const { data: user, error: userError } = await client
+      .from(USERS_TABLE)
+      .select('name')
+      .eq('id', submission.user_id)
+      .single();
+
+    if (userError) {
+      return failure(500, gradeErrorCodes.GRADES_FETCH_ERROR, 'Failed to fetch user information', userError.message);
+    }
+
+    // Construct the response data
+    const responseData = {
+      id: submission.id,
+      assignment_id: submission.assignment_id,
+      user_id: submission.user_id,
+      user_name: user.name || 'Unknown User',
+      content: submission.content,
+      link: submission.link,
+      submitted_at: submission.submitted_at,
+      is_late: submission.is_late,
+      score: submission.score,
+      feedback: submission.feedback,
+      status: submission.status as 'submitted' | 'graded' | 'resubmission_required',
+      assignment_title: submission.assignments.title,
+      course_title: submission.assignments.courses.title,
+    };
+
+    // Validate response data using the schema from the schema file
+    const { SubmissionGradingSchema } = await import('@/features/grade/backend/schema');
+    const parsed = SubmissionGradingSchema.safeParse(responseData);
+    if (!parsed.success) {
+      return failure(
+        500,
+        gradeErrorCodes.GRADES_VALIDATION_ERROR,
+        'Submission response failed validation.',
+        parsed.error.format(),
+      );
+    }
+
+    return success(parsed.data);
+  } catch (error) {
+    console.error('Error in getSubmissionForGradingService:', error);
+    return failure(
+      500,
+      gradeErrorCodes.GRADES_FETCH_ERROR,
+      error instanceof Error ? error.message : 'An unknown error occurred',
+    );
+  }
+};
+
+/**
+ * Get submissions list for assignment
+ * @param client Supabase client
+ * @param instructorId ID of the authenticated instructor
+ * @param assignmentId ID of the assignment to retrieve submissions for
+ * @returns List of submissions for the assignment
+ */
+export const getAssignmentSubmissionsService = async (
+  client: SupabaseClient,
+  instructorId: string,
+  assignmentId: string
+): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionsListSchema>, GradeServiceError, unknown>> => {
+  try {
+    // Get assignment with course details to check permissions
+    const { data: assignment, error: assignmentError } = await client
+      .from(ASSIGNMENTS_TABLE)
+      .select(`
+        id,
+        title,
+        course_id,
+        courses!inner(
+          title,
+          instructor_id
+        )
+      `)
+      .eq('id', assignmentId)
+      .single();
+
+    if (assignmentError || !assignment) {
+      return failure(404, gradeErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found');
+    }
+
+    // Check if instructor has permission to view submissions for this assignment
+    if (assignment.courses.instructor_id !== instructorId) {
+      return failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions to view submissions for this assignment');
+    }
+
+    // Get all submissions for the assignment
+    const { data: submissions, error: submissionsError } = await client
+      .from(SUBMISSIONS_TABLE)
+      .select(`
+        id,
+        assignment_id,
+        user_id,
+        content,
+        link,
+        submitted_at,
+        is_late,
+        score,
+        feedback,
+        status
+      `)
+      .eq('assignment_id', assignmentId)
+      .order('submitted_at', { ascending: false });
+
+    if (submissionsError) {
+      return failure(500, gradeErrorCodes.GRADES_FETCH_ERROR, 'Failed to fetch submissions', submissionsError.message);
+    }
+
+    // Get user information for each submission
+    const userIds = submissions.map(sub => sub.user_id);
+    let users = [];
+    if (userIds.length > 0) {
+      const { data: userData, error: userError } = await client
+        .from(USERS_TABLE)
+        .select('id, name')
+        .in('id', userIds);
+
+      if (userError) {
+        return failure(500, gradeErrorCodes.GRADES_FETCH_ERROR, 'Failed to fetch user information', userError.message);
+      }
+      users = userData || [];
+    }
+
+    // Create user map for quick lookup
+    const userMap = new Map(users.map(user => [user.id, user.name]));
+
+    // Construct the response data
+    const responseData = submissions.map(submission => ({
+      id: submission.id,
+      assignment_id: submission.assignment_id,
+      user_id: submission.user_id,
+      user_name: userMap.get(submission.user_id) || 'Unknown User',
+      content: submission.content,
+      link: submission.link,
+      submitted_at: submission.submitted_at,
+      is_late: submission.is_late,
+      score: submission.score,
+      feedback: submission.feedback,
+      status: submission.status as 'submitted' | 'graded' | 'resubmission_required',
+      assignment_title: assignment.title,
+      course_title: assignment.courses.title,
+    }));
+
+    // Validate response data using the schema from the schema file
+    const { SubmissionsListSchema } = await import('@/features/grade/backend/schema');
+    const parsed = SubmissionsListSchema.safeParse(responseData);
+    if (!parsed.success) {
+      return failure(
+        500,
+        gradeErrorCodes.GRADES_VALIDATION_ERROR,
+        'Submissions list response failed validation.',
+        parsed.error.format(),
+      );
+    }
+
+    return success(parsed.data);
+  } catch (error) {
+    console.error('Error in getAssignmentSubmissionsService:', error);
+    return failure(
+      500,
+      gradeErrorCodes.GRADES_FETCH_ERROR,
+      error instanceof Error ? error.message : 'An unknown error occurred',
+    );
+  }
+};

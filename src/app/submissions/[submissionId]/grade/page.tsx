@@ -2,10 +2,11 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { GradeSubmissionForm } from "../components/grade-submission-form";
+import { GradeSubmissionForm } from "@/features/grade/components/grade-submission-form";
+import { SubmissionDetails } from "@/features/grade/components/submission-details";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -16,11 +17,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ReloadIcon } from "@radix-ui/react-icons";
+import { SubmissionGradingData } from "@/features/grade/types";
 
 export default function GradeSubmissionPage() {
   const { submissionId } = useParams();
   const router = useRouter();
-  const [submission, setSubmission] = useState<any>(null);
+  const [submission, setSubmission] = useState<SubmissionGradingData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,14 +37,14 @@ export default function GradeSubmissionPage() {
     const fetchSubmission = async () => {
       try {
         const response = await fetch(`/api/submissions/${submissionIdString}`);
-        
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error?.message || "Failed to fetch submission");
         }
-        
+
         const data = await response.json();
-        setSubmission(data.submission);
+        setSubmission(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
@@ -84,7 +86,7 @@ export default function GradeSubmissionPage() {
     setShowGradeAlert(false);
     // Redirect to the assignment submissions page after successful grading
     if (submission) {
-      router.push(`/courses/${submission.assignment.course_id}/assignments/${submission.assignment_id}/submissions`);
+      router.push(`/courses/${submission.assignment_id}/assignments/${submission.assignment_id}/submissions`);
       router.refresh();
     }
   };
@@ -109,9 +111,9 @@ export default function GradeSubmissionPage() {
       <div className="container mx-auto py-10">
         <div className="p-4 bg-destructive/10 border border-destructive text-destructive p-4 rounded-md">
           <p>Error: {error}</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="mt-2"
             onClick={() => router.back()}
           >
@@ -128,48 +130,61 @@ export default function GradeSubmissionPage() {
 
   return (
     <div className="container mx-auto py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>Grade Submission: {submission.user_id}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <div className="mb-4 p-3 bg-destructive/10 text-destructive rounded-md">
-              {error}
-            </div>
-          )}
-          
-          <div className="mb-6 p-4 bg-muted rounded-md">
-            <h3 className="font-semibold mb-2">Submission Content</h3>
-            <p className="whitespace-pre-wrap">{submission.content}</p>
-          </div>
-          
-          <GradeSubmissionForm 
-            submissionId={submissionIdString} 
-            initialGrade={submission.grade}
-            initialFeedback={submission.feedback}
-            onSubmit={handleSubmit} 
-            isSubmitting={isSubmitting}
-            submitButtonText={isSubmitting ? "Grading..." : "Submit Grade"}
-          />
-          <div className="mt-4 flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => router.back()}
-            >
-              Cancel
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Grade Submission</h1>
+        <p className="text-muted-foreground">
+          Assignment: {submission.assignment_title} | Course: {submission.course_title}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <SubmissionDetails submission={submission} />
+        </div>
+        
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Grade Submission</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {error && (
+                <div className="mb-4 p-3 bg-destructive/10 text-destructive rounded-md">
+                  {error}
+                </div>
+              )}
+
+              <GradeSubmissionForm
+                submissionId={submissionIdString}
+                initialScore={submission.score}
+                initialFeedback={submission.feedback || undefined}
+                initialStatus={submission.status}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+              />
+              <div className="mt-4 flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => router.back()}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       <AlertDialog open={showGradeAlert} onOpenChange={setShowGradeAlert}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Grade Submitted</AlertDialogTitle>
+            <AlertDialogTitle>
+              {submission.status === 'resubmission_required' ? 'Resubmission Requested' : 'Grade Submitted'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              The submission has been successfully graded with a score of {submission.grade}%. 
-              The student will be notified of the grade.
+              {submission.status === 'resubmission_required' 
+                ? "The student has been notified to resubmit their assignment." 
+                : `The submission has been successfully graded with a score of ${submission.score}%. The student will be notified of the grade.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

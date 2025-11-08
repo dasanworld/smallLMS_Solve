@@ -38,3 +38,30 @@ export const GetGradesRequestSchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
   courseId: z.string().optional()
 });
+
+// Request schema for grading
+export const GradeSubmissionRequestSchema = z.object({
+  score: z.number().min(0).max(100),
+  feedback: z.string().min(1).max(1000),
+  action: z.enum(['grade', 'resubmission_required'])
+});
+
+// Response schema for submission details
+export const SubmissionGradingSchema = z.object({
+  id: z.string(),
+  assignment_id: z.string(),
+  user_id: z.string(),
+  user_name: z.string(),
+  content: z.string(),
+  link: z.string().nullable(),
+  submitted_at: z.string(),
+  is_late: z.boolean(),
+  score: z.number().nullable(),
+  feedback: z.string().nullable(),
+  status: z.enum(['submitted', 'graded', 'resubmission_required']),
+  assignment_title: z.string(),
+  course_title: z.string()
+});
+
+// Response schema for submissions list
+export const SubmissionsListSchema = z.array(SubmissionGradingSchema);
