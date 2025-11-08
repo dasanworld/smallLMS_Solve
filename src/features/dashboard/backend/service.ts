@@ -45,7 +45,7 @@ export const getLearnerDashboardService = async (
   client: SupabaseClient,
   userId: string,
 ): Promise<HandlerResult<LearnerDashboardResponse, DashboardServiceError, unknown>> => {
-  // Get enrolled active courses
+  // Get enrolled active courses (소프트 삭제 필터 추가)
   const { data: enrollments, error: enrollmentsError } = await client
     .from(ENROLLMENTS_TABLE)
     .select('id, course_id')
@@ -74,22 +74,24 @@ export const getLearnerDashboardService = async (
   const recentFeedback: any[] = [];
 
   if (courseIds.length > 0) {
-    // Get course details
+    // Get course details (소프트 삭제 필터 추가)
     const { data: courses, error: coursesError } = await client
       .from(COURSES_TABLE)
       .select('id, title, status')
-      .in('id', courseIds);
+      .in('id', courseIds)
+      .is('deleted_at', null); // 소프트 삭제된 코스 제외
 
     if (coursesError) {
       return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch courses', coursesError.message);
     }
 
-    // Get all assignments for enrolled courses that are published
+    // Get all assignments for enrolled courses that are published (소프트 삭제 필터 추가)
     const { data: assignments, error: assignmentsError } = await client
       .from(ASSIGNMENTS_TABLE)
       .select('id, title, course_id, due_date, status')
       .in('course_id', courseIds)
-      .eq('status', 'published');
+      .eq('status', 'published')
+      .is('deleted_at', null); // 소프트 삭제된 과제 제외
 
     if (assignmentsError) {
       return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignments', assignmentsError.message);
@@ -106,21 +108,23 @@ export const getLearnerDashboardService = async (
       return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch submissions', submissionsError.message);
     }
 
-    // Fetch course details for assignments
+    // Fetch course details for assignments (소프트 삭제 필터 추가)
     const { data: assignmentCourses, error: assignmentCoursesError } = await client
       .from(COURSES_TABLE)
       .select('id, title')
-      .in('id', assignments?.map(a => a.course_id) || []);
+      .in('id', assignments?.map(a => a.course_id) || [])
+      .is('deleted_at', null); // 소프트 삭제된 코스 제외
 
     if (assignmentCoursesError) {
       return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignment course details', assignmentCoursesError.message);
     }
 
-    // Fetch course details for assignment submissions
+    // Fetch course details for assignment submissions (소프트 삭제 필터 추가)
     const { data: submissionAssignmentDetails, error: submissionAssignmentError } = await client
       .from(ASSIGNMENTS_TABLE)
       .select('id, title, course_id')
-      .in('id', submissions?.map(s => s.assignment_id) || []);
+      .in('id', submissions?.map(s => s.assignment_id) || [])
+      .is('deleted_at', null); // 소프트 삭제된 과제 제외
 
     if (submissionAssignmentError) {
       return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignment details for submissions', submissionAssignmentError.message);
@@ -129,7 +133,8 @@ export const getLearnerDashboardService = async (
     const { data: submissionAssignmentCourses, error: submissionAssignmentCourseError } = await client
       .from(COURSES_TABLE)
       .select('id, title')
-      .in('id', submissionAssignmentDetails?.map(a => a.course_id) || []);
+      .in('id', submissionAssignmentDetails?.map(a => a.course_id) || [])
+      .is('deleted_at', null); // 소프트 삭제된 코스 제외
 
     if (submissionAssignmentCourseError) {
       return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch courses for submission assignments', submissionAssignmentCourseError.message);

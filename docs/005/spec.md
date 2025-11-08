@@ -60,11 +60,19 @@ Learner clicks the submit button after filling in assignment content
 - Text field is mandatory for all submissions
 
 ## Error Conditions
-- Assignment closed for submissions → Display deadline error
-- Late submission not allowed → Display policy violation error
-- Invalid input format → Display validation error
-- Not enrolled in course → Display access error
-- System failure → Display system error message
+- Assignment closed for submissions → Display deadline error (400, `ASSIGNMENT_CLOSED`)
+- Late submission not allowed → Display policy violation error (400, `SUBMISSION_PAST_DUE_DATE`)
+- Invalid input format → Display validation error (400, `INVALID_INPUT`)
+- Not enrolled in course → Display access error (403, `INSUFFICIENT_PERMISSIONS`)
+- Not authenticated → Redirect to login (401, `UNAUTHORIZED`)
+- System failure → Display system error message (500, `INTERNAL_SERVER_ERROR`)
+
+## API Requirements
+- **Authentication**: Requires valid Supabase session token in `Authorization: Bearer <token>` header
+- **Authorization**: User must be enrolled in the course and have learner role
+- **Input Validation**: Zod schema validation for text (required) and link (optional URL format)
+- **Transaction**: Resubmission updates existing record within transaction
+- **Response Format**: Standard success/failure format with submission ID and status
 
 ## UI Elements
 - Text input field (required)

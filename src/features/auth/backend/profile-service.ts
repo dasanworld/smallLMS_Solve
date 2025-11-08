@@ -42,6 +42,7 @@ export const getUserProfileService = async (
     .from('users')
     .select('id, email, role, name, phone, created_at, updated_at')
     .eq('id', userId)
+    .is('deleted_at', null) // 소프트 삭제된 사용자 제외
     .single();
 
   if (error) {

@@ -19,6 +19,7 @@ import {
   cancelEnrollmentService,
   getUserEnrollmentsService,
   checkEnrollmentStatusService,
+  getActiveMetadataService,
   courseErrorCodes,
 } from './service';
 
@@ -368,6 +369,24 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
       userId: user.id,
       enrollmentId,
     });
+
+    return respond(c, result);
+  });
+
+  // Get active metadata (categories and difficulties)
+  // 활성화된 메타데이터 조회 (인증 불필요, 공개 API)
+  app.get('/api/metadata/active', async (c) => {
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+
+    const deps = { supabase, logger };
+
+    const result = await getActiveMetadataService(deps);
+
+    if (!result.ok) {
+      logger.error('Failed to fetch active metadata', result.error);
+      return respond(c, result);
+    }
 
     return respond(c, result);
   });

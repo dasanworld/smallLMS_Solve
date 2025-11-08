@@ -53,11 +53,18 @@ Learner accesses the grades page
 - Ungraded assignments show as "Pending" or "Not Graded"
 
 ## Error Conditions
-- No authentication → Redirect to login
-- Invalid user role → Access denied
-- No submissions found → Display "No assignments submitted"
-- System failure → Display system error message
-- Database unavailable → Display appropriate error message
+- No authentication → Redirect to login (401, `UNAUTHORIZED`)
+- Invalid user role → Access denied (403, `INSUFFICIENT_PERMISSIONS`)
+- No submissions found → Display "No assignments submitted" (200, empty array)
+- System failure → Display system error message (500, `INTERNAL_SERVER_ERROR`)
+- Database unavailable → Display appropriate error message (500, `DATABASE_ERROR`)
+
+## API Requirements
+- **Authentication**: Requires valid Supabase session token in `Authorization: Bearer <token>` header
+- **Authorization**: User must have learner role and can only view own submissions
+- **Pagination**: Support limit/offset for courses with many assignments (see `docs/api-policy.md`)
+- **Filtering**: Query must include `WHERE deleted_at IS NULL` for courses and assignments
+- **Response Format**: Standard success format with grades array and course totals
 
 ## UI Elements
 - Course list with grade summaries

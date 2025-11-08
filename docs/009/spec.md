@@ -65,8 +65,13 @@ Instructor accesses assignment management section
 - Late submission policy is fixed once assignment is published
 - Resubmission policy is fixed once assignment is published
 - Assignment scores must be within valid range
-- Weight percentages must add up to 100% for all assignments in a course
-- Server scheduler automatically closes past-deadline assignments daily
+- **Weight percentages validation**: 
+  * Assignment creation/update API executes within a database transaction
+  * Before commit, calculates sum of `points_weight` for all assignments in the course (WHERE deleted_at IS NULL)
+  * If sum exceeds 1.0 (100%), transaction is rolled back with error code `ASSIGNMENT_WEIGHT_EXCEEDED`
+  * This prevents invalid weight distribution at the database level
+- Server scheduler automatically closes past-deadline assignments daily at midnight UTC
+- Assignment deletion uses soft delete (`deleted_at`) to preserve submission history
 
 ## Error Conditions
 - Not authenticated → Redirect to login

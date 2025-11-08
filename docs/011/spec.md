@@ -68,13 +68,21 @@ Instructor changes assignment status from draft to published or manually closes 
 - Assignment status changes are reflected immediately across the system
 
 ## Error Conditions
-- Not authenticated → Redirect to login
-- Not course owner → Access denied
-- Invalid status transition → Display error message
-- Missing required fields → Display validation errors
-- System failure → Display system error message
-- Database unavailable → Display appropriate error message
-- Attempting to publish assignment with past deadline → Display warning
+- Not authenticated → Redirect to login (401, `UNAUTHORIZED`)
+- Not course owner → Access denied (403, `INSUFFICIENT_PERMISSIONS`)
+- Invalid status transition → Display error message (400, `INVALID_STATUS_TRANSITION`)
+- Missing required fields → Display validation errors (400, `MISSING_REQUIRED_FIELD`)
+- Attempting to publish assignment with past deadline → Display warning (400, `INVALID_DEADLINE`)
+- System failure → Display system error message (500, `INTERNAL_SERVER_ERROR`)
+- Database unavailable → Display appropriate error message (500, `DATABASE_ERROR`)
+
+## API Requirements
+- **Authentication**: Requires valid Supabase session token in `Authorization: Bearer <token>` header
+- **Authorization**: User must be instructor and own the course (`requireRole(['instructor'])` + ownership check)
+- **Status Validation**: Validate allowed transitions (draft→published, published→closed)
+- **Timestamp Recording**: Set `published_at` or `closed_at` based on status change
+- **Auto-Close Scheduler**: Daily cron job at midnight UTC to close past-deadline assignments
+- **Response Format**: Standard success format with updated assignment data
 
 ## UI Elements
 - Assignment status selector/publish button

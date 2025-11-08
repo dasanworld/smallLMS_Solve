@@ -53,10 +53,17 @@ Learner clicks on an assignment from their course list
 - Assignment details include all relevant submission policies
 
 ## Error Conditions
-- Assignment does not exist → Display "Assignment not found" error
-- Not enrolled in course → Display "Access denied" error
-- Assignment not published → Display "Assignment not available" error
-- System unavailable → Display system error message
+- Assignment does not exist → Display "Assignment not found" error (404, `ASSIGNMENT_NOT_FOUND`)
+- Not enrolled in course → Display "Access denied" error (403, `INSUFFICIENT_PERMISSIONS`)
+- Assignment not published → Display "Assignment not available" error (400, `ASSIGNMENT_NOT_PUBLISHED`)
+- Not authenticated → Redirect to login (401, `UNAUTHORIZED`)
+- System unavailable → Display system error message (500, `INTERNAL_SERVER_ERROR`)
+
+## API Requirements
+- **Authentication**: Requires valid Supabase session token in `Authorization: Bearer <token>` header
+- **Authorization**: User must be enrolled in the course (`requireAuth` + enrollment check)
+- **Response Format**: Standard success/failure format (see `docs/api-policy.md`)
+- **Soft Delete Filter**: Query must include `WHERE deleted_at IS NULL` for assignments
 
 ## UI Elements
 - Assignment title and description

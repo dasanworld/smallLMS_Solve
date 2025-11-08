@@ -26,11 +26,13 @@ Operator accesses the admin/operation panel
    - Operator can change report status: received → investigating → resolved
    - Operator can take actions: warning, invalidate submission, restrict account
 4. For Metadata Management:
-   - System displays current metadata (categories, difficulty levels)
-   - Operator can create new metadata entries
-   - Operator can modify existing metadata entries
-   - Operator can deactivate metadata entries (recommended over deletion)
-   - System validates that in-use metadata is not deleted
+   - System displays current metadata (categories, difficulty levels) with `is_active` status
+   - Operator can create new metadata entries (default `is_active = TRUE`)
+   - Operator can modify existing metadata entries (name, description, sort_order)
+   - Operator can deactivate metadata entries by setting `is_active = FALSE`
+   - **Physical deletion is prohibited**: System performs `UPDATE` to set `is_active = FALSE` instead of `DELETE`
+   - UI shows only `is_active = TRUE` metadata for new course/assignment creation
+   - Existing courses/assignments retain references to deactivated metadata (data integrity preserved)
 5. System logs all administrative actions
 6. System sends notifications to affected users when appropriate
 
@@ -61,10 +63,15 @@ Operator accesses the admin/operation panel
 - Report status follows the sequence: received → investigating → resolved
 - Administrative actions must be logged for audit trail
 - Notifications are sent to affected users when actions impact them
-- In-use metadata should be deactivated rather than deleted
+- **Metadata deactivation policy (CRITICAL)**:
+  * In-use metadata MUST be deactivated (`is_active = FALSE`) rather than physically deleted
+  * Backend API performs `UPDATE categories SET is_active = FALSE` instead of `DELETE FROM categories`
+  * This prevents foreign key violations and preserves historical data integrity
+  * Deactivated metadata is hidden from selection UI but remains visible in existing records
 - All administrative actions require proper authorization
 - Report handling should follow defined escalation procedures
 - Sensitive user information should be protected during report processing
+- User/course deletion requests use soft delete (`deleted_at`) with operator approval workflow
 
 ## Error Conditions
 - Not authenticated → Redirect to login

@@ -62,24 +62,31 @@ export const getPublishedCoursesService = async (
         created_at,
         updated_at,
         published_at,
-        categories (name),
-        difficulties (name)
+        categories!inner (name, is_active),
+        difficulties!inner (name, is_active)
       `, { count: 'exact' })
-      .eq('status', 'published');
+      .eq('status', 'published')
+      .is('deleted_at', null); // 소프트 삭제 필터
 
     // Apply search filter
     if (search) {
       query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
     }
 
-    // Apply category filter
+    // Apply category filter (활성 카테고리만)
     if (category_id) {
-      query = query.eq('category_id', category_id);
+      query = query.eq('category_id', category_id).eq('categories.is_active', true);
+    } else {
+      // 카테고리가 지정되지 않은 경우에도 활성 카테고리만 표시
+      query = query.or('category_id.is.null,categories.is_active.eq.true');
     }
 
-    // Apply difficulty filter
+    // Apply difficulty filter (활성 난이도만)
     if (difficulty_id) {
-      query = query.eq('difficulty_id', difficulty_id);
+      query = query.eq('difficulty_id', difficulty_id).eq('difficulties.is_active', true);
+    } else {
+      // 난이도가 지정되지 않은 경우에도 활성 난이도만 표시
+      query = query.or('difficulty_id.is.null,difficulties.is_active.eq.true');
     }
 
     // Apply sorting
@@ -155,11 +162,12 @@ export const createEnrollmentService = async (
   const { userId, courseId } = options;
 
   try {
-    // 1. Check if the course is published
+    // 1. Check if the course is published (소프트 삭제 필터 추가)
     const { data: course, error: courseError } = await supabase
       .from(COURSES_TABLE)
       .select('status')
       .eq('id', courseId)
+      .is('deleted_at', null) // 소프트 삭제 필터
       .single();
 
     if (courseError) {
@@ -369,11 +377,61 @@ export const cancelEnrollmentService = async (
   }
 };
 
+/**
+ * 활성화된 카테고리와 난이도 목록을 조회합니다.
+ * 코스 생성/수정 UI에서 사용됩니다.
+ */
+export const getActiveMetadataService = async (
+  deps: CourseServiceDependencies
+): Promise<HandlerResult<{
+  categories: Array<{ id: number; name: string; description: string | null }>;
+  difficulties: Array<{ id: number; name: string; description: string | null; sort_order: number }>;
+}, string, unknown>> => {
+  const { supabase, logger } = deps;
+
+  try {
+    // 활성 카테고리 조회
+    const { data: categories, error: categoriesError } = await supabase
+      .from(CATEGORIES_TABLE)
+      .select('id, name, description')
+      .eq('is_active', true)
+      .order('name', { ascending: true });
+
+    if (categoriesError) {
+      logger.error('Failed to fetch active categories', categoriesError);
+      return failure(500, 'METADATA_FETCH_ERROR', 'Failed to fetch categories');
+    }
+
+    // 활성 난이도 조회
+    const { data: difficulties, error: difficultiesError } = await supabase
+      .from(DIFFICULTIES_TABLE)
+      .select('id, name, description, sort_order')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+
+    if (difficultiesError) {
+      logger.error('Failed to fetch active difficulties', difficultiesError);
+      return failure(500, 'METADATA_FETCH_ERROR', 'Failed to fetch difficulties');
+    }
+
+    return success({
+      categories: categories || [],
+      difficulties: difficulties || [],
+    });
+  } catch (error) {
+    logger.error('Unexpected error fetching metadata', error);
+    return failure(500, 'INTERNAL_SERVER_ERROR', 'Unexpected error');
+  }
+};
+
 // Error codes
 export const courseErrorCodes = {
   COURSES_FETCH_ERROR: 'COURSES_FETCH_ERROR',
   COURSE_NOT_FOUND: 'COURSE_NOT_FOUND',
   COURSE_NOT_PUBLISHED: 'COURSE_NOT_PUBLISHED',
+  COURSE_DELETED: 'COURSE_DELETED',
+  METADATA_INACTIVE: 'METADATA_INACTIVE',
+  METADATA_FETCH_ERROR: 'METADATA_FETCH_ERROR',
   DUPLICATE_ENROLLMENT: 'DUPLICATE_ENROLLMENT',
   ENROLLMENT_CREATION_ERROR: 'ENROLLMENT_CREATION_ERROR',
   ENROLLMENT_UPDATE_ERROR: 'ENROLLMENT_UPDATE_ERROR',

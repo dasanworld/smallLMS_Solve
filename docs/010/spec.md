@@ -64,13 +64,21 @@ Instructor selects a submitted assignment to grade
 - Grading actions are logged for audit purposes
 
 ## Error Conditions
-- Not authenticated → Redirect to login
-- Not course owner → Access denied
-- Invalid score range → Display validation error
-- Empty feedback → Display validation error
-- Submission already graded → Display warning
-- System failure → Display system error message
-- Database unavailable → Display appropriate error message
+- Not authenticated → Redirect to login (401, `UNAUTHORIZED`)
+- Not course owner → Access denied (403, `INSUFFICIENT_PERMISSIONS`)
+- Invalid score range → Display validation error (400, `INVALID_INPUT`)
+- Empty feedback → Display validation error (400, `MISSING_REQUIRED_FIELD`)
+- Submission not found → Display error (404, `SUBMISSION_NOT_FOUND`)
+- System failure → Display system error message (500, `INTERNAL_SERVER_ERROR`)
+- Database unavailable → Display appropriate error message (500, `DATABASE_ERROR`)
+
+## API Requirements
+- **Authentication**: Requires valid Supabase session token in `Authorization: Bearer <token>` header
+- **Authorization**: User must be instructor and own the course containing the assignment
+- **Input Validation**: Zod schema for score (0-100) and feedback (required string)
+- **Transaction**: Grade update and status change within single transaction
+- **Response Format**: Standard success format with updated submission data
+- **Notification**: Trigger notification to learner (via future notification system)
 
 ## UI Elements
 - Submission details view (content, link, submission time)

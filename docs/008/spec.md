@@ -42,8 +42,13 @@ Instructor accesses course management section
 ### Archiving Course
 - When changing from published to archived:
   - System blocks new enrollments
-  - Existing learners can still access content
-  - Course remains visible to enrolled learners
+  - System automatically changes all `published` assignments to `closed` status
+  - Existing learners can access content in **read-only mode**:
+    * Can view course materials and assignment descriptions
+    * Cannot submit new assignments (all assignments are `closed`)
+    * Can still view their past submissions and grades
+  - Instructors can still grade existing submissions but cannot create new assignments
+  - Course remains visible to enrolled learners but not in public catalog
 
 ### Validation Failures
 - If required fields are missing, display validation errors
@@ -58,11 +63,14 @@ Instructor accesses course management section
 ## Business Rules
 - Only course owners can edit course details
 - Course titles must be unique per instructor
-- Categories and difficulty levels must be from predefined lists
+- Categories and difficulty levels must be from predefined lists (only `is_active = TRUE`)
 - Published courses are visible to all learners
-- Archived courses block new enrollments but maintain existing ones
-- Course status changes are logged for audit purposes
+- Archived courses block new enrollments and close all assignments automatically
+- Archived courses provide read-only access to enrolled learners
+- Course deletion uses soft delete (`deleted_at` timestamp) to preserve data integrity
+- Course status changes are logged for audit purposes with timestamps (`published_at`, `archived_at`)
 - Required fields must be filled before publishing
+- Instructors cannot delete courses with active enrollments without archiving first
 
 ## Error Conditions
 - Not authenticated → Redirect to login

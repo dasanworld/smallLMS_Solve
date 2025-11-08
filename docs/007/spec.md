@@ -49,11 +49,19 @@ Instructor accesses the instructor dashboard
 - Metrics are updated in real-time or with manual refresh
 
 ## Error Conditions
-- Not authenticated → Redirect to login
-- Invalid role → Access denied
-- System failure → Display system error message
-- Database unavailable → Display appropriate error message
-- No courses found → Display "Create your first course" message
+- Not authenticated → Redirect to login (401, `UNAUTHORIZED`)
+- Invalid role → Access denied (403, `INSUFFICIENT_PERMISSIONS`)
+- System failure → Display system error message (500, `INTERNAL_SERVER_ERROR`)
+- Database unavailable → Display appropriate error message (500, `DATABASE_ERROR`)
+- No courses found → Display "Create your first course" message (200, empty array)
+
+## API Requirements
+- **Authentication**: Requires valid Supabase session token in `Authorization: Bearer <token>` header
+- **Authorization**: User must have instructor role (`requireRole(['instructor'])`)
+- **Filtering**: Query must include `WHERE deleted_at IS NULL AND owner_id = :userId`
+- **Pagination**: Support limit/offset for instructors with many courses
+- **Real-time Updates**: Dashboard metrics refresh via React Query cache invalidation (not WebSocket)
+- **Response Format**: Standard success format with courses, pending count, recent submissions
 
 ## UI Elements
 - Course list with status indicators
