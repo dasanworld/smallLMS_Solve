@@ -189,7 +189,7 @@ export async function submitAssignmentService(
   // Check if user has already submitted this assignment
   const { data: existingSubmission, error: existingSubmissionError } = await supabase
     .from('submissions')
-    .select('id')
+    .select('id, status')
     .eq('assignment_id', assignmentId)
     .eq('student_id', userId)
     .single();
@@ -198,13 +198,17 @@ export async function submitAssignmentService(
     throw existingSubmissionError;
   }
 
+  // Check if it's a resubmission (existing submission with 'resubmission_required' status)
+  const isResubmission = existingSubmission && existingSubmission.status === 'resubmission_required';
+
   if (existingSubmission) {
-    // Update existing submission
+    // Update existing submission (for both regular updates and resubmissions)
     const { error: updateError } = await supabase
       .from('submissions')
       .update({
         content: submissionData.content,
         link: submissionData.link || null,
+        status: 'submitted', // Reset status to 'submitted' when resubmitting
         updated_at: new Date().toISOString(),
       })
       .eq('id', existingSubmission.id);

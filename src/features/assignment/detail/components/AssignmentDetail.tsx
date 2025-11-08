@@ -4,7 +4,7 @@ import React from 'react';
 import { useAssignmentDetailQuery } from '../hooks/useAssignmentDetailQuery';
 import AssignmentHeader from './AssignmentHeader';
 import AssignmentDescription from './AssignmentDescription';
-import AssignmentSubmissionForm from './AssignmentSubmissionForm';
+import AssignmentSubmissionForm from '@/features/assignment/submission/components/AssignmentSubmissionForm';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface AssignmentDetailProps {
@@ -49,26 +49,38 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({ assignmentId }) => 
 
   return (
     <div className="container mx-auto py-8">
-      <AssignmentHeader 
-        title={assignment.title} 
-        deadline={assignment.deadline} 
+      <AssignmentHeader
+        title={assignment.title}
+        deadline={assignment.deadline}
         scoreWeight={assignment.score_weight}
         courseTitle={assignment.course_title}
       />
-      
-      <AssignmentDescription 
-        description={assignment.description || ''} 
-        submissionPolicy={assignment.submission_policy} 
+
+      <AssignmentDescription
+        description={assignment.description || ''}
+        submissionPolicy={assignment.submission_policy}
       />
-      
+
       {!assignment.is_submitted && (
-        <AssignmentSubmissionForm 
-          assignmentId={assignmentId} 
-          submissionPolicy={assignment.submission_policy}
+        <AssignmentSubmissionForm
+          assignmentId={assignmentId}
+          dueDate={assignment.deadline}
         />
       )}
-      
-      {assignment.is_submitted && (
+
+      {assignment.is_submitted && assignment.submission && (
+        <AssignmentSubmissionForm
+          assignmentId={assignmentId}
+          initialSubmission={{
+            content: assignment.submission_content || '',
+            link: assignment.submission_link || null,
+            status: assignment.submission_status as 'submitted' | 'graded' | 'resubmission_required' || 'submitted'
+          }}
+          dueDate={assignment.deadline}
+        />
+      )}
+
+      {assignment.is_submitted && !assignment.submission && (
         <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
           <h3 className="text-lg font-semibold text-green-800 mb-2">Assignment Submitted</h3>
           <p className="text-green-700">
@@ -86,9 +98,9 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({ assignmentId }) => 
           {assignment.submission_link && (
             <div className="mt-4">
               <h4 className="font-medium text-gray-700">Submission Link:</h4>
-              <a 
-                href={assignment.submission_link} 
-                target="_blank" 
+              <a
+                href={assignment.submission_link}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline break-all"
               >
