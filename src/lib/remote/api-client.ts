@@ -1,4 +1,5 @@
 import axios, { isAxiosError } from "axios";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "",
@@ -6,6 +7,24 @@ const apiClient = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+// Add an interceptor to include the auth token if available
+apiClient.interceptors.request.use(
+  async (config) => {
+    // Get the current session token from Supabase
+    const supabase = getSupabaseBrowserClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.access_token) {
+      config.headers.Authorization = `Bearer ${session.access_token}`;
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 type ErrorPayload = {
   error?: {
