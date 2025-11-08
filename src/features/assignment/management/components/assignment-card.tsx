@@ -7,16 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AssignmentStatusBadge } from "./status-badge";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import { StatusChangeDialog } from "./status-change-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { 
-  DotsHorizontalIcon, 
-  Pencil1Icon, 
-  EyeOpenIcon, 
+import {
+  DotsHorizontalIcon,
+  Pencil1Icon,
+  EyeOpenIcon,
   TrashIcon,
   UpdateIcon
 } from "@radix-ui/react-icons";
@@ -30,6 +31,9 @@ interface AssignmentCardProps {
 export function AssignmentCard({ assignment, onStatusChange }: AssignmentCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [targetStatus, setTargetStatus] = useState<"draft" | "published" | "closed" | null>(null);
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this assignment?")) return;
@@ -56,10 +60,34 @@ export function AssignmentCard({ assignment, onStatusChange }: AssignmentCardPro
     }
   };
 
+  const prepareStatusChange = (newStatus: "draft" | "published" | "closed") => {
+    const warnings: string[] = [];
+    
+    // Add validation warnings for publishing
+    if (newStatus === "published") {
+      if (!assignment.title || assignment.title.trim() === "") {
+        warnings.push("Title is required to publish");
+      }
+      if (!assignment.due_date) {
+        warnings.push("Due date is required to publish");
+      } else {
+        const dueDate = new Date(assignment.due_date);
+        if (dueDate <= new Date()) {
+          warnings.push("Due date must be in the future to publish");
+        }
+      }
+    }
+    
+    setValidationWarnings(warnings);
+    setTargetStatus(newStatus);
+    setShowStatusDialog(true);
+  };
+
   const handleStatusChange = async (newStatus: "draft" | "published" | "closed") => {
     if (assignment.status === newStatus) return;
 
     setIsUpdatingStatus(true);
+    setShowStatusDialog(false);
     try {
       const response = await fetch(`/api/assignments/${assignment.id}/status`, {
         method: "PUT",
@@ -124,24 +152,24 @@ export function AssignmentCard({ assignment, onStatusChange }: AssignmentCardPro
                 </Link>
               </DropdownMenuItem>
               {assignment.status === "draft" && (
-                <DropdownMenuItem onClick={() => handleStatusChange("published")}>
+                <DropdownMenuItem onClick={() => prepareStatusChange("published")}>
                   <UpdateIcon className="mr-2 h-4 w-4" />
                   Publish
                 </DropdownMenuItem>
               )}
               {assignment.status === "published" && (
-                <DropdownMenuItem onClick={() => handleStatusChange("closed")}>
+                <DropdownMenuItem onClick={() => prepareStatusChange("closed")}>
                   <UpdateIcon className="mr-2 h-4 w-4" />
                   Close
                 </DropdownMenuItem>
               )}
               {assignment.status === "published" && (
-                <DropdownMenuItem onClick={() => handleStatusChange("draft")}>
+                <DropdownMenuItem onClick={() => prepareStatusChange("draft")}>
                   <UpdateIcon className="mr-2 h-4 w-4" />
                   Unpublish
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={handleDelete}
                 disabled={isDeleting || isUpdatingStatus}
                 className="text-destructive focus:text-destructive"
@@ -167,9 +195,9 @@ export function AssignmentCard({ assignment, onStatusChange }: AssignmentCardPro
       </CardContent>
       <CardFooter className="flex justify-between">
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             asChild
           >
             <Link href={`/courses/${assignment.course_id}/assignments/${assignment.id}/submissions`}>
@@ -181,6 +209,19 @@ export function AssignmentCard({ assignment, onStatusChange }: AssignmentCardPro
           {assignment.updated_at ? `Updated: ${formatDate(assignment.updated_at)}` : ""}
         </div>
       </CardFooter>
+      
+      {targetStatus && (
+        <StatusChangeDialog
+          isOpen={showStatusDialog}
+          onClose={() => setShowStatusDialog(false)}
+          onConfirm={handleStatusChange}
+          assignmentTitle={assignment.title || "Untitled Assignment"}
+          newStatus={targetStatus}
+          currentStatus={assignment.status as "draft" | "published" | "closed"}
+          isLoading={isUpdatingStatus}
+          validationWarnings={validationWarnings}
+        />
+      )}
     </Card>
   );
 }

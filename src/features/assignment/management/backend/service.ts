@@ -4,6 +4,14 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { AssignmentManagementError, ASSIGNMENT_MANAGEMENT_ERROR_CODES } from "./error";
 
+// Define AssignmentError to maintain compatibility
+class AssignmentError extends AssignmentManagementError {
+  constructor(message: string, code: AssignmentErrorCode) {
+    super(message, code);
+    this.name = "AssignmentError";
+  }
+}
+
 // Type definitions
 type Assignment = Database["public"]["Tables"]["assignments"]["Row"];
 type NewAssignment = Database["public"]["Tables"]["assignments"]["Insert"];
@@ -47,7 +55,7 @@ export async function createAssignmentService(
     .single();
 
   if (error) {
-    throw new AssignmentError(error.message, "ASSIGNMENT_NOT_FOUND");
+    throw new AssignmentManagementError(error.message, "ASSIGNMENT_NOT_FOUND");
   }
 
   // Revalidate the course assignments page
@@ -116,7 +124,7 @@ export async function updateAssignmentService(
     .single();
 
   if (error) {
-    throw new AssignmentError(error.message, "ASSIGNMENT_NOT_FOUND");
+    throw new AssignmentManagementError(error.message, "ASSIGNMENT_NOT_FOUND");
   }
 
   // Revalidate the course assignments page
@@ -189,13 +197,43 @@ export async function updateAssignmentStatusService(
     throw new AssignmentManagementError("Insufficient permissions", "INSUFFICIENT_PERMISSIONS");
   }
 
-  // If changing to published, ensure deadline is in the future
-  if (status === "published" && assignment.due_date) {
+  // Validate status transition
+  const validTransitions = {
+    draft: ["published"],
+    published: ["closed", "draft"],
+    closed: ["published"] // Allow re-opening closed assignments
+  };
+
+  if (!validTransitions[assignment.status as keyof typeof validTransitions]?.includes(status)) {
+    throw new AssignmentManagementError(
+      `Invalid status transition from ${assignment.status} to ${status}`,
+      "INVALID_STATUS_TRANSITION"
+    );
+  }
+
+  // If changing to published, validate required fields and deadline
+  if (status === "published") {
+    // Check if required fields are present
+    if (!assignment.title || assignment.title.trim() === "") {
+      throw new AssignmentManagementError(
+        "Assignment title is required to publish",
+        "MISSING_REQUIRED_FIELD"
+      );
+    }
+
+    if (!assignment.due_date) {
+      throw new AssignmentManagementError(
+        "Assignment due date is required to publish",
+        "MISSING_REQUIRED_FIELD"
+      );
+    }
+
+    // Check if deadline is in the future
     const dueDate = new Date(assignment.due_date);
     if (dueDate <= new Date()) {
       throw new AssignmentManagementError(
         "Published assignment deadline must be in the future",
-        "ASSIGNMENT_PAST_DEADLINE"
+        "INVALID_DEADLINE"
       );
     }
   }
@@ -217,7 +255,7 @@ export async function updateAssignmentStatusService(
     .single();
 
   if (error) {
-    throw new AssignmentError(error.message, "ASSIGNMENT_NOT_FOUND");
+    throw new AssignmentManagementError(error.message, "ASSIGNMENT_NOT_FOUND");
   }
 
   // Revalidate the course assignments page
@@ -271,7 +309,7 @@ export async function getCourseAssignmentsService(
     .order("created_at", { ascending: false });
 
   if (error) {
-    throw new AssignmentError(error.message, "ASSIGNMENT_NOT_FOUND");
+    throw new AssignmentManagementError(error.message, "ASSIGNMENT_NOT_FOUND");
   }
 
   return data;

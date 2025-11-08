@@ -4,20 +4,20 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -59,15 +59,16 @@ interface AssignmentFormProps {
   submitButtonText?: string;
 }
 
-export function AssignmentForm({ 
-  courseId, 
-  initialData, 
-  onSubmit, 
+export function AssignmentForm({
+  courseId,
+  initialData,
+  onSubmit,
   isSubmitting = false,
   submitButtonText = "Save Assignment"
 }: AssignmentFormProps) {
   const [availableWeight, setAvailableWeight] = useState<number>(1);
   const [totalWeight, setTotalWeight] = useState<number>(0);
+  const [publishValidationWarnings, setPublishValidationWarnings] = useState<string[]>([]);
 
   // Initialize the form with react-hook-form
   const form = useForm<AssignmentFormValues>({
@@ -91,18 +92,18 @@ export function AssignmentForm({
         if (!response.ok) {
           throw new Error("Failed to fetch course assignments");
         }
-        
+
         const data = await response.json();
         const currentAssignmentWeight = initialData?.points_weight || 0;
-        
+
         // Calculate total weight of other assignments (excluding current one if editing)
         const otherAssignmentsWeight = data.assignments
           .filter((a: Assignment) => a.id !== initialData?.id)
           .reduce((sum: number, a: Assignment) => sum + (a.points_weight || 0), 0);
-        
+
         const calculatedTotalWeight = otherAssignmentsWeight + currentAssignmentWeight;
         const calculatedAvailableWeight = 1 - otherAssignmentsWeight;
-        
+
         setTotalWeight(calculatedTotalWeight);
         setAvailableWeight(calculatedAvailableWeight);
       } catch (error) {
@@ -112,6 +113,34 @@ export function AssignmentForm({
 
     fetchCourseAssignments();
   }, [courseId, initialData]);
+
+  // Check for validation warnings when status changes to published
+  useEffect(() => {
+    const status = form.watch("status");
+    const title = form.watch("title");
+    const dueDate = form.watch("due_date");
+    
+    if (status === "published") {
+      const warnings: string[] = [];
+      
+      if (!title || title.trim() === "") {
+        warnings.push("Title is required to publish");
+      }
+      
+      if (!dueDate) {
+        warnings.push("Due date is required to publish");
+      } else {
+        const dueDateObj = new Date(dueDate);
+        if (dueDateObj <= new Date()) {
+          warnings.push("Due date must be in the future to publish");
+        }
+      }
+      
+      setPublishValidationWarnings(warnings);
+    } else {
+      setPublishValidationWarnings([]);
+    }
+  }, [form.watch("status"), form.watch("title"), form.watch("due_date")]);
 
   // Handle form submission
   const handleSubmit = async (data: AssignmentFormValues) => {
@@ -145,10 +174,10 @@ export function AssignmentForm({
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea 
-                  placeholder="Describe the assignment requirements..." 
-                  rows={4} 
-                  {...field} 
+                <Textarea
+                  placeholder="Describe the assignment requirements..."
+                  rows={4}
+                  {...field}
                 />
               </FormControl>
               <FormDescription>
@@ -227,7 +256,7 @@ export function AssignmentForm({
                   Percentage of total course grade ({availableWeight * 100}% available)
                 </FormDescription>
                 <FormMessage />
-                
+
                 {/* Visual representation of weight */}
                 <div className="mt-2">
                   <div className="flex justify-between text-sm mb-1">
@@ -235,8 +264,8 @@ export function AssignmentForm({
                     <span>Total: {totalWeight * 100}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div 
-                      className="bg-blue-600 h-2.5 rounded-full" 
+                    <div
+                      className="bg-blue-600 h-2.5 rounded-full"
                       style={{ width: `${Math.min(totalWeight * 100, 100)}%` }}
                     ></div>
                   </div>
@@ -318,6 +347,30 @@ export function AssignmentForm({
             />
           </div>
         </div>
+
+        {/* Show validation warnings if status is published and there are warnings */}
+        {publishValidationWarnings.length > 0 && (
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+            <h4 className="font-medium text-yellow-800 mb-2">Validation Warnings for Publishing:</h4>
+            <ul className="list-disc pl-5 space-y-1 text-sm text-yellow-700">
+              {publishValidationWarnings.map((warning, index) => (
+                <li key={index}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Status Change History Section */}
+        {initialData?.id && (
+          <div className="mt-6">
+            <h3 className="text-lg font-medium mb-4">Status Change History</h3>
+            <div className="border rounded-md p-4 bg-muted/30">
+              {/* In a real implementation, we would use the StatusHistory component here */}
+              <p className="text-sm text-muted-foreground italic">Status change history would be displayed here in a real implementation.</p>
+              <p className="text-sm text-muted-foreground mt-1">For now, this is a placeholder for the status history component.</p>
+            </div>
+          </div>
+        )}
 
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting && <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />}

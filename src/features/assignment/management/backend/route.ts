@@ -32,6 +32,24 @@ import { SubmissionManagementError } from './error';
 import { authenticate, requireRole } from '@/backend/middleware/auth';
 import { getSupabaseServiceClient } from '@/lib/supabase/service-client';
 
+// Helper function to determine HTTP status code based on error type
+function getStatusCodeForError(errorCode: string): number {
+  switch (errorCode) {
+    case 'INSUFFICIENT_PERMISSIONS':
+    case 'ASSIGNMENT_NOT_FOUND':
+    case 'COURSE_NOT_FOUND':
+      return 404;
+    case 'INVALID_STATUS_TRANSITION':
+    case 'MISSING_REQUIRED_FIELD':
+    case 'INVALID_DEADLINE':
+    case 'ASSIGNMENT_PAST_DEADLINE':
+    case 'ASSIGNMENT_WEIGHT_EXCEEDED':
+      return 400;
+    default:
+      return 400;
+  }
+}
+
 export function registerAssignmentManagementRoutes(app: Hono) {
   // GET /api/courses/:courseId/assignments - List assignments for a course
   app.get('/courses/:courseId/assignments', authenticate, async (c) => {
@@ -184,18 +202,32 @@ export function registerAssignmentManagementRoutes(app: Hono) {
         const userId = c.get('user').id;
         const { status } = c.req.valid('json');
 
+        console.log(`Updating assignment ${assignmentId} status to ${status} by user ${userId}`);
+
         const assignment = await updateAssignmentStatusService(
           userId,
           assignmentId,
           status
         );
 
+        console.log(`Successfully updated assignment ${assignmentId} status to ${status}`);
+
         return c.json({ assignment });
       } catch (error) {
         if (error instanceof AssignmentManagementError) {
+          console.error(`Assignment management error updating status:`, error);
           return c.json(
-            { error: { code: error.code, message: error.message } },
-            400
+            { 
+              error: { 
+                code: error.code, 
+                message: error.message,
+                details: {
+                  status: error.code,
+                  message: error.message
+                }
+              } 
+            },
+            getStatusCodeForError(error.code)
           );
         }
         console.error('Error updating assignment status:', error);
@@ -292,6 +324,66 @@ export function registerAssignmentManagementRoutes(app: Hono) {
         );
       }
       console.error('Error fetching submission stats:', error);
+      return c.json(
+        { error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } },
+        500
+      );
+    }
+  });
+
+  // GET /api/assignments/:id/status-history - Get status change history for an assignment
+  app.get('/assignments/:id/status-history', authenticate, async (c) => {
+    try {
+      const { id: assignmentId } = assignmentIdParamSchema.parse(c.req.param());
+      const userId = c.get('user').id;
+
+      // Verify user has access to the assignment (instructor of the course)
+      const { data: assignment, error: fetchError } = await getSupabaseServiceClient()
+        .from('assignments')
+        .select('*, courses(instructor_id)')
+        .eq('id', assignmentId)
+        .single();
+
+      if (fetchError || !assignment) {
+        throw new AssignmentManagementError("Assignment not found", "ASSIGNMENT_NOT_FOUND");
+      }
+
+      if (assignment.courses.instructor_id !== userId) {
+        throw new AssignmentManagementError("Insufficient permissions", "INSUFFICIENT_PERMISSIONS");
+      }
+
+      // In a real implementation, we would fetch from a status history table
+      // For now, we'll return a mock response based on the assignment's current status
+      const mockHistory = [
+        {
+          id: "1",
+          assignment_id: assignmentId,
+          status: assignment.status,
+          changed_at: assignment.updated_at,
+          changed_by: "Current Instructor",
+          reason: "Initial status"
+        }
+      ];
+
+      return c.json({ history: mockHistory });
+    } catch (error) {
+      if (error instanceof AssignmentManagementError) {
+        console.error(`Assignment management error fetching status history:`, error);
+        return c.json(
+          { 
+            error: { 
+              code: error.code, 
+              message: error.message,
+              details: {
+                status: error.code,
+                message: error.message
+              }
+            } 
+          },
+          getStatusCodeForError(error.code)
+        );
+      }
+      console.error('Error fetching assignment status history:', error);
       return c.json(
         { error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } },
         500
