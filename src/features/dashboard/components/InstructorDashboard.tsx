@@ -20,9 +20,8 @@ export default function InstructorDashboard() {
   const queryClient = useQueryClient();
 
   const handleRefresh = async () => {
-    await queryClient.invalidateQueries({
-      queryKey: ['instructor-dashboard'],
-    });
+    // 페이지 전체 새로고침
+    window.location.reload();
   };
 
   if (error) {
@@ -88,9 +87,23 @@ export default function InstructorDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">강사 대시보드</h1>
-        <p className="text-muted-foreground">코스와 과제를 관리하세요</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">강사 대시보드</h1>
+            {/* ✅ 새로고침 버튼 (아이콘만, 제목 옆) */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRefresh}
+              title="페이지 새로고침"
+              className="h-10 w-10"
+            >
+              <RefreshCw className="h-5 w-5" />
+            </Button>
+          </div>
+          <p className="text-muted-foreground mt-1">코스와 과제를 관리하세요</p>
+        </div>
       </div>
 
       {/* Dashboard Metrics */}
@@ -113,16 +126,6 @@ export default function InstructorDashboard() {
               <Badge variant="secondary">{courses.length}개 코스</Badge>
             </div>
             <div className="flex items-center gap-2">
-              {/* ✅ 새로고침 버튼 (아이콘만) */}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleRefresh}
-                disabled={isFetching}
-                title="새로고침"
-              >
-                <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-              </Button>
               {/* ✅ 코스 만들기 버튼 */}
               <Link href="/courses">
                 <Button className="gap-2">
