@@ -78,12 +78,16 @@ export const SubmissionStatusCard = ({ submission }: SubmissionStatusCardProps) 
               </Badge>
             </div>
 
-            {/* 점수 (채점되었을 경우) */}
-            {submission.score !== undefined && (
+            {/* 점수 영역 */}
+            {(submission.score !== undefined || submission.status === 'submitted') && (
               <div className="pt-2 border-t">
                 <p className="text-sm">
                   <span className="text-slate-600">점수:</span>
-                  <span className="font-semibold ml-2">{submission.score}점</span>
+                  {submission.score !== undefined && submission.score !== null ? (
+                    <span className="font-semibold ml-2">{submission.score}점</span>
+                  ) : (
+                    <span className="ml-2 text-slate-400">채점 대기중</span>
+                  )}
                 </p>
               </div>
             )}
