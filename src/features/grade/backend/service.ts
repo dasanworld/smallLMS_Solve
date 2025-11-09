@@ -262,7 +262,7 @@ export const gradeSubmissionService = async (
         status,
         assignments(
           course_id,
-          courses(instructor_id)
+          courses(owner_id)
         )
       `)
       .eq('id', submissionId)
@@ -278,7 +278,7 @@ export const gradeSubmissionService = async (
     const courseData = Array.isArray(assignmentData.courses) ? assignmentData.courses[0] : assignmentData.courses;
 
     // Check if instructor has permission to grade this submission
-    if (courseData.instructor_id !== instructorId) {
+    if (courseData.owner_id !== instructorId) {
       return failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions to grade this submission');
     }
 
@@ -668,7 +668,7 @@ export const getAssignmentSubmissionsService = async (
         course_id,
         courses(
           title,
-          instructor_id
+          owner_id
         )
       `)
       .eq('id', assignmentId)
@@ -683,7 +683,7 @@ export const getAssignmentSubmissionsService = async (
     const courseData = Array.isArray(assignmentData.courses) ? assignmentData.courses[0] : assignmentData.courses;
 
     // Check if instructor has permission to view submissions for this assignment
-    if (courseData.instructor_id !== instructorId) {
+    if (courseData.owner_id !== instructorId) {
       return failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions to view submissions for this assignment');
     }
 
