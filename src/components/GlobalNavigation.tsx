@@ -71,7 +71,7 @@ export function GlobalNavigation() {
           { label: '홈', href: '/', icon: 'home' },
           { label: '대시보드', href: '/instructor-dashboard', icon: 'clipboard' },
           { label: '코스관리', href: '/courses', icon: 'book' },
-          { label: '과제관리', href: '/courses/assignments', icon: 'award' },
+          { label: '과제', href: '/courses/assignments', icon: 'award' },
         ];
       case 'operator':
         return [
@@ -85,6 +85,7 @@ export function GlobalNavigation() {
           { label: '홈', href: '/', icon: 'home' },
           { label: '대시보드', href: '/dashboard', icon: 'clipboard' },
           { label: '강의 탐색', href: '/explore-courses', icon: 'book' },
+          { label: '과제', href: '/courses/assignments', icon: 'award' },
         ];
     }
   };
