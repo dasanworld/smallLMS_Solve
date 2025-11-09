@@ -15,6 +15,7 @@ const ENROLLMENTS_TABLE = 'enrollments';
 const COURSES_TABLE = 'courses';
 const ASSIGNMENTS_TABLE = 'assignments';
 const SUBMISSIONS_TABLE = 'submissions';
+const USERS_TABLE = 'users';
 
 /**
  * Gets the learner's grades for all enrolled courses or a specific course
