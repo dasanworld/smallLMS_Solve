@@ -24,6 +24,7 @@ export const useCreateAssignmentMutation = () => {
       console.log('📝 Creating assignment with data:', data);
       
       const payload = {
+        courseId: data.courseId,
         title: data.title,
         description: data.description,
         dueDate: data.dueDate,
