@@ -149,14 +149,7 @@ export const registerOperatorRoutes = (app: Hono<AppEnv>) => {
     const result = await getReportsService(deps, filters);
 
     if (!result.ok) {
-      const errorResult = result as unknown as ErrorResult<typeof operatorErrorCodes[keyof typeof operatorErrorCodes], unknown>;
-
-      if (errorResult.error.code === 'REPORTS_FETCH_ERROR') {
-        logger.error('Failed to fetch reports', errorResult.error.message);
-      } else {
-        logger.error('Reports request failed', errorResult.error.message);
-      }
-
+      logger.error('Reports request failed', result.message);
       return respond(c, result);
     }
 
