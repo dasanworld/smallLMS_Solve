@@ -96,47 +96,41 @@ export function GlobalNavigation() {
             </Link>
 
             {/* 메뉴 3 - 코스관리 */}
-            {(isInstructor || isLearner) && (
-              <Link
-                href={isInstructor ? '/courses' : '/explore-courses'}
-                className={cn(
-                  'flex items-center gap-1.5 text-sm font-medium transition-colors',
-                  (isInstructor && pathname.startsWith('/courses')) || (isLearner && pathname === '/explore-courses')
-                    ? 'text-blue-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                )}
-              >
-                <BookOpen className="h-4 w-4" />
-                코스관리
-              </Link>
-            )}
+            <Link
+              href="/courses"
+              className={cn(
+                'flex items-center gap-1.5 text-sm font-medium transition-colors',
+                pathname.startsWith('/courses')
+                  ? 'text-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              )}
+            >
+              <BookOpen className="h-4 w-4" />
+              코스관리
+            </Link>
 
             {/* 메뉴 4 - 과제관리 */}
-            {isInstructor && (
-              <Link
-                href="/courses/assignments"
-                className={cn(
-                  'flex items-center gap-1.5 text-sm font-medium transition-colors',
-                  pathname === '/courses/assignments' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
-                )}
-              >
-                <Award className="h-4 w-4" />
-                과제관리
-              </Link>
-            )}
+            <Link
+              href="/courses/assignments"
+              className={cn(
+                'flex items-center gap-1.5 text-sm font-medium transition-colors',
+                pathname === '/courses/assignments' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
+              )}
+            >
+              <Award className="h-4 w-4" />
+              과제관리
+            </Link>
 
             {/* 메뉴 5 - 채점관리 */}
-            {isInstructor && (
-              <Link
-                href="#"
-                className="flex items-center gap-1.5 text-sm font-medium text-gray-400 cursor-not-allowed"
-                onClick={(e) => e.preventDefault()}
-                title="준비 중"
-              >
-                <BarChart3 className="h-4 w-4" />
-                채점관리
-              </Link>
-            )}
+            <Link
+              href="#"
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-400 cursor-not-allowed"
+              onClick={(e) => e.preventDefault()}
+              title="준비 중"
+            >
+              <BarChart3 className="h-4 w-4" />
+              채점관리
+            </Link>
           </div>
 
           {/* 사용자 메뉴 */}
@@ -198,35 +192,29 @@ export function GlobalNavigation() {
                   </DropdownMenuItem>
 
                   {/* 코스관리 */}
-                  {(isInstructor || isLearner) && (
-                    <DropdownMenuItem asChild>
-                      <Link 
-                        href={isInstructor ? '/courses' : '/explore-courses'}
-                        className="flex items-center gap-2"
-                      >
-                        <BookOpen className="h-4 w-4" />
-                        코스관리
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuItem asChild>
+                    <Link 
+                      href="/courses"
+                      className="flex items-center gap-2"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                      코스관리
+                    </Link>
+                  </DropdownMenuItem>
 
                   {/* 과제관리 */}
-                  {isInstructor && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/courses/assignments" className="flex items-center gap-2">
-                        <Award className="h-4 w-4" />
-                        과제관리
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuItem asChild>
+                    <Link href="/courses/assignments" className="flex items-center gap-2">
+                      <Award className="h-4 w-4" />
+                      과제관리
+                    </Link>
+                  </DropdownMenuItem>
 
                   {/* 채점관리 */}
-                  {isInstructor && (
-                    <DropdownMenuItem disabled className="text-gray-400 cursor-not-allowed">
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      채점관리
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuItem disabled className="text-gray-400 cursor-not-allowed">
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    채점관리
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
