@@ -32,8 +32,10 @@ export const createHonoApp = () => {
   registerInstructorDashboardRoutes(app);
   registerCourseRoutes(app);
   registerEnrollmentRoutes(app);
-  registerAssignmentRoutes(app);
+  // Grade routes must come before assignment routes to ensure specific routes match first
+  // /api/submissions/:id/grade (specific) must be registered before /api/submissions/:id (generic)
   registerGradeRoutes(app);
+  registerAssignmentRoutes(app);
   registerOperatorRoutes(app);
 
   singletonApp = app;

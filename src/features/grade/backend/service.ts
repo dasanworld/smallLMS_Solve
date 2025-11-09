@@ -413,6 +413,8 @@ export const getSubmissionForGradingService = async (
   submissionId: string
 ): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionGradingSchema>, typeof gradeErrorCodes[keyof typeof gradeErrorCodes], unknown>> => {
   try {
+    console.log(`[getSubmissionForGradingService] Fetching submission: ${submissionId}`);
+
     // 1. Get submission first
     const { data: submission, error: submissionError } = await client
       .from(SUBMISSIONS_TABLE)
@@ -431,45 +433,62 @@ export const getSubmissionForGradingService = async (
       .eq('id', submissionId)
       .single();
 
+    console.log(`[getSubmissionForGradingService] Submission query result:`, { submissionError, submission });
+
     if (submissionError || !submission) {
+      console.error(`[getSubmissionForGradingService] Submission not found: ${submissionId}`, submissionError);
       return failure(404, gradeErrorCodes.SUBMISSION_NOT_FOUND, 'Submission not found');
     }
 
     // 2. Get assignment details
+    console.log(`[getSubmissionForGradingService] Fetching assignment: ${submission.assignment_id}`);
     const { data: assignment, error: assignmentError } = await client
       .from(ASSIGNMENTS_TABLE)
       .select('id, title, course_id')
       .eq('id', submission.assignment_id)
       .single();
 
+    console.log(`[getSubmissionForGradingService] Assignment query result:`, { assignmentError, assignment });
+
     if (assignmentError || !assignment) {
+      console.error(`[getSubmissionForGradingService] Assignment not found: ${submission.assignment_id}`, assignmentError);
       return failure(404, gradeErrorCodes.SUBMISSION_NOT_FOUND, 'Assignment not found');
     }
 
     // 3. Get course details to check permissions
+    console.log(`[getSubmissionForGradingService] Fetching course: ${assignment.course_id}`);
     const { data: course, error: courseError } = await client
       .from(COURSES_TABLE)
-      .select('id, title, instructor_id')
+      .select('id, title, owner_id')
       .eq('id', assignment.course_id)
       .single();
 
+    console.log(`[getSubmissionForGradingService] Course query result:`, { courseError, course });
+
     if (courseError || !course) {
+      console.error(`[getSubmissionForGradingService] Course not found: ${assignment.course_id}`, courseError);
       return failure(404, gradeErrorCodes.SUBMISSION_NOT_FOUND, 'Course not found');
     }
 
     // Check if instructor has permission to view this submission
-    if (course.instructor_id !== instructorId) {
+    console.log(`[getSubmissionForGradingService] Checking permissions: instructorId=${instructorId}, course.owner_id=${course.owner_id}`);
+    if (course.owner_id !== instructorId) {
+      console.error(`[getSubmissionForGradingService] Insufficient permissions`);
       return failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions to view this submission');
     }
 
     // 4. Get user information
+    console.log(`[getSubmissionForGradingService] Fetching user: ${submission.user_id}`);
     const { data: user, error: userError } = await client
       .from(USERS_TABLE)
       .select('name')
       .eq('id', submission.user_id)
       .single();
 
+    console.log(`[getSubmissionForGradingService] User query result:`, { userError, user });
+
     if (userError) {
+      console.error(`[getSubmissionForGradingService] User fetch error`, userError);
       return failure(500, gradeErrorCodes.GRADES_FETCH_ERROR, 'Failed to fetch user information', userError.message);
     }
 
