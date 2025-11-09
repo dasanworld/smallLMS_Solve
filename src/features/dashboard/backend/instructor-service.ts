@@ -39,16 +39,17 @@ export const getInstructorDashboardService = async (
     return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch courses', coursesError.message);
   }
 
-  // Get all assignments for instructor's courses (모든 상태의 과제 포함, 소프트 삭제된 과제는 제외)
+  // Get all assignments for instructor's courses that are published (소프트 삭제 필터 추가)
   const courseIds = courses?.map(course => course.id) || [];
   let assignments: any[] = [];
   
   if (courseIds.length > 0) {
     const { data: courseAssignments, error: assignmentsError } = await client
       .from(ASSIGNMENTS_TABLE)
-      .select('id, title, description, course_id, due_date, status')
+      .select('id, title, course_id, due_date, status')
       .in('course_id', courseIds)
-      .is('deleted_at', null); // 소프트 삭제된 과제만 제외 (모든 상태 포함)
+      .eq('status', 'published')
+      .is('deleted_at', null); // 소프트 삭제된 과제 제외
 
     if (assignmentsError) {
       return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignments', assignmentsError.message);
@@ -85,10 +86,11 @@ export const getInstructorDashboardService = async (
         user_id,
         status,
         submitted_at,
-        is_late
+        is_late,
+        created_at
       `)
       .in('assignment_id', assignmentIds)
-      .order('submitted_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(10);
 
     if (submissionsError) {
@@ -143,6 +145,7 @@ export const getInstructorDashboardService = async (
         .in('id', submissionUserIds);
 
       if (userError) {
+        console.warn('Failed to fetch user information:', userError.message);
         // Continue without user names
       } else {
         students = userData || [];
@@ -162,7 +165,7 @@ export const getInstructorDashboardService = async (
         courseId: assignment?.course_id,
         courseTitle: course?.title || 'Unknown Course',
         studentName: student?.name || student?.email || `Student ${submission.user_id.substring(0, 8)}`,
-        submittedAt: submission.submitted_at,
+        submittedAt: submission.submitted_at || submission.created_at,
         status: submission.status,
         isLate: submission.is_late || false,
       });
@@ -181,6 +184,7 @@ export const getInstructorDashboardService = async (
       .eq('status', 'active'); // Only count active enrollments
 
     if (enrollmentError) {
+      console.error('Failed to fetch enrollments:', enrollmentError.message);
       // Continue with empty enrollment counts
     } else {
       // Count enrollments by course_id
@@ -210,20 +214,8 @@ export const getInstructorDashboardService = async (
     };
   });
 
-  // Format assignments for dashboard display
-  const assignmentsWithSubmissionCount = (assignments || []).map((assignment) => ({
-    id: assignment.id,
-    title: assignment.title,
-    description: assignment.description,
-    courseId: assignment.course_id,
-    dueDate: assignment.due_date,
-    status: assignment.status,
-    submissionCount: 0, // Can be enhanced later to fetch actual submission count
-  }));
-
   const dashboardData = {
     courses: coursesWithEnrollment,
-    assignments: assignmentsWithSubmissionCount,
     pendingGradingCount,
     recentSubmissions,
   };

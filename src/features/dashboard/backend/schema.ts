@@ -39,27 +39,11 @@ export const FeedbackSummarySchema = z.object({
 
 export type FeedbackSummary = z.infer<typeof FeedbackSummarySchema>;
 
-// Assignment Submission Status
-export const SubmissionStatusSchema = z.object({
-  id: z.string(),
-  assignmentId: z.string(),
-  assignmentTitle: z.string(),
-  courseId: z.string(),
-  courseTitle: z.string(),
-  status: z.string(), // not_submitted, submitted, graded, resubmission_required
-  isLate: z.boolean().optional().default(false),
-  score: z.number().nullable().optional(),
-  submittedAt: z.string().optional(), // ISO date string
-});
-
-export type SubmissionStatus = z.infer<typeof SubmissionStatusSchema>;
-
 // Learner Dashboard Response
 export const LearnerDashboardResponseSchema = z.object({
   enrolledCourses: z.array(CourseProgressSchema),
   upcomingAssignments: z.array(AssignmentInfoSchema).optional().default([]),
   recentFeedback: z.array(FeedbackSummarySchema).optional().default([]),
-  allAssignmentsStatus: z.array(SubmissionStatusSchema).optional().default([]),
 });
 
 export type LearnerDashboardResponse = z.infer<typeof LearnerDashboardResponseSchema>;

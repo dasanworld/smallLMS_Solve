@@ -72,7 +72,6 @@ export const getLearnerDashboardService = async (
   const enrolledCourses = [];
   const upcomingAssignments: any[] = [];
   const recentFeedback: any[] = [];
-  let allAssignmentsStatus: any[] = [];
 
   if (courseIds.length > 0) {
     // Get course details (소프트 삭제 필터 추가)
@@ -86,80 +85,59 @@ export const getLearnerDashboardService = async (
       return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch courses', coursesError.message);
     }
 
-    // Get all assignments for enrolled courses (모든 상태의 과제 포함, 소프트 삭제된 과제는 제외)
+    // Get all assignments for enrolled courses that are published (소프트 삭제 필터 추가)
     const { data: assignments, error: assignmentsError } = await client
       .from(ASSIGNMENTS_TABLE)
       .select('id, title, course_id, due_date, status')
       .in('course_id', courseIds)
-      .is('deleted_at', null); // 소프트 삭제된 과제만 제외 (모든 상태 포함)
+      .eq('status', 'published')
+      .is('deleted_at', null); // 소프트 삭제된 과제 제외
 
     if (assignmentsError) {
       return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignments', assignmentsError.message);
     }
 
     // Get all submissions for the user
-    let submissions: any[] = [];
-    if (assignments && assignments.length > 0) {
-      const { data: submissionsData, error: submissionsError } = await client
-        .from(SUBMISSIONS_TABLE)
-        .select('id, assignment_id, status, feedback, score, graded_at, is_late, submitted_at')
-        .eq('user_id', userId)
-        .in('assignment_id', assignments.map(a => a.id));
+    const { data: submissions, error: submissionsError } = await client
+      .from(SUBMISSIONS_TABLE)
+      .select('id, assignment_id, status, feedback, score, graded_at, is_late')
+      .eq('user_id', userId)
+      .in('assignment_id', assignments?.map(a => a.id) || []);
 
-      if (submissionsError) {
-        return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch submissions', submissionsError.message);
-      }
-
-      submissions = submissionsData || [];
+    if (submissionsError) {
+      return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch submissions', submissionsError.message);
     }
 
     // Fetch course details for assignments (소프트 삭제 필터 추가)
-    let assignmentCourses: any[] = [];
-    if (assignments && assignments.length > 0) {
-      const courseIdsFromAssignments = [...new Set(assignments.map(a => a.course_id))];
-      const { data: courses, error: assignmentCoursesError } = await client
-        .from(COURSES_TABLE)
-        .select('id, title')
-        .in('id', courseIdsFromAssignments)
-        .is('deleted_at', null); // 소프트 삭제된 코스 제외
+    const { data: assignmentCourses, error: assignmentCoursesError } = await client
+      .from(COURSES_TABLE)
+      .select('id, title')
+      .in('id', assignments?.map(a => a.course_id) || [])
+      .is('deleted_at', null); // 소프트 삭제된 코스 제외
 
-      if (assignmentCoursesError) {
-        return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignment course details', assignmentCoursesError.message);
-      }
-
-      assignmentCourses = courses || [];
+    if (assignmentCoursesError) {
+      return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignment course details', assignmentCoursesError.message);
     }
 
     // Fetch course details for assignment submissions (소프트 삭제 필터 추가)
-    let submissionAssignmentDetails: any[] = [];
-    let submissionAssignmentCourses: any[] = [];
+    const { data: submissionAssignmentDetails, error: submissionAssignmentError } = await client
+      .from(ASSIGNMENTS_TABLE)
+      .select('id, title, course_id')
+      .in('id', submissions?.map(s => s.assignment_id) || [])
+      .is('deleted_at', null); // 소프트 삭제된 과제 제외
 
-    if (submissions.length > 0) {
-      const { data: subAssignmentDetails, error: submissionAssignmentError } = await client
-        .from(ASSIGNMENTS_TABLE)
-        .select('id, title, course_id')
-        .in('id', submissions.map(s => s.assignment_id))
-        .is('deleted_at', null); // 소프트 삭제된 과제 제외
+    if (submissionAssignmentError) {
+      return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignment details for submissions', submissionAssignmentError.message);
+    }
 
-      if (submissionAssignmentError) {
-        return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignment details for submissions', submissionAssignmentError.message);
-      }
+    const { data: submissionAssignmentCourses, error: submissionAssignmentCourseError } = await client
+      .from(COURSES_TABLE)
+      .select('id, title')
+      .in('id', submissionAssignmentDetails?.map(a => a.course_id) || [])
+      .is('deleted_at', null); // 소프트 삭제된 코스 제외
 
-      submissionAssignmentDetails = subAssignmentDetails || [];
-
-      if (submissionAssignmentDetails.length > 0) {
-        const { data: subAssignmentCourses, error: submissionAssignmentCourseError } = await client
-          .from(COURSES_TABLE)
-          .select('id, title')
-          .in('id', submissionAssignmentDetails.map(a => a.course_id))
-          .is('deleted_at', null); // 소프트 삭제된 코스 제외
-
-        if (submissionAssignmentCourseError) {
-          return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch courses for submission assignments', submissionAssignmentCourseError.message);
-        }
-
-        submissionAssignmentCourses = subAssignmentCourses || [];
-      }
+    if (submissionAssignmentCourseError) {
+      return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch courses for submission assignments', submissionAssignmentCourseError.message);
     }
 
     // Process each enrolled course to calculate progress
@@ -248,33 +226,12 @@ export const getLearnerDashboardService = async (
         gradedAt: submission.graded_at,
       });
     }
-
-    // Get all assignments with submission status for enrolled courses (published, closed 상태만 포함)
-    for (const assignment of (assignments || []).filter(a => a.status === 'published' || a.status === 'closed')) {
-      const submission = submissions?.find(
-        sub => sub.assignment_id === assignment.id
-      );
-      const assignmentCourse = assignmentCourses?.find(c => c.id === assignment.course_id);
-
-      allAssignmentsStatus.push({
-        id: submission?.id || `${assignment.id}-no-submission`,
-        assignmentId: assignment.id,
-        assignmentTitle: assignment.title,
-        courseId: assignment.course_id,
-        courseTitle: assignmentCourse?.title || 'Unknown Course',
-        status: submission?.status || 'not_submitted',
-        isLate: submission?.is_late || false,
-        score: submission?.score,
-        submittedAt: submission?.submitted_at,
-      });
-    }
   }
 
   const dashboardData = {
     enrolledCourses,
     upcomingAssignments,
     recentFeedback,
-    allAssignmentsStatus: courseIds.length > 0 ? allAssignmentsStatus : [],
   };
 
   // Validate response data

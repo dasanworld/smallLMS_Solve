@@ -10,32 +10,6 @@ import {
 } from './schema';
 
 /**
- * 학습자가 수강신청할 수 있는 활성 코스 목록 조회
- * - 상태가 'published'인 코스만 반환
- * - 소프트 삭제된 코스는 제외
- */
-export const getAvailableCoursesService = async (
-  supabase: SupabaseClient
-): Promise<HandlerResult<{ courses: Course[] }, typeof courseErrorCodes[keyof typeof courseErrorCodes]>> => {
-  try {
-    const { data, error } = await supabase
-      .from('courses')
-      .select('*')
-      .eq('status', 'published')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      return failure(500, courseErrorCodes.COURSE_CREATION_ERROR, error.message);
-    }
-
-    return success({ courses: data || [] });
-  } catch (err) {
-    return failure(500, courseErrorCodes.COURSE_CREATION_ERROR, String(err));
-  }
-};
-
-/**
  * 강사의 코스 목록 조회
  * 소프트 삭제된 코스는 제외
  */
@@ -114,7 +88,7 @@ export const createCourseService = async (
 
 /**
  * 코스 상세 조회
- * 카테고리, 난이도, 강사 정보 포함
+ * 카테고리와 난이도 정보 포함
  */
 export const getCourseByIdService = async (
   supabase: SupabaseClient,
@@ -150,14 +124,6 @@ export const getCourseByIdService = async (
       return failure(403, courseErrorCodes.INSUFFICIENT_PERMISSIONS, 'You do not have permission to access this course');
     }
 
-    // 강사 정보 조회
-    const { data: instructorData, error: instructorError } = await supabase
-      .from('users')
-      .select('name')
-      .eq('id', course.owner_id)
-      .maybeSingle();
-
-
     const categoryData = Array.isArray(course.category) ? course.category[0] : course.category;
     const difficultyData = Array.isArray(course.difficulty) ? course.difficulty[0] : course.difficulty;
 
@@ -165,7 +131,6 @@ export const getCourseByIdService = async (
       ...course,
       category: categoryData || null,
       difficulty: difficultyData || null,
-      instructor_name: instructorData?.name || null,
     } as CourseDetailResponse);
   } catch (err) {
     return failure(500, courseErrorCodes.COURSE_UPDATE_ERROR, String(err));

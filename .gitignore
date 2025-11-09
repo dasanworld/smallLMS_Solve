@@ -16,7 +16,7 @@
 #.ruler/supabase.md
 
 .prompt/ 
-
+docs/**/usecase-checker.md 
 
 # Dependencies
 node_modules/

@@ -127,8 +127,8 @@ export const CourseForm = ({ onSubmit, isLoading, initialData, isEditing = false
                   <FormItem>
                     <FormLabel>카테고리</FormLabel>
                     <Select
-                      value={field.value ? String(field.value) : 'none'}
-                      onValueChange={(value) => field.onChange(value !== 'none' ? Number(value) : null)}
+                      value={field.value ? String(field.value) : ''}
+                      onValueChange={(value) => field.onChange(value ? Number(value) : null)}
                       disabled={isLoading}
                     >
                       <FormControl>
@@ -137,7 +137,7 @@ export const CourseForm = ({ onSubmit, isLoading, initialData, isEditing = false
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">카테고리 없음</SelectItem>
+                        <SelectItem value="">카테고리 없음</SelectItem>
                         {metadata?.categories.map((category) => (
                           <SelectItem key={category.id} value={String(category.id)}>
                             {category.name}
@@ -157,8 +157,8 @@ export const CourseForm = ({ onSubmit, isLoading, initialData, isEditing = false
                   <FormItem>
                     <FormLabel>난이도</FormLabel>
                     <Select
-                      value={field.value ? String(field.value) : 'none'}
-                      onValueChange={(value) => field.onChange(value !== 'none' ? Number(value) : null)}
+                      value={field.value ? String(field.value) : ''}
+                      onValueChange={(value) => field.onChange(value ? Number(value) : null)}
                       disabled={isLoading}
                     >
                       <FormControl>
@@ -167,7 +167,7 @@ export const CourseForm = ({ onSubmit, isLoading, initialData, isEditing = false
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">난이도 없음</SelectItem>
+                        <SelectItem value="">난이도 없음</SelectItem>
                         {metadata?.difficulties.map((difficulty) => (
                           <SelectItem key={difficulty.id} value={String(difficulty.id)}>
                             {difficulty.name}

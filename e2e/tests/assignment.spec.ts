@@ -1,9 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { test as authTest } from '../fixtures/auth';
-import { createAssignment, publishAssignment } from '../helpers/assignment-helper';
-import { createCourse, publishCourse } from '../helpers/course-helper';
-import { generateRandomCourseTitle } from '../fixtures/data';
-import { testCourses, testAssignments } from '../fixtures/data';
 
 /**
  * 과제 관련 E2E 테스트
@@ -14,8 +10,8 @@ test.describe('Assignment Management', () => {
   test.describe('과제 생성 (강사)', () => {
     authTest(
       'should create a new assignment for course',
-      async ({ instructorPage }) => {
-        const page = instructorPage;
+      async ({ authenticatedInstructor }) => {
+        const { page } = authenticatedInstructor;
         const timestamp = Date.now();
 
         // 먼저 강좌 생성
@@ -80,8 +76,8 @@ test.describe('Assignment Management', () => {
 
     authTest(
       'should configure assignment options',
-      async ({ instructorPage }) => {
-        const page = instructorPage;
+      async ({ authenticatedInstructor }) => {
+        const { page } = authenticatedInstructor;
 
         // 과제 생성 페이지에서
         await page.goto('/instructor-dashboard');
@@ -105,8 +101,8 @@ test.describe('Assignment Management', () => {
   test.describe('과제 조회 (학습자)', () => {
     authTest(
       'should view assignments list for enrolled course',
-      async ({ learnerPage }) => {
-        const page = learnerPage;
+      async ({ authenticatedLearner }) => {
+        const { page } = authenticatedLearner;
 
         await page.goto('/dashboard');
 
@@ -129,8 +125,8 @@ test.describe('Assignment Management', () => {
 
     authTest(
       'should view assignment detail',
-      async ({ learnerPage }) => {
-        const page = learnerPage;
+      async ({ authenticatedLearner }) => {
+        const { page } = authenticatedLearner;
 
         await page.goto('/courses');
 
@@ -166,8 +162,8 @@ test.describe('Assignment Management', () => {
   test.describe('과제 제출 (학습자)', () => {
     authTest(
       'should submit assignment',
-      async ({ learnerPage }) => {
-        const page = learnerPage;
+      async ({ authenticatedLearner }) => {
+        const { page } = authenticatedLearner;
         const timestamp = Date.now();
 
         // 과제 상세 페이지로 이동
@@ -221,8 +217,8 @@ test.describe('Assignment Management', () => {
 
     authTest(
       'should not allow duplicate submission without resubmission permission',
-      async ({ learnerPage }) => {
-        const page = learnerPage;
+      async ({ authenticatedLearner }) => {
+        const { page } = authenticatedLearner;
 
         // 이미 제출한 과제에 다시 제출 시도
         // (이전 테스트에서 제출했다고 가정)
@@ -245,8 +241,8 @@ test.describe('Assignment Management', () => {
   test.describe('과제 평가 (강사)', () => {
     authTest(
       'should view submitted assignments',
-      async ({ instructorPage }) => {
-        const page = instructorPage;
+      async ({ authenticatedInstructor }) => {
+        const { page } = authenticatedInstructor;
 
         await page.goto('/instructor-dashboard');
 
@@ -285,8 +281,8 @@ test.describe('Assignment Management', () => {
 
     authTest(
       'should grade a submission',
-      async ({ instructorPage }) => {
-        const page = instructorPage;
+      async ({ authenticatedInstructor }) => {
+        const { page } = authenticatedInstructor;
 
         // 제출물 목록에서 평가할 제출물 선택
         const firstSubmission = page
@@ -325,8 +321,8 @@ test.describe('Assignment Management', () => {
   test.describe('성적 조회 (학습자)', () => {
     authTest(
       'should view grades for submitted assignments',
-      async ({ learnerPage }) => {
-        const page = learnerPage;
+      async ({ authenticatedLearner }) => {
+        const { page } = authenticatedLearner;
 
         await page.goto('/grades');
 
@@ -337,8 +333,8 @@ test.describe('Assignment Management', () => {
 
     authTest(
       'should view detailed grade with feedback',
-      async ({ learnerPage }) => {
-        const page = learnerPage;
+      async ({ authenticatedLearner }) => {
+        const { page } = authenticatedLearner;
 
         await page.goto('/grades');
 
@@ -357,8 +353,8 @@ test.describe('Assignment Management', () => {
   test.describe('과제 상태 관리 (강사)', () => {
     authTest(
       'should publish draft assignment',
-      async ({ instructorPage }) => {
-        const page = instructorPage;
+      async ({ authenticatedInstructor }) => {
+        const { page } = authenticatedInstructor;
 
         // draft 과제 선택
         const draftAssignment = page.locator('text=/초안|Draft/i').first();
@@ -382,8 +378,8 @@ test.describe('Assignment Management', () => {
 
     authTest(
       'should close published assignment',
-      async ({ instructorPage }) => {
-        const page = instructorPage;
+      async ({ authenticatedInstructor }) => {
+        const { page } = authenticatedInstructor;
 
         // 발행된 과제 선택
         const publishedAssignment = page
@@ -414,7 +410,7 @@ test.describe('Assignment Management', () => {
   test.describe('API - 과제 관리', () => {
     authTest(
       'should get assignment detail via API',
-      async ({ learnerPage }) => {
+      async ({ authenticatedLearner }) => {
         const { page, user } = authenticatedLearner;
 
         // 강좌 목록에서 과제 ID 가져오기
@@ -444,7 +440,7 @@ test.describe('Assignment Management', () => {
 
     authTest(
       'should submit assignment via API',
-      async ({ learnerPage }) => {
+      async ({ authenticatedLearner }) => {
         const { page, user } = authenticatedLearner;
         const timestamp = Date.now();
 
@@ -472,7 +468,7 @@ test.describe('Assignment Management', () => {
 
     authTest(
       'should get grades via API',
-      async ({ learnerPage }) => {
+      async ({ authenticatedLearner }) => {
         const { page, user } = authenticatedLearner;
 
         const response = await page.request.get('/api/grades?page=1&limit=10', {
@@ -491,7 +487,7 @@ test.describe('Assignment Management', () => {
 
     authTest(
       'should grade submission via API as instructor',
-      async ({ instructorPage }) => {
+      async ({ authenticatedInstructor }) => {
         const { page, user } = authenticatedInstructor;
 
         const response = await page.request.post(
@@ -517,7 +513,7 @@ test.describe('Assignment Management', () => {
   test.describe('권한 검증', () => {
     authTest(
       'should not allow learner to create assignments',
-      async ({ learnerPage }) => {
+      async ({ authenticatedLearner }) => {
         const { page, user } = authenticatedLearner;
 
         // 과제 생성 페이지 접근 시도
@@ -531,7 +527,7 @@ test.describe('Assignment Management', () => {
 
     authTest(
       'should not allow learner to grade submissions',
-      async ({ learnerPage }) => {
+      async ({ authenticatedLearner }) => {
         const { page, user } = authenticatedLearner;
 
         const response = await page.request.post(

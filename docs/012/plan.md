@@ -1,7 +1,7 @@
 # Implementation Plan: Operation (Operator) Feature
 
 ## Overview
-This document outlines the implementation plan for the Operation (Operator) feature for system administrators, based on the specification in `/docs/012/spec.md`. The feature allows operators to manage reports and system metadata (categories and difficulty levels).
+This document outlines the implementation plan for the Operation (Operator) feature for system administrators, based on the specification in `/docs/012/spec.md`. The feature allows operators to manage reports a nd system metadata (categories and difficulty levels).
 
 ## Current State Analysis
 Based on codebase analysis:

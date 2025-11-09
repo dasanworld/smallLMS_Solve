@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Copy, CheckCircle2, Boxes, Database, Server } from "lucide-react";
+import { Copy, CheckCircle2, Boxes, Database, LogOut, Server } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useQuery } from "@tanstack/react-query";
@@ -101,13 +101,12 @@ export default function Home() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // 로그아웃 기능은 글로벌 네비게이션으로 통일됨
-  // const handleSignOut = useCallback(async () => {
-  //   const supabase = getSupabaseBrowserClient();
-  //   await supabase.auth.signOut();
-  //   await refresh();
-  //   router.replace("/");
-  // }, [refresh, router]);
+  const handleSignOut = useCallback(async () => {
+    const supabase = getSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    await refresh();
+    router.replace("/");
+  }, [refresh, router]);
 
   const authActions = useMemo(() => {
     if (isLoading || isProfileLoading) {
@@ -132,7 +131,14 @@ export default function Home() {
             >
               대시보드
             </Link>
-            {/* 로그아웃은 글로벌 네비게이션에서 처리 */}
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex items-center gap-1 rounded-md bg-slate-100 px-3 py-1 text-slate-900 transition hover:bg-white"
+            >
+              <LogOut className="h-4 w-4" />
+              로그아웃
+            </button>
           </div>
         </div>
       );
@@ -154,7 +160,7 @@ export default function Home() {
         </Link>
       </div>
     );
-  }, [isAuthenticated, isLoading, isProfileLoading, user, userProfile]);
+  }, [handleSignOut, isAuthenticated, isLoading, isProfileLoading, user, userProfile]);
 
   const handleCopy = (command: string) => {
     navigator.clipboard.writeText(command);
