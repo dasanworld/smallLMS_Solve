@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
@@ -18,8 +19,13 @@ export function GlobalNavigation() {
   const { user, isLoading } = useCurrentUser();
   const router = useRouter();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
 
-  if (isLoading) {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || isLoading) {
     return null;
   }
 
