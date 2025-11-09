@@ -413,7 +413,7 @@ export const getSubmissionForGradingService = async (
   submissionId: string
 ): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionGradingSchema>, typeof gradeErrorCodes[keyof typeof gradeErrorCodes], unknown>> => {
   try {
-    // Get submission with assignment and course details to check permissions
+    // 1. Get submission first
     const { data: submission, error: submissionError } = await client
       .from(SUBMISSIONS_TABLE)
       .select(`
@@ -426,15 +426,7 @@ export const getSubmissionForGradingService = async (
         is_late,
         score,
         feedback,
-        status,
-        assignments(
-          title,
-          course_id,
-          courses(
-            title,
-            instructor_id
-          )
-        )
+        status
       `)
       .eq('id', submissionId)
       .single();
@@ -443,17 +435,34 @@ export const getSubmissionForGradingService = async (
       return failure(404, gradeErrorCodes.SUBMISSION_NOT_FOUND, 'Submission not found');
     }
 
-    // Type assertion for nested structure
-    const submissionData = submission as any;
-    const assignmentData = Array.isArray(submissionData.assignments) ? submissionData.assignments[0] : submissionData.assignments;
-    const courseData = Array.isArray(assignmentData.courses) ? assignmentData.courses[0] : assignmentData.courses;
+    // 2. Get assignment details
+    const { data: assignment, error: assignmentError } = await client
+      .from(ASSIGNMENTS_TABLE)
+      .select('id, title, course_id')
+      .eq('id', submission.assignment_id)
+      .single();
+
+    if (assignmentError || !assignment) {
+      return failure(404, gradeErrorCodes.SUBMISSION_NOT_FOUND, 'Assignment not found');
+    }
+
+    // 3. Get course details to check permissions
+    const { data: course, error: courseError } = await client
+      .from(COURSES_TABLE)
+      .select('id, title, instructor_id')
+      .eq('id', assignment.course_id)
+      .single();
+
+    if (courseError || !course) {
+      return failure(404, gradeErrorCodes.SUBMISSION_NOT_FOUND, 'Course not found');
+    }
 
     // Check if instructor has permission to view this submission
-    if (courseData.instructor_id !== instructorId) {
+    if (course.instructor_id !== instructorId) {
       return failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions to view this submission');
     }
 
-    // Get user information
+    // 4. Get user information
     const { data: user, error: userError } = await client
       .from(USERS_TABLE)
       .select('name')
@@ -469,7 +478,7 @@ export const getSubmissionForGradingService = async (
       id: submission.id,
       assignment_id: submission.assignment_id,
       user_id: submission.user_id,
-      user_name: user.name || 'Unknown User',
+      user_name: user?.name || 'Unknown User',
       content: submission.content,
       link: submission.link,
       submitted_at: submission.submitted_at,
@@ -477,8 +486,8 @@ export const getSubmissionForGradingService = async (
       score: submission.score,
       feedback: submission.feedback,
       status: submission.status as 'submitted' | 'graded' | 'resubmission_required',
-      assignment_title: assignmentData.title,
-      course_title: courseData.title,
+      assignment_title: assignment.title,
+      course_title: course.title,
     };
 
     // Validate response data using the schema from the schema file
