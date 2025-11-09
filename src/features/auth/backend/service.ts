@@ -152,7 +152,7 @@ export const signupUserService = async (
   }
 
   // 6. Determine redirect path based on role
-  const redirectTo = role === 'learner' ? '/courses' : '/dashboard';
+  const redirectTo = role === 'learner' ? '/courses' : '/instructor-dashboard';
 
   logger.info('User signup completed successfully', { userId, email, role });
   
