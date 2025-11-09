@@ -100,7 +100,7 @@ export const getLearnerDashboardService = async (
     // Get all submissions for the user
     const { data: submissions, error: submissionsError } = await client
       .from(SUBMISSIONS_TABLE)
-      .select('id, assignment_id, status, feedback, score, graded_at, is_late')
+      .select('id, assignment_id, status, feedback, score, graded_at, is_late, submitted_at')
       .eq('user_id', userId)
       .in('assignment_id', assignments?.map(a => a.id) || []);
 
@@ -227,8 +227,8 @@ export const getLearnerDashboardService = async (
       });
     }
 
-    // Get all assignments with submission status for enrolled courses
-    for (const assignment of assignments || []) {
+    // Get all assignments with submission status for enrolled courses (published, closed 상태만 포함)
+    for (const assignment of (assignments || []).filter(a => a.status === 'published' || a.status === 'closed')) {
       const submission = submissions?.find(
         sub => sub.assignment_id === assignment.id
       );
@@ -243,7 +243,7 @@ export const getLearnerDashboardService = async (
         status: submission?.status || 'not_submitted',
         isLate: submission?.is_late || false,
         score: submission?.score,
-        submittedAt: submission?.id ? assignment.due_date : undefined,
+        submittedAt: submission?.submitted_at,
       });
     }
   }

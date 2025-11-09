@@ -74,27 +74,25 @@ export const LearnerDashboard = () => {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <header className="mb-8 space-y-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">학습자 대시보드</h1>
-            <p className="text-slate-500 mt-1">
-              현재 수강 중인 강의와 과제 현황을 확인하세요
-            </p>
-          </div>
+      <header className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-3xl font-bold">학습자 대시보드</h1>
           <Button
             variant="outline"
             size="icon"
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
             title="새로고침"
-            className="h-10 w-10"
+            className="h-9 w-9"
           >
             <RefreshCw
               className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
             />
           </Button>
         </div>
+        <p className="text-slate-500">
+          현재 수강 중인 강의와 과제 현황을 확인하세요
+        </p>
       </header>
 
       {!hasEnrolledCourses ? (
