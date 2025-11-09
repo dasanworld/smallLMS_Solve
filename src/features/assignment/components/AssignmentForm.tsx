@@ -94,6 +94,15 @@ export const AssignmentForm = ({
   const onSubmit = async (data: CreateAssignmentRequest) => {
     setIsSubmitting(true);
     try {
+      console.log('📋 Form submit data:', {
+        courseId: data.courseId,
+        title: data.title,
+        description: data.description,
+        dueDate: data.dueDate,
+        pointsWeight: data.pointsWeight,
+        allowLate: data.allowLate,
+        allowResubmission: data.allowResubmission,
+      });
       if (assignment) {
         await updateMutation.mutateAsync({
           assignmentId: assignment.id,

@@ -21,7 +21,8 @@ export const useCreateAssignmentMutation = () => {
 
   return useMutation({
     mutationFn: async (data: CreateAssignmentRequest) => {
-      const response = await apiClient.post<AssignmentResponse>(
+      console.log('📝 Creating assignment:', data);
+      const response = await apiClient.post<{ data: AssignmentResponse }>(
         `/api/courses/${data.courseId}/assignments`,
         {
           title: data.title,
@@ -32,13 +33,18 @@ export const useCreateAssignmentMutation = () => {
           allowResubmission: data.allowResubmission,
         }
       );
-      return response.data;
+      console.log('✅ Assignment created:', response.data.data);
+      return response.data.data;
     },
     onSuccess: (_, variables) => {
+      console.log('🔄 Invalidating cache for course:', variables.courseId);
       // 과제 목록 캐시 무효화
       queryClient.invalidateQueries({
         queryKey: ['course-assignments', variables.courseId],
       });
+    },
+    onError: (error: any) => {
+      console.error('❌ Assignment creation error:', error.response?.data || error.message);
     },
   });
 };
