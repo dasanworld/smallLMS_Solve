@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, ArrowLeft, Edit, FileText } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Edit, FileText, RefreshCw } from 'lucide-react';
 import type { AssignmentResponse } from '@/features/assignment/backend/schema';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -42,6 +42,8 @@ export default function AssignmentDetailPage() {
     isLoading,
     error,
     isError,
+    refetch,
+    isFetching,
   } = useQuery({
     queryKey: ['assignment', courseId, assignmentId],
     queryFn: async () => {
@@ -60,6 +62,10 @@ export default function AssignmentDetailPage() {
     },
     enabled: !!assignmentId && !!courseId,
   });
+
+  const handleRefresh = async () => {
+    await refetch();
+  };
 
   if (isLoading) {
     return (
@@ -120,6 +126,17 @@ export default function AssignmentDetailPage() {
               <Badge className={config.color} variant="outline">
                 {config.label}
               </Badge>
+              {/* 새로고침 버튼 */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleRefresh}
+                disabled={isFetching}
+                title="새로고침"
+                className="h-9 w-9"
+              >
+                <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
             <p className="text-slate-500">
               마감: {formatDateTime(assignment.dueDate)} {assignment.dueDate && parseDate(assignment.dueDate) && `(${formatDistanceToNow(parseDate(assignment.dueDate)!, { addSuffix: true })})`}
