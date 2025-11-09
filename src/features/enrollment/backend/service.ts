@@ -10,6 +10,7 @@ const ENROLLMENTS_TABLE = 'enrollments';
  * - 코스가 published 상태인지 확인
  * - 아카이브된 코스는 불가
  * - 중복 수강 방지
+ * - 취소된 수강은 다시 활성화
  */
 export const createEnrollmentService = async (
   supabase: SupabaseClient,
@@ -25,16 +26,7 @@ export const createEnrollmentService = async (
       .is('deleted_at', null)
       .single();
 
-    if (courseError) {
-      console.error('❌ 코스 조회 에러:', { courseError, courseId });
-      return failure(
-        404,
-        enrollmentErrorCodes.INVALID_COURSE_ID,
-        `코스를 찾을 수 없습니다. (${courseError.message})`
-      );
-    }
-    
-    if (!course) {
+    if (courseError || !course) {
       return failure(
         404,
         enrollmentErrorCodes.INVALID_COURSE_ID,
@@ -60,7 +52,7 @@ export const createEnrollmentService = async (
     }
 
     // 3. 이미 수강 중인지 확인
-    const { data: existingEnrollment, error: checkError } = await supabase
+    const { data: activeEnrollment, error: activeCheckError } = await supabase
       .from(ENROLLMENTS_TABLE)
       .select('id')
       .eq('user_id', userId)
@@ -68,7 +60,7 @@ export const createEnrollmentService = async (
       .eq('status', 'active')
       .maybeSingle();
 
-    if (existingEnrollment) {
+    if (activeEnrollment) {
       return failure(
         409,
         enrollmentErrorCodes.ALREADY_ENROLLED,
@@ -76,7 +68,43 @@ export const createEnrollmentService = async (
       );
     }
 
-    // 4. 수강신청 생성
+    // 4. 취소된 수강이 있는지 확인
+    const { data: cancelledEnrollment, error: cancelledCheckError } = await supabase
+      .from(ENROLLMENTS_TABLE)
+      .select('id')
+      .eq('user_id', userId)
+      .eq('course_id', courseId)
+      .eq('status', 'cancelled')
+      .maybeSingle();
+
+    // 5. 취소된 수강이 있으면 활성화, 없으면 새로 생성
+    if (cancelledEnrollment) {
+      // 취소된 수강을 다시 활성화
+      const { data: reactivatedEnrollment, error: updateError } = await supabase
+        .from(ENROLLMENTS_TABLE)
+        .update({
+          status: 'active',
+          enrolled_at: new Date().toISOString(),
+        })
+        .eq('id', cancelledEnrollment.id)
+        .select('id, status')
+        .single();
+
+      if (updateError || !reactivatedEnrollment) {
+        return failure(
+          500,
+          enrollmentErrorCodes.ENROLLMENT_CREATION_ERROR,
+          '수강신청에 실패했습니다.'
+        );
+      }
+
+      return success({
+        id: reactivatedEnrollment.id,
+        status: reactivatedEnrollment.status,
+      });
+    }
+
+    // 6. 새로운 수강신청 생성
     const { data: newEnrollment, error: createError } = await supabase
       .from(ENROLLMENTS_TABLE)
       .insert({
@@ -87,20 +115,11 @@ export const createEnrollmentService = async (
       .select('id, status')
       .single();
 
-    if (createError) {
-      console.error('❌ 수강신청 생성 에러:', { createError, userId, courseId });
+    if (createError || !newEnrollment) {
       return failure(
         500,
         enrollmentErrorCodes.ENROLLMENT_CREATION_ERROR,
-        `수강신청에 실패했습니다. (${createError.message})`
-      );
-    }
-    
-    if (!newEnrollment) {
-      return failure(
-        500,
-        enrollmentErrorCodes.ENROLLMENT_CREATION_ERROR,
-        '수강신청 응답이 없습니다.'
+        '수강신청에 실패했습니다.'
       );
     }
 
