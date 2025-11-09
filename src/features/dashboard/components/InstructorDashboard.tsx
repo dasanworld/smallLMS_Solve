@@ -164,9 +164,11 @@ export default function InstructorDashboard() {
             <div className="flex items-center gap-2">
               <CardTitle>과제 관리</CardTitle>
             </div>
-            <p className="text-sm text-slate-500">
-              각 코스에서 과제를 생성하고 관리할 수 있습니다
-            </p>
+            <Link href="/courses/assignments">
+              <Button variant="outline" size="sm" className="gap-2">
+                모든 과제 보기 →
+              </Button>
+            </Link>
           </div>
         </CardHeader>
         <CardContent>
@@ -179,7 +181,7 @@ export default function InstructorDashboard() {
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-slate-600">
-                코스 카드에서 과제 개수를 클릭하거나, 코스를 선택하여 과제를 관리하세요.
+                각 코스의 과제를 관리하거나 <Link href="/courses/assignments" className="font-medium text-blue-600 hover:underline">모든 과제를 한눈에</Link> 볼 수 있습니다.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {courses.map((course) => 

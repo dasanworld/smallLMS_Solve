@@ -1,0 +1,285 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, Plus, FileText, BookOpen, Filter } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { AssignmentResponse } from '@/features/assignment/lib/dto';
+import type { Course } from '@/features/course/backend/schema';
+
+interface CourseWithAssignments extends Course {
+  assignments: AssignmentResponse[];
+  assignmentCount: number;
+}
+
+export default function AllAssignmentsPage() {
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('all');
+
+  // 강사의 모든 코스 조회
+  const {
+    data: courses = [],
+    isLoading: coursesLoading,
+  } = useQuery({
+    queryKey: ['instructor-courses'],
+    queryFn: async () => {
+      try {
+        console.log('📚 강사 코스 목록 조회 중...');
+        const response = await apiClient.get<{ courses: Course[] }>('/api/courses');
+        console.log('✅ 강사 코스 목록 조회 완료:', response.data.courses.length);
+        return response.data.courses;
+      } catch (err) {
+        const message = extractApiErrorMessage(err, 'Failed to fetch courses.');
+        console.error('❌ 코스 목록 조회 실패:', message);
+        throw new Error(message);
+      }
+    },
+  });
+
+  // 모든 코스의 과제 조회
+  const {
+    data: coursesWithAssignments = [],
+    isLoading: assignmentsLoading,
+    error,
+    isError,
+  } = useQuery({
+    queryKey: ['all-assignments', courses.map(c => c.id).join(',')],
+    queryFn: async () => {
+      try {
+        if (courses.length === 0) return [];
+
+        console.log('📋 모든 과제 목록 조회 중...');
+        const results = await Promise.all(
+          courses.map(async (course) => {
+            try {
+              const response = await apiClient.get<{
+                data: AssignmentResponse[];
+                total: number;
+              }>(`/api/courses/${course.id}/assignments`);
+              return {
+                ...course,
+                assignments: response.data.data || [],
+                assignmentCount: response.data.total || 0,
+              };
+            } catch (err) {
+              console.warn(`Failed to fetch assignments for course ${course.id}:`, err);
+              return {
+                ...course,
+                assignments: [],
+                assignmentCount: 0,
+              };
+            }
+          })
+        );
+        console.log('✅ 모든 과제 목록 조회 완료');
+        return results;
+      } catch (err) {
+        const message = extractApiErrorMessage(err, 'Failed to fetch assignments.');
+        console.error('❌ 과제 목록 조회 실패:', message);
+        throw new Error(message);
+      }
+    },
+    enabled: courses.length > 0,
+  });
+
+  // 필터링된 과제 목록
+  const filteredCourses = selectedCourseId === 'all'
+    ? coursesWithAssignments.filter(c => c.assignmentCount > 0)
+    : coursesWithAssignments.filter(c => c.id === selectedCourseId);
+
+  const totalAssignments = filteredCourses.reduce(
+    (sum, course) => sum + course.assignmentCount,
+    0
+  );
+
+  const isLoading = coursesLoading || assignmentsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
+        <div>
+          <Skeleton className="h-8 w-1/4 mb-2" />
+          <Skeleton className="h-4 w-1/3" />
+        </div>
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError && error) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">모든 과제</h1>
+          <p className="text-slate-500 mt-1">모든 코스의 과제를 한눈에 관리하세요</p>
+        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex flex-col gap-2">
+            <span className="font-semibold">과제 목록을 불러올 수 없습니다</span>
+            <span className="text-sm">
+              {error instanceof Error ? error.message : '서버 오류가 발생했습니다.'}
+            </span>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="space-y-6">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">모든 과제</h1>
+            <p className="text-slate-500 mt-1">모든 코스의 과제를 한눈에 관리하세요</p>
+          </div>
+          <Link href="/courses/assignments/new">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              새 과제 만들기
+            </Button>
+          </Link>
+        </div>
+
+        {/* 필터 및 통계 */}
+        {courses.length > 0 && (
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
+                <SelectTrigger className="w-full md:w-64">
+                  <SelectValue placeholder="코스 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">모든 과제 ({coursesWithAssignments.reduce((sum, c) => sum + c.assignmentCount, 0)})</SelectItem>
+                  {coursesWithAssignments
+                    .filter(c => c.assignmentCount > 0)
+                    .map((course) => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.title} ({course.assignmentCount})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <FileText className="h-4 w-4 text-slate-400" />
+              <span className="text-slate-600">
+                총 <span className="font-semibold text-slate-900">{totalAssignments}</span>개
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* 콘텐츠 */}
+        {coursesWithAssignments.length === 0 || (selectedCourseId === 'all' && filteredCourses.length === 0) ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <FileText className="h-12 w-12 text-slate-400 mb-3" />
+              <h3 className="text-lg font-medium text-slate-900">
+                아직 과제가 없습니다
+              </h3>
+              <p className="text-slate-500 text-sm mt-2 text-center max-w-xs">
+                과제를 만들어서 학생들에게 과제를 부여하세요.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {filteredCourses.map((course) => (
+              <Card key={course.id} className="overflow-hidden">
+                <CardHeader className="bg-slate-50 border-b">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg">{course.title}</CardTitle>
+                      <p className="text-sm text-slate-500 mt-1">
+                        {course.assignmentCount}개의 과제
+                      </p>
+                    </div>
+                    <Link href={`/courses/${course.id}/assignments`}>
+                      <Button variant="outline" size="sm">
+                        관리 →
+                      </Button>
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  {course.assignments.length === 0 ? (
+                    <div className="text-center py-6 text-slate-500">
+                      <p className="text-sm">이 코스에 과제가 없습니다.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {course.assignments.map((assignment) => (
+                        <Link
+                          key={assignment.id}
+                          href={`/courses/${course.id}/assignments/${assignment.id}`}
+                          className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-slate-900">
+                                {assignment.title}
+                              </h4>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  assignment.status === 'draft'
+                                    ? 'bg-gray-100 text-gray-800'
+                                    : assignment.status === 'published'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-slate-100 text-slate-800'
+                                }
+                              >
+                                {assignment.status === 'draft'
+                                  ? '초안'
+                                  : assignment.status === 'published'
+                                  ? '공개'
+                                  : '종료'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-slate-500 mt-1 line-clamp-1">
+                              {assignment.description}
+                            </p>
+                          </div>
+                          <div className="text-sm text-slate-500 text-right ml-4">
+                            {new Date(assignment.dueDate) < new Date() ? (
+                              <span className="text-red-600">마감됨</span>
+                            ) : (
+                              <span>
+                                {new Date(assignment.dueDate).toLocaleDateString('ko-KR')}
+                              </span>
+                            )}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
