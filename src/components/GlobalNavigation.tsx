@@ -25,15 +25,15 @@ export function GlobalNavigation() {
   const [mounted, setMounted] = useState(false);
 
   // 사용자 프로필 조회 (role 포함)
-  const { data: profile, isLoading: profileLoading } = useQuery<UserProfileResponse | null>({
+  const { data: profile, isLoading: profileLoading } = useQuery<UserProfileResponse>({
     queryKey: ['userProfile', user?.id],
     queryFn: async () => {
       try {
-        const response = await apiClient.get<{ data: UserProfileResponse }>('/api/auth/profile');
-        return response.data.data;
+        const response = await apiClient.get<UserProfileResponse>('/api/auth/profile');
+        // respond 함수는 성공 시 데이터를 직접 반환함
+        return response.data;
       } catch (err) {
         console.error('프로필 조회 실패:', extractApiErrorMessage(err, 'Failed to fetch profile'));
-        // 에러 발생 시 null을 throw하지 않고 반환
         throw err;
       }
     },
