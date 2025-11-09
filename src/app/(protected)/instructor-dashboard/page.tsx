@@ -1,108 +1,78 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import InstructorDashboard from '@/features/dashboard/components/InstructorDashboard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
+import { useQuery } from '@tanstack/react-query';
+import { type UserProfileResponse } from '@/features/auth/lib/dto';
+import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 
-export default function InstructorDashboardPage() {
+type InstructorDashboardPageProps = {
+  params: Promise<Record<string, never>>;
+};
+
+const fetchUserProfile = async () => {
+  try {
+    const { data } = await apiClient.get('/api/auth/profile');
+    return data;
+  } catch (error) {
+    const message = extractApiErrorMessage(error, 'Failed to fetch user profile.');
+    throw new Error(message);
+  }
+};
+
+export default function InstructorDashboardPage({ params }: InstructorDashboardPageProps) {
+  void params;
   const router = useRouter();
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, isLoading: isAuthLoading } = useCurrentUser();
 
-  useEffect(() => {
-    const checkUserRole = async () => {
-      try {
-        // Get authorization token from localStorage
-        const token = localStorage.getItem('supabase.auth.token');
-        
-        if (!token) {
-          router.push('/login');
-          return;
-        }
+  // Fetch user profile to get the role
+  const {
+    data: userProfile,
+    isLoading: isProfileLoading,
+    isError
+  } = useQuery<UserProfileResponse>({
+    queryKey: ['user-profile', user?.id],
+    queryFn: () => fetchUserProfile(),
+    enabled: !!user?.id, // Only run if user is authenticated
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-        // Fetch user role from the backend
-        const response = await fetch('/api/user/profile', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const profile = await response.json();
-          setUserRole(profile.role);
-
-          // If user is not an instructor, redirect to appropriate dashboard
-          if (profile.role !== 'instructor') {
-            router.push('/dashboard');
-          }
-        } else {
-          setError('Could not fetch user profile');
-          setUserRole('unknown');
-        }
-      } catch (err) {
-        console.error('Error checking user role:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
-        setUserRole('unknown');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkUserRole();
-  }, [router]);
-
-  if (loading) {
+  if (isAuthLoading || isProfileLoading) {
     return (
-      <div className="container mx-auto py-10">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      <div className="mx-auto max-w-4xl px-6 py-8">
+        <div className="text-center">
+          <p>Loading...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (isError || !userProfile) {
     return (
-      <div className="container mx-auto py-10">
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle>Error</CardTitle>
-            <CardDescription>An error occurred while loading your profile</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {error}
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
+      <div className="mx-auto max-w-4xl px-6 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">사용자 정보를 불러올 수 없습니다</h1>
+          <p className="text-slate-500">
+            다시 시도해 주세요.
+          </p>
+        </div>
       </div>
     );
   }
 
-  if (userRole !== 'instructor') {
+  // Check if user is an instructor
+  const isInstructor = userProfile.role === 'instructor';
+
+  if (!isInstructor) {
     return (
-      <div className="container mx-auto py-10">
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
-            <CardDescription>You don't have permission to access the instructor dashboard.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                You must be an instructor to access this page. Redirecting to your dashboard...
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
+      <div className="mx-auto max-w-4xl px-6 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">접근 권한이 없습니다</h1>
+          <p className="text-slate-500">
+            이 대시보드는 강사 전용입니다.
+          </p>
+        </div>
       </div>
     );
   }
