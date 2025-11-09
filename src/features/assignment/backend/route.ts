@@ -158,10 +158,27 @@ export const createAssignmentRoutes = (app: Hono<AppEnv>) => {
         } as any);
       }
 
+      // 응답 데이터 변환 (snake_case → camelCase)
+      const transformedAssignment = {
+        id: assignment.id,
+        courseId: assignment.course_id,
+        title: assignment.title,
+        description: assignment.description,
+        dueDate: assignment.due_date,
+        pointsWeight: assignment.points_weight,
+        status: assignment.status,
+        allowLate: assignment.allow_late,
+        allowResubmission: assignment.allow_resubmission,
+        publishedAt: assignment.published_at,
+        closedAt: assignment.closed_at || null,
+        createdAt: assignment.created_at,
+        updatedAt: assignment.updated_at,
+      };
+
       return respond(c, {
         ok: true,
         status: 200,
-        data: assignment,
+        data: transformedAssignment,
       } as any);
     } catch (error) {
       throw error;
