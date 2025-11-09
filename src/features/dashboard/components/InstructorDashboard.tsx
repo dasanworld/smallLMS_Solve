@@ -162,17 +162,18 @@ export default function InstructorDashboard() {
 
       {/* Assignment Management Section */}
       <Card>
-        <CardHeader className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CardTitle>과제 관리</CardTitle>
-            <Badge variant="secondary">{assignments.length}개 과제</Badge>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle>과제 관리</CardTitle>
+              <Badge variant="secondary">{assignments.length}개 과제</Badge>
+            </div>
+            <Link href="/courses/assignments">
+              <Button variant="outline" size="sm">
+                모든 과제 보기 →
+              </Button>
+            </Link>
           </div>
-          <Link href="/courses/assignments">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              모든 과제 보기
-            </Button>
-          </Link>
         </CardHeader>
         <CardContent>
           {courses.length === 0 ? (
