@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
-import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,9 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Home, BookOpen, ClipboardList, LogOut, User, Menu, Award, BarChart3 } from 'lucide-react';
+import { Home, BookOpen, ClipboardList, LogOut, User, Menu, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { UserProfileResponse } from '@/features/auth/backend/profile-service';
 
 export function GlobalNavigation() {
   const { user, isLoading } = useCurrentUser();
@@ -24,51 +21,33 @@ export function GlobalNavigation() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
 
-  // 사용자 프로필 조회 (role 포함)
-  const { data: profile, isLoading: profileLoading } = useQuery<UserProfileResponse>({
-    queryKey: ['userProfile', user?.id],
-    queryFn: async () => {
-      try {
-        const response = await apiClient.get<UserProfileResponse>('/api/auth/profile');
-        // respond 함수는 성공 시 데이터를 직접 반환함
-        return response.data;
-      } catch (err) {
-        console.error('프로필 조회 실패:', extractApiErrorMessage(err, 'Failed to fetch profile'));
-        throw err;
-      }
-    },
-    enabled: !!user?.id && mounted,
-    retry: 1,
-  });
-
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted || isLoading || profileLoading) {
+  if (!mounted || isLoading) {
     return null;
   }
 
   // 인증되지 않은 사용자는 네비게이션 표시 안 함
-  if (!user || !profile) {
+  if (!user) {
     return null;
   }
 
-  // 강사(instructor)에만 네비게이션 표시
-  if (profile.role !== 'instructor') {
+  // 경로를 기반으로 사용자 역할 판단
+  // instructor-dashboard, courses, 과제관리 등의 경로에 접근 가능한 사용자 = 강사
+  const isInstructor = pathname.includes('instructor-dashboard') || 
+                       pathname.includes('/courses') || 
+                       pathname.includes('/grades');
+
+  // 강사만 네비게이션 표시
+  if (!isInstructor) {
     return null;
   }
 
-  // 강사(instructor)만 네비게이션이 렌더링되므로 항상 true
-  const isInstructor = true;
+  const getRoleLabel = () => '강사';
 
-  const getRoleLabel = () => {
-    return '강사';
-  };
-
-  const getRoleColor = () => {
-    return 'bg-blue-100 text-blue-800';
-  };
+  const getRoleColor = () => 'bg-blue-100 text-blue-800';
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -101,10 +80,10 @@ export function GlobalNavigation() {
 
             {/* 메뉴 2 - 대시보드 */}
             <Link
-              href={isInstructor ? '/instructor-dashboard' : isOperator ? '/operator-dashboard' : '/dashboard'}
+              href="/instructor-dashboard"
               className={cn(
                 'flex items-center gap-1.5 text-sm font-medium transition-colors',
-                (pathname === '/instructor-dashboard' || pathname === '/operator-dashboard' || pathname === '/dashboard')
+                pathname === '/instructor-dashboard'
                   ? 'text-blue-600'
                   : 'text-gray-600 hover:text-gray-900'
               )}
@@ -138,17 +117,6 @@ export function GlobalNavigation() {
               <Award className="h-4 w-4" />
               과제관리
             </Link>
-
-            {/* 메뉴 5 - 채점관리 */}
-            <Link
-              href="#"
-              className="flex items-center gap-1.5 text-sm font-medium text-gray-400 cursor-not-allowed"
-              onClick={(e) => e.preventDefault()}
-              title="준비 중"
-            >
-              <BarChart3 className="h-4 w-4" />
-              채점관리
-            </Link>
           </div>
 
           {/* 사용자 메뉴 */}
@@ -163,13 +131,12 @@ export function GlobalNavigation() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
                   <User className="h-4 w-4" />
-                  <span className="hidden sm:inline text-xs">{profile?.email || '사용자'}</span>
+                  <span className="hidden sm:inline text-xs">{user?.email || '사용자'}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-2 py-2 border-b">
-                  <p className="text-xs font-medium text-gray-700">{profile?.name}</p>
-                  <p className="text-xs text-gray-500">{profile?.email}</p>
+                  <p className="text-xs text-gray-500">{user?.email}</p>
                   <p className="text-xs text-gray-500 mt-1">역할: {getRoleLabel()}</p>
                 </div>
                 <DropdownMenuSeparator />
@@ -201,7 +168,7 @@ export function GlobalNavigation() {
                   {/* 대시보드 */}
                   <DropdownMenuItem asChild>
                     <Link 
-                      href={isInstructor ? '/instructor-dashboard' : isOperator ? '/operator-dashboard' : '/dashboard'}
+                      href="/instructor-dashboard"
                       className="flex items-center gap-2"
                     >
                       <ClipboardList className="h-4 w-4" />
@@ -227,12 +194,6 @@ export function GlobalNavigation() {
                       과제관리
                     </Link>
                   </DropdownMenuItem>
-
-                  {/* 채점관리 */}
-                  <DropdownMenuItem disabled className="text-gray-400 cursor-not-allowed">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    채점관리
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -242,4 +203,3 @@ export function GlobalNavigation() {
     </nav>
   );
 }
-

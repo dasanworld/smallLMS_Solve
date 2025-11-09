@@ -46,6 +46,19 @@ export default function EditCoursePage() {
     router.push(`/courses/${courseId}`);
   };
 
+  const handleFormSubmit = async (data: any) => {
+    try {
+      console.log('📝 코스 수정 요청:', data);
+      const response = await apiClient.put(`/api/courses/${courseId}`, data);
+      console.log('✅ 코스 수정 완료:', response.data);
+      handleSuccess();
+    } catch (err) {
+      const message = extractApiErrorMessage(err, 'Failed to update course.');
+      console.error('❌ 코스 수정 실패:', message);
+      throw new Error(message);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
@@ -106,8 +119,15 @@ export default function EditCoursePage() {
           </CardHeader>
           <CardContent>
             <CourseForm 
-              course={course}
-              onSuccess={handleSuccess}
+              isEditing={true}
+              initialData={{
+                title: course?.title,
+                description: course?.description,
+                category_id: course?.category_id,
+                difficulty_id: course?.difficulty_id,
+              }}
+              isLoading={isLoading}
+              onSubmit={handleFormSubmit}
             />
           </CardContent>
         </Card>
