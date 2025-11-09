@@ -13,7 +13,7 @@ import type { UserProfileResponse } from '@/features/auth/lib/dto';
  * - 강사만 접근 가능
  * - 코스 생성, 수정, 삭제, 상태 변경 가능
  */
-export default function CoursesPage() {
+export default function InstructorCoursesPage() {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useCurrentUser();
 
