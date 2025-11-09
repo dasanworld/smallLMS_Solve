@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
+import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, ArrowLeft, Edit, FileText, RefreshCw } from 'lucide-react';
 import type { AssignmentResponse } from '@/features/assignment/backend/schema';
+import type { UserProfileResponse } from '@/features/auth/backend/profile-service';
 import { formatDistanceToNow } from 'date-fns';
 
 /**
@@ -35,6 +37,22 @@ export default function AssignmentDetailPage() {
   const params = useParams();
   const courseId = params.courseId as string;
   const assignmentId = params.assignmentId as string;
+  const { user } = useCurrentUser();
+
+  // 사용자 프로필 조회 (역할 확인)
+  const { data: profile } = useQuery<UserProfileResponse | null>({
+    queryKey: ['userProfile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      try {
+        const response = await apiClient.get<UserProfileResponse>('/api/auth/profile');
+        return response.data;
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!user?.id,
+  });
 
   // 과제 상세 조회
   const {
@@ -142,12 +160,15 @@ export default function AssignmentDetailPage() {
               마감: {formatDateTime(assignment.dueDate)} {assignment.dueDate && parseDate(assignment.dueDate) && `(${formatDistanceToNow(parseDate(assignment.dueDate)!, { addSuffix: true })})`}
             </p>
           </div>
-          <Link href={`/courses/${courseId}/assignments/${assignmentId}/edit`}>
-            <Button className="gap-2">
-              <Edit className="h-4 w-4" />
-              수정
-            </Button>
-          </Link>
+          {/* 강사만 수정 버튼 표시 */}
+          {profile?.role === 'instructor' && (
+            <Link href={`/courses/${courseId}/assignments/${assignmentId}/edit`}>
+              <Button className="gap-2">
+                <Edit className="h-4 w-4" />
+                수정
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* 과제 정보 */}
