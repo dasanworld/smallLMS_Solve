@@ -44,7 +44,7 @@ export default function CourseAssignmentsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
         <div>
           <Skeleton className="h-8 w-1/4 mb-2" />
           <Skeleton className="h-4 w-1/3" />
@@ -60,7 +60,7 @@ export default function CourseAssignmentsPage() {
 
   if (isError && error) {
     return (
-      <div className="space-y-6">
+      <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
         <div>
           <h1 className="text-3xl font-bold mb-2">과제 관리</h1>
           <p className="text-slate-500">코스의 과제를 관리하세요</p>
@@ -79,46 +79,51 @@ export default function CourseAssignmentsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">과제 관리</h1>
-          <p className="text-slate-500">코스의 과제를 관리하세요</p>
-        </div>
-        <Link href={`/courses/${courseId}/assignments/new`}>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            새 과제 만들기
-          </Button>
-        </Link>
-      </div>
-
-      {assignments.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-12 w-12 text-slate-400 mb-3" />
-            <h3 className="text-lg font-medium text-slate-900">
-              아직 과제가 없습니다
-            </h3>
-            <p className="text-slate-500 text-sm mt-2 text-center max-w-xs">
-              과제를 만들어서 학생들에게 과제를 부여하세요.
-            </p>
-            <Link href={`/courses/${courseId}/assignments/new`} className="mt-4">
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                첫 과제 만들기
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          <div className="text-sm text-slate-500">
-            총 <span className="font-semibold text-slate-900">{assignments.length}</span>개의 과제가 있습니다
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">과제 관리</h1>
+            <p className="text-slate-500 mt-1">코스의 과제를 생성하고 관리하세요</p>
           </div>
-          <AssignmentList assignments={assignments} courseId={courseId} />
+          <Link href={`/courses/${courseId}/assignments/new`}>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              새 과제 만들기
+            </Button>
+          </Link>
         </div>
-      )}
+
+        {assignments.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <FileText className="h-12 w-12 text-slate-400 mb-3" />
+              <h3 className="text-lg font-medium text-slate-900">
+                아직 과제가 없습니다
+              </h3>
+              <p className="text-slate-500 text-sm mt-2 text-center max-w-xs">
+                과제를 만들어서 학생들에게 과제를 부여하세요.
+              </p>
+              <Link href={`/courses/${courseId}/assignments/new`} className="mt-4">
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  첫 과제 만들기
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm">
+              <FileText className="h-4 w-4 text-slate-400" />
+              <span className="text-slate-600">
+                총 <span className="font-semibold text-slate-900">{assignments.length}</span>개의 과제
+              </span>
+            </div>
+            <AssignmentList assignments={assignments} courseId={courseId} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
