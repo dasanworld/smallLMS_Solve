@@ -10,25 +10,9 @@ export const signupErrorCodes = {
   TERMS_AGREEMENT_ERROR: 'TERMS_AGREEMENT_ERROR',
 } as const;
 
-export const authenticationErrorCodes = {
-  UNAUTHORIZED: 'UNAUTHORIZED',
-  INSUFFICIENT_PERMISSIONS: 'INSUFFICIENT_PERMISSIONS',
-  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
-  EXPIRED_TOKEN: 'EXPIRED_TOKEN',
-  INVALID_TOKEN: 'INVALID_TOKEN',
-} as const;
-
 export type SignupErrorCode = keyof typeof signupErrorCodes;
-export type AuthenticationErrorCode = keyof typeof authenticationErrorCodes;
 
 export type SignupServiceError = {
   code: typeof signupErrorCodes[SignupErrorCode];
   message: string;
 };
-
-export type AuthenticationServiceError = {
-  code: typeof authenticationErrorCodes[AuthenticationErrorCode];
-  message: string;
-};
-
-export const AUTHENTICATION_ERROR = authenticationErrorCodes;
