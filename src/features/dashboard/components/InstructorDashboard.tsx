@@ -157,6 +157,55 @@ export default function InstructorDashboard() {
         </CardContent>
       </Card>
 
+      {/* Assignment Management Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle>과제 관리</CardTitle>
+            </div>
+            <p className="text-sm text-slate-500">
+              각 코스에서 과제를 생성하고 관리할 수 있습니다
+            </p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {courses.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="mx-auto h-12 w-12" />
+              <p className="mt-2">아직 코스가 없습니다.</p>
+              <p className="text-sm">코스를 만들면 과제를 추가할 수 있습니다.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-600">
+                코스 카드에서 과제 개수를 클릭하거나, 코스를 선택하여 과제를 관리하세요.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {courses.map((course) => 
+                  course.id && (
+                    <Link 
+                      key={course.id}
+                      href={`/courses/${course.id}/assignments`}
+                    >
+                      <div className="p-4 border rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                        <p className="font-medium truncate">{course.title}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <FileText className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm text-slate-600">
+                            {course.assignmentCount || 0}개의 과제
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Recent Submissions Section */}
       <Card>
         <CardHeader>
