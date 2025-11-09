@@ -11,11 +11,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Users, BookOpen, FileText, Clock, Plus } from 'lucide-react';
+import { AlertCircle, Users, BookOpen, FileText, Clock, Plus, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function InstructorDashboard() {
-  const { data, isLoading, error } = useInstructorDashboardQuery<InstructorDashboardResponse>();
+  const { data, isLoading, error, refetch, isFetching } = useInstructorDashboardQuery<InstructorDashboardResponse>();
+  const queryClient = useQueryClient();
+
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ['instructor-dashboard'],
+    });
+  };
 
   if (error) {
     return (
@@ -104,13 +112,26 @@ export default function InstructorDashboard() {
               <CardTitle>내 코스</CardTitle>
               <Badge variant="secondary">{courses.length}개 코스</Badge>
             </div>
-            {/* ✅ 코스 만들기 버튼 */}
-            <Link href="/courses">
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                코스 만들기
+            <div className="flex items-center gap-2">
+              {/* ✅ 새로고침 버튼 */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={handleRefresh}
+                disabled={isFetching}
+              >
+                <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+                새로고침
               </Button>
-            </Link>
+              {/* ✅ 코스 만들기 버튼 */}
+              <Link href="/courses">
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  코스 만들기
+                </Button>
+              </Link>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
