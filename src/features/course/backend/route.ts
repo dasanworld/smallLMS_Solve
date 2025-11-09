@@ -8,6 +8,7 @@ import {
   UpdateCourseStatusRequestSchema,
 } from './schema';
 import {
+  getAvailableCoursesService,
   getInstructorCoursesService,
   createCourseService,
   getCourseByIdService,
@@ -18,6 +19,20 @@ import {
 } from './service';
 
 export const registerCourseRoutes = (app: Hono<AppEnv>) => {
+  // ✅ GET /api/courses - 학습자가 수강신청할 수 있는 활성 코스 목록 조회
+  app.get('/api/courses', async (c) => {
+    try {
+      const supabase = c.get('supabase');
+      const result = await getAvailableCoursesService(supabase);
+      return respond(c, result);
+    } catch (error) {
+      return respond(
+        c,
+        failure(500, courseErrorCodes.COURSE_CREATION_ERROR, String(error))
+      );
+    }
+  });
+
   // GET /api/courses/my - 강사의 코스 목록 조회
   app.get('/api/courses/my', async (c) => {
     try {

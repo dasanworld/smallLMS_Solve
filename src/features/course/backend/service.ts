@@ -10,6 +10,32 @@ import {
 } from './schema';
 
 /**
+ * 학습자가 수강신청할 수 있는 활성 코스 목록 조회
+ * - 상태가 'active'인 코스만 반환
+ * - 소프트 삭제된 코스는 제외
+ */
+export const getAvailableCoursesService = async (
+  supabase: SupabaseClient
+): Promise<HandlerResult<{ courses: Course[] }, typeof courseErrorCodes[keyof typeof courseErrorCodes]>> => {
+  try {
+    const { data, error } = await supabase
+      .from('courses')
+      .select('*')
+      .eq('status', 'active')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return failure(500, courseErrorCodes.COURSE_CREATION_ERROR, error.message);
+    }
+
+    return success({ courses: data || [] });
+  } catch (err) {
+    return failure(500, courseErrorCodes.COURSE_CREATION_ERROR, String(err));
+  }
+};
+
+/**
  * 강사의 코스 목록 조회
  * 소프트 삭제된 코스는 제외
  */

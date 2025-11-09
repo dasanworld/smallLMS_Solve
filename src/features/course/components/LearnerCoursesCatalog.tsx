@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Search, BookOpen } from 'lucide-react';
+import { AlertCircle, Search, BookOpen, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Course } from '../backend/schema';
 
@@ -29,15 +29,19 @@ export const LearnerCoursesCatalog = ({}: LearnerCoursesCatalogProps) => {
   const { 
     data: courses = [], 
     isLoading, 
-    error 
+    error,
+    isError
   } = useQuery({
     queryKey: ['available-courses'],
     queryFn: async () => {
       try {
+        console.log('📚 Fetching available courses...');
         const response = await apiClient.get<{ courses: Course[] }>('/api/courses');
+        console.log('✅ Courses fetched:', response.data.courses.length);
         return response.data.courses;
       } catch (err) {
         const message = extractApiErrorMessage(err, 'Failed to fetch courses.');
+        console.error('❌ Failed to fetch courses:', message);
         throw new Error(message);
       }
     },
@@ -65,7 +69,8 @@ export const LearnerCoursesCatalog = ({}: LearnerCoursesCatalogProps) => {
     );
   }
 
-  if (error) {
+  // ✅ 에러 상태: 데이터를 불러올 수 없음 (서버 문제 등)
+  if (isError && error) {
     return (
       <div className="space-y-6">
         <div>
@@ -73,9 +78,12 @@ export const LearnerCoursesCatalog = ({}: LearnerCoursesCatalogProps) => {
           <p className="text-slate-500">수강신청할 강의를 찾아보세요</p>
         </div>
         <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            강의 목록을 불러올 수 없습니다. 다시 시도해주세요.
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="flex flex-col gap-2">
+            <span className="font-semibold">강의 목록을 불러올 수 없습니다</span>
+            <span className="text-sm">
+              {error instanceof Error ? error.message : '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'}
+            </span>
           </AlertDescription>
         </Alert>
       </div>
@@ -100,31 +108,52 @@ export const LearnerCoursesCatalog = ({}: LearnerCoursesCatalogProps) => {
         />
       </div>
 
-      {/* 강의 목록 */}
-      {filteredCourses.length === 0 ? (
+      {/* ✅ 강의 목록 또는 없음 상태 표시 */}
+      {courses.length === 0 ? (
+        // 강의가 없음 (서버에서 정상적으로 빈 배열 반환)
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <BookOpen className="h-12 w-12 text-slate-400 mb-3" />
-            <h3 className="text-lg font-medium text-slate-900">강의가 없습니다</h3>
-            <p className="text-slate-500 text-sm mt-1">
-              {searchQuery 
-                ? `"${searchQuery}"에 해당하는 강의가 없습니다.` 
-                : '현재 제공되는 강의가 없습니다.'}
+            <h3 className="text-lg font-medium text-slate-900">
+              현재 제공되는 강의가 없습니다
+            </h3>
+            <p className="text-slate-500 text-sm mt-2 text-center max-w-xs">
+              강사가 새 강의를 등록하면 여기에 표시됩니다. 잠시 후 다시 확인해주세요.
             </p>
           </CardContent>
         </Card>
+      ) : filteredCourses.length === 0 ? (
+        // 검색 결과가 없음
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Search className="h-12 w-12 text-slate-400 mb-3" />
+            <h3 className="text-lg font-medium text-slate-900">
+              검색 결과가 없습니다
+            </h3>
+            <p className="text-slate-500 text-sm mt-2">
+              "{searchQuery}"에 해당하는 강의가 없습니다.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-4"
+              onClick={() => setSearchQuery('')}
+            >
+              검색 초기화
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCourses.map((course) => (
-            <CourseCatalogCard key={course.id} course={course} />
-          ))}
-        </div>
-      )}
-
-      {/* 강의 수 표시 */}
-      {filteredCourses.length > 0 && (
-        <div className="text-sm text-slate-500 text-center">
-          총 {filteredCourses.length}개의 강의가 있습니다
+        // 강의 목록 표시
+        <div className="space-y-4">
+          <div className="text-sm text-slate-500">
+            총 <span className="font-semibold text-slate-900">{filteredCourses.length}</span>개의 강의가 있습니다
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredCourses.map((course) => (
+              <CourseCatalogCard key={course.id} course={course} />
+            ))}
+          </div>
         </div>
       )}
     </div>
