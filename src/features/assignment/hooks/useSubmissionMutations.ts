@@ -62,13 +62,33 @@ export const useSubmitAssignmentMutation = (courseId: string, assignmentId: stri
       );
       return response.data;
     },
-    onSuccess: (data) => {
-      // 캐시 업데이트
+    onSuccess: () => {
+      // 과제 상세 페이지 캐시 갱신
       queryClient.invalidateQueries({
         queryKey: ['assignment', courseId, assignmentId],
       });
+      // 사용자 제출 상태 캐시 갱신
       queryClient.invalidateQueries({
-        queryKey: ['user-submissions', courseId, assignmentId],
+        queryKey: ['user-submission', courseId, assignmentId],
+      });
+      // 과제 목록 캐시 갱신
+      queryClient.invalidateQueries({
+        queryKey: ['all-assignments'],
+      });
+      // 코스 과제 목록 캐시 갱신
+      queryClient.invalidateQueries({
+        queryKey: ['course-assignments', courseId],
+      });
+      // 대시보드 관련 캐시 갱신
+      queryClient.invalidateQueries({
+        queryKey: ['learner-dashboard'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['dashboard'],
+      });
+      // 사용자 코스 캐시 갱신
+      queryClient.invalidateQueries({
+        queryKey: ['user-courses'],
       });
     },
   });
