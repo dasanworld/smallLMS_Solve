@@ -51,6 +51,23 @@ export default function AssignmentDetailPage() {
   const [submitContent, setSubmitContent] = useState('');
   const [submitLink, setSubmitLink] = useState('');
 
+  // 사용자 제출 상태 조회
+  const { data: userSubmission, refetch: refetchSubmission } = useQuery({
+    queryKey: ['user-submission', courseId, assignmentId, user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      try {
+        const response = await apiClient.get(
+          `/api/courses/${courseId}/assignments/${assignmentId}/my-submission`
+        );
+        return response.data;
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!user?.id && !!assignmentId && !!courseId,
+  });
+
   // 사용자 프로필 조회 (역할 확인)
   const { data: profile } = useQuery<UserProfileResponse | null>({
     queryKey: ['userProfile', user?.id],
@@ -114,13 +131,15 @@ export default function AssignmentDetailPage() {
         link: submitLink || undefined,
       },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
           toast({
             title: '성공',
             description: '과제가 제출되었습니다.',
           });
           setSubmitContent('');
           setSubmitLink('');
+          // 제출 상태 갱신
+          await refetchSubmission();
         },
         onError: (error) => {
           const message = error instanceof Error ? error.message : '제출에 실패했습니다.';
@@ -332,54 +351,105 @@ export default function AssignmentDetailPage() {
         {profile?.role !== 'instructor' && assignment?.status === 'published' && (
           <Card>
             <CardHeader>
-              <CardTitle>과제 제출</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>과제 제출</CardTitle>
+                {userSubmission && (
+                  <Badge className="bg-green-100 text-green-800">제출 완료</Badge>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  제출 내용 <span className="text-red-600">*</span>
-                </label>
-                <textarea
-                  value={submitContent}
-                  onChange={(e) => setSubmitContent(e.target.value)}
-                  placeholder="과제 내용을 입력하세요"
-                  className="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  rows={6}
-                  disabled={submitMutation.isPending}
-                />
-              </div>
+              {userSubmission ? (
+                // 제출 완료 상태
+                <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div>
+                    <p className="text-sm font-medium text-slate-700 mb-2">제출 내용</p>
+                    <div className="p-3 bg-white border border-slate-200 rounded-md text-slate-700 whitespace-pre-wrap">
+                      {userSubmission.content}
+                    </div>
+                  </div>
+                  {userSubmission.link && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-700 mb-2">관련 링크</p>
+                      <a
+                        href={userSubmission.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline break-all"
+                      >
+                        {userSubmission.link}
+                      </a>
+                    </div>
+                  )}
+                  <div className="text-sm text-slate-600">
+                    <p>제출일: {new Date(userSubmission.submittedAt).toLocaleString('ko-KR')}</p>
+                    {userSubmission.isLate && (
+                      <p className="text-red-600 font-medium">지각 제출</p>
+                    )}
+                  </div>
+                  {assignment.allowResubmission && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSubmitContent(userSubmission.content);
+                        setSubmitLink(userSubmission.link || '');
+                      }}
+                      className="w-full"
+                    >
+                      재제출하기
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                // 미제출 상태
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      제출 내용 <span className="text-red-600">*</span>
+                    </label>
+                    <textarea
+                      value={submitContent}
+                      onChange={(e) => setSubmitContent(e.target.value)}
+                      placeholder="과제 내용을 입력하세요"
+                      className="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={6}
+                      disabled={submitMutation.isPending}
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  관련 링크 (선택사항)
-                </label>
-                <input
-                  type="url"
-                  value={submitLink}
-                  onChange={(e) => setSubmitLink(e.target.value)}
-                  placeholder="https://example.com"
-                  className="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={submitMutation.isPending}
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      관련 링크 (선택사항)
+                    </label>
+                    <input
+                      type="url"
+                      value={submitLink}
+                      onChange={(e) => setSubmitLink(e.target.value)}
+                      placeholder="https://example.com"
+                      className="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      disabled={submitMutation.isPending}
+                    />
+                  </div>
 
-              {new Date() > new Date(assignment.dueDate) && (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    마감일을 넘었습니다. {assignment.allowLate ? '지각 제출이 허용됩니다.' : '지각 제출은 허용되지 않습니다.'}
-                  </AlertDescription>
-                </Alert>
+                  {new Date() > new Date(assignment.dueDate) && (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        마감일을 넘었습니다. {assignment.allowLate ? '지각 제출이 허용됩니다.' : '지각 제출은 허용되지 않습니다.'}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={submitMutation.isPending || !submitContent.trim()}
+                    className="w-full gap-2"
+                  >
+                    <Send className="h-4 w-4" />
+                    {submitMutation.isPending ? '제출 중...' : '제출하기'}
+                  </Button>
+                </>
               )}
-
-              <Button
-                onClick={handleSubmit}
-                disabled={submitMutation.isPending || !submitContent.trim()}
-                className="w-full gap-2"
-              >
-                <Send className="h-4 w-4" />
-                {submitMutation.isPending ? '제출 중...' : '제출하기'}
-              </Button>
             </CardContent>
           </Card>
         )}

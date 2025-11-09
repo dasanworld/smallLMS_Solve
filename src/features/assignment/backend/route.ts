@@ -394,6 +394,54 @@ export const createAssignmentRoutes = (app: Hono<AppEnv>) => {
   // ============ Assignment 제출 라우트 (러너용) ============
 
   /**
+   * GET /api/courses/:courseId/assignments/:assignmentId/my-submission
+   * 사용자 제출 상태 조회 (러너)
+   */
+  app.get('/api/courses/:courseId/assignments/:assignmentId/my-submission', async (c) => {
+    const userId = c.get('user')?.id;
+    if (!userId) {
+      return c.json({ error: '인증이 필요합니다' }, 401);
+    }
+
+    try {
+      const courseId = c.req.param('courseId');
+      const assignmentId = c.req.param('assignmentId');
+
+      const supabase = getSupabase(c);
+
+      // 사용자의 제출물 조회
+      const { data: submission, error } = await supabase
+        .from('submissions')
+        .select('id, assignment_id, content, link, status, is_late, score, feedback, graded_at, submitted_at, updated_at')
+        .eq('assignment_id', assignmentId)
+        .eq('user_id', userId)
+        .is('deleted_at', null)
+        .single();
+
+      if (error) {
+        // 제출물이 없으면 null 반환
+        return c.json(null);
+      }
+
+      return c.json({
+        id: submission.id,
+        assignmentId: submission.assignment_id,
+        content: submission.content,
+        link: submission.link,
+        status: submission.status,
+        isLate: submission.is_late,
+        score: submission.score,
+        feedback: submission.feedback,
+        gradedAt: submission.graded_at,
+        submittedAt: submission.submitted_at,
+        updatedAt: submission.updated_at,
+      });
+    } catch (error) {
+      return c.json({ error: 'Internal server error' }, 500);
+    }
+  });
+
+  /**
    * POST /api/courses/:courseId/assignments/:assignmentId/submit
    * 과제 제출 (러너)
    */
