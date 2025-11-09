@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Home, BookOpen, ClipboardList, LogOut, User, Menu, Award, BarChart3 } from 'lucide-react';
+import { Home, BookOpen, ClipboardList, LogOut, User, Menu, Award, BarChart3, CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { UserProfileResponse } from '@/features/auth/backend/profile-service';
 
@@ -92,6 +92,7 @@ export function GlobalNavigation() {
           { label: '대시보드', href: '/instructor-dashboard', icon: 'clipboard' },
           { label: '코스관리', href: '/courses', icon: 'book' },
           { label: '과제', href: '/courses/assignments', icon: 'award' },
+          { label: '제출물 평가', href: '/submissions/list', icon: 'check' },
         ];
       case 'operator':
         return [
@@ -153,6 +154,8 @@ export function GlobalNavigation() {
         return <Award {...iconProps} />;
       case 'chart':
         return <BarChart3 {...iconProps} />;
+      case 'check':
+        return <CheckSquare {...iconProps} />;
       default:
         return null;
     }

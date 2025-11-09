@@ -14,7 +14,8 @@ import {
   getLearnerGradesService,
   gradeSubmissionService,
   getSubmissionForGradingService,
-  getAssignmentSubmissionsService
+  getAssignmentSubmissionsService,
+  getInstructorSubmissionsService
 } from '@/features/grade/backend/service';
 import {
   gradeErrorCodes,
@@ -49,6 +50,28 @@ export const registerGradeRoutes = (app: Hono<AppEnv>) => {
       courseId,
       limit,
       offset
+    );
+
+    return respond(c, result as any);
+  });
+
+  // GET /api/instructor/submissions - Get all submissions for instructor's courses
+  app.get('/api/instructor/submissions', authenticate, async (c) => {
+    const supabase = c.get('supabase');
+    const user = c.get('user');
+
+    if (!user) {
+      return respond(c, failure(401, gradeErrorCodes.UNAUTHORIZED, 'Unauthorized'));
+    }
+
+    // Check if user is an instructor
+    if (user.role !== 'instructor') {
+      return respond(c, failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions'));
+    }
+
+    const result = await getInstructorSubmissionsService(
+      supabase,
+      user.id
     );
 
     return respond(c, result as any);
