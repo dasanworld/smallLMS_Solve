@@ -50,26 +50,44 @@ export const useCreateAssignmentMutation = () => {
         
         // Axios 에러인 경우
         if (error.isAxiosError) {
+          const responseData = error.response?.data;
           console.error('❌ Axios Error:', {
             status: error.response?.status,
             statusText: error.response?.statusText,
-            data: error.response?.data,
-            headers: error.response?.headers,
+            message: responseData?.error || error.message,
+            details: responseData?.details,
+            fullData: responseData,
             config: {
               method: error.config?.method,
               url: error.config?.url,
-              data: error.config?.data,
             },
           });
+          
+          // 사용자 친화적 에러 메시지 생성
+          let userMessage = error.response?.status === 400 
+            ? (responseData?.error || '입력 데이터가 유효하지 않습니다')
+            : `요청 실패: ${error.response?.statusText || error.message}`;
+          
+          if (responseData?.details && Array.isArray(responseData.details)) {
+            const details = responseData.details.map((d: any) => 
+              `${d.path}: ${d.message}`
+            ).join(', ');
+            userMessage += ` (${details})`;
+          }
+          
+          console.error('❌ User-friendly error:', userMessage);
+          
+          // 에러에 사용자 메시지 추가
+          const errorWithMessage = new Error(userMessage);
+          throw errorWithMessage;
         } else {
           console.error('❌ Non-Axios Error:', {
             message: error.message,
             stack: error.stack,
             name: error.name,
           });
+          throw error;
         }
-        
-        throw error;
       }
     },
     onSuccess: (_, variables) => {
@@ -80,17 +98,7 @@ export const useCreateAssignmentMutation = () => {
       });
     },
     onError: (error: any) => {
-      console.error('❌ Assignment creation error - Full error object:', error);
-      console.error('❌ Assignment creation error - Details:', {
-        isAxiosError: error.isAxiosError,
-        status: error.status || error.response?.status,
-        statusText: error.statusText || error.response?.statusText,
-        data: error.data || error.response?.data,
-        config: error.config,
-        message: error.message,
-        toString: error.toString(),
-        keys: Object.keys(error),
-      });
+      console.error('❌ Assignment creation error:', error.message);
     },
   });
 };
