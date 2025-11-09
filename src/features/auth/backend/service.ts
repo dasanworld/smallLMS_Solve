@@ -119,12 +119,12 @@ export const signupUserService = async (
 
   if (authResult.error) {
     logger.error('Failed to create Supabase Auth user', authResult.error.message);
-    
+
     // Determine if it's a duplicate email error
     if (authResult.error.message.includes('User already registered')) {
       return failure(409, signupErrorCodes.USER_ALREADY_EXISTS, '이미 등록된 사용자입니다.');
     }
-    
+
     return failure(500, signupErrorCodes.AUTH_CREATION_ERROR, authResult.error.message);
   }
 
@@ -155,6 +155,6 @@ export const signupUserService = async (
   const redirectTo = role === 'learner' ? '/courses' : '/instructor-dashboard';
 
   logger.info('User signup completed successfully', { userId, email, role });
-  
+
   return success({ redirectTo });
 };

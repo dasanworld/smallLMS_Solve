@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { FileText, Eye, CheckCircle, XCircle, Clock } from 'lucide-react';
 
-interface RecentSubmissionsListProps {
+export interface RecentSubmissionsListProps {
   submissions: {
     id: string;
     assignmentId: string;

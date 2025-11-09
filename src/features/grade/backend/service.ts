@@ -32,7 +32,7 @@ export const getLearnerGradesService = async (
   courseId?: string,
   limit: number = 20,
   offset: number = 0,
-): Promise<HandlerResult<z.infer<typeof GradeResponseSchema>, GradeServiceError, unknown>> => {
+): Promise<HandlerResult<z.infer<typeof GradeResponseSchema>, typeof gradeErrorCodes[keyof typeof gradeErrorCodes], unknown>> => {
   try {
     // Get enrolled active courses (소프트 삭제 필터 추가)
     let enrollmentsQuery = client
@@ -234,7 +234,7 @@ export const gradeSubmissionService = async (
   score: number,
   feedback: string,
   action: 'grade' | 'resubmission_required'
-): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionGradingSchema>, GradeServiceError, unknown>> => {
+): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionGradingSchema>, typeof gradeErrorCodes[keyof typeof gradeErrorCodes], unknown>> => {
   try {
     // Validate score range
     if (score < 0 || score > 100) {
@@ -260,9 +260,9 @@ export const gradeSubmissionService = async (
         score,
         feedback,
         status,
-        assignments!inner(
+        assignments(
           course_id,
-          courses!inner(instructor_id)
+          courses(instructor_id)
         )
       `)
       .eq('id', submissionId)
@@ -272,8 +272,13 @@ export const gradeSubmissionService = async (
       return failure(404, gradeErrorCodes.SUBMISSION_NOT_FOUND, 'Submission not found');
     }
 
+    // Type assertion for nested structure
+    const submissionData = submission as any;
+    const assignmentData = Array.isArray(submissionData.assignments) ? submissionData.assignments[0] : submissionData.assignments;
+    const courseData = Array.isArray(assignmentData.courses) ? assignmentData.courses[0] : assignmentData.courses;
+
     // Check if instructor has permission to grade this submission
-    if (submission.assignments.courses.instructor_id !== instructorId) {
+    if (courseData.instructor_id !== instructorId) {
       return failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions to grade this submission');
     }
 
@@ -342,10 +347,13 @@ export const gradeSubmissionService = async (
       return failure(500, gradeErrorCodes.ASSIGNMENT_NOT_FOUND, 'Failed to fetch assignment information', assignmentError.message);
     }
 
+    // Get course ID from assignment data (handle array case)
+    const assignmentCourseId = Array.isArray(submissionData.assignments) ? submissionData.assignments[0].course_id : submissionData.assignments.course_id;
+
     const { data: course, error: courseError } = await client
       .from(COURSES_TABLE)
       .select('title')
-      .eq('id', submission.assignments.course_id)
+      .eq('id', assignmentCourseId)
       .single();
 
     if (courseError) {
@@ -403,7 +411,7 @@ export const getSubmissionForGradingService = async (
   client: SupabaseClient,
   instructorId: string,
   submissionId: string
-): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionGradingSchema>, GradeServiceError, unknown>> => {
+): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionGradingSchema>, typeof gradeErrorCodes[keyof typeof gradeErrorCodes], unknown>> => {
   try {
     // Get submission with assignment and course details to check permissions
     const { data: submission, error: submissionError } = await client
@@ -419,10 +427,10 @@ export const getSubmissionForGradingService = async (
         score,
         feedback,
         status,
-        assignments!inner(
+        assignments(
           title,
           course_id,
-          courses!inner(
+          courses(
             title,
             instructor_id
           )
@@ -435,8 +443,13 @@ export const getSubmissionForGradingService = async (
       return failure(404, gradeErrorCodes.SUBMISSION_NOT_FOUND, 'Submission not found');
     }
 
+    // Type assertion for nested structure
+    const submissionData = submission as any;
+    const assignmentData = Array.isArray(submissionData.assignments) ? submissionData.assignments[0] : submissionData.assignments;
+    const courseData = Array.isArray(assignmentData.courses) ? assignmentData.courses[0] : assignmentData.courses;
+
     // Check if instructor has permission to view this submission
-    if (submission.assignments.courses.instructor_id !== instructorId) {
+    if (courseData.instructor_id !== instructorId) {
       return failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions to view this submission');
     }
 
@@ -464,8 +477,8 @@ export const getSubmissionForGradingService = async (
       score: submission.score,
       feedback: submission.feedback,
       status: submission.status as 'submitted' | 'graded' | 'resubmission_required',
-      assignment_title: submission.assignments.title,
-      course_title: submission.assignments.courses.title,
+      assignment_title: assignmentData.title,
+      course_title: courseData.title,
     };
 
     // Validate response data using the schema from the schema file
@@ -502,7 +515,7 @@ export const getAssignmentSubmissionsService = async (
   client: SupabaseClient,
   instructorId: string,
   assignmentId: string
-): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionsListSchema>, GradeServiceError, unknown>> => {
+): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionsListSchema>, typeof gradeErrorCodes[keyof typeof gradeErrorCodes], unknown>> => {
   try {
     // Get assignment with course details to check permissions
     const { data: assignment, error: assignmentError } = await client
@@ -511,7 +524,7 @@ export const getAssignmentSubmissionsService = async (
         id,
         title,
         course_id,
-        courses!inner(
+        courses(
           title,
           instructor_id
         )
@@ -523,8 +536,12 @@ export const getAssignmentSubmissionsService = async (
       return failure(404, gradeErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found');
     }
 
+    // Type assertion for nested structure
+    const assignmentData = assignment as any;
+    const courseData = Array.isArray(assignmentData.courses) ? assignmentData.courses[0] : assignmentData.courses;
+
     // Check if instructor has permission to view submissions for this assignment
-    if (assignment.courses.instructor_id !== instructorId) {
+    if (courseData.instructor_id !== instructorId) {
       return failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions to view submissions for this assignment');
     }
 
@@ -581,8 +598,8 @@ export const getAssignmentSubmissionsService = async (
       score: submission.score,
       feedback: submission.feedback,
       status: submission.status as 'submitted' | 'graded' | 'resubmission_required',
-      assignment_title: assignment.title,
-      course_title: assignment.courses.title,
+      assignment_title: assignmentData.title,
+      course_title: courseData.title,
     }));
 
     // Validate response data using the schema from the schema file

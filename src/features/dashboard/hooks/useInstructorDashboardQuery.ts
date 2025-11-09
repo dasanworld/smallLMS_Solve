@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
-import { InstructorDashboardResponseSchema } from '@/features/dashboard/backend/instructor-schema';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { InstructorDashboardResponseSchema, type InstructorDashboardResponse } from '@/features/dashboard/backend/instructor-schema';
 
-export const useInstructorDashboardQuery = () => {
+export const useInstructorDashboardQuery = <T extends InstructorDashboardResponse = InstructorDashboardResponse>(): UseQueryResult<T> => {
   return useQuery({
     queryKey: ['instructor-dashboard'],
     queryFn: async () => {
@@ -18,7 +18,7 @@ export const useInstructorDashboardQuery = () => {
       }
 
       const data = await response.json();
-      
+
       // Validate response with Zod schema
       const parsed = InstructorDashboardResponseSchema.safeParse(data);
       if (!parsed.success) {
@@ -26,9 +26,8 @@ export const useInstructorDashboardQuery = () => {
         throw new Error('Invalid dashboard data format');
       }
 
-      return parsed.data;
+      return parsed.data as T;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
-  });
+  }) as UseQueryResult<T>;
 };

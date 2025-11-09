@@ -23,6 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff } from 'lucide-react';
 import { useSignupMutation } from '@/features/auth/hooks/useSignupMutation';
 import { useRouter } from 'next/navigation';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { z } from 'zod';
 
 const roleSelectionFormSchema = z.object({
@@ -66,12 +67,25 @@ export const RoleSelectionForm = () => {
 
   const onSubmit = async (data: RoleSelectionFormValues) => {
     setIsSubmitting(true);
-    
+
     try {
       // 비밀번호 확인은 프론트엔드에서만 검증하고, 백엔드에는 confirmPassword를 제외하고 전달
       const { confirmPassword, email, password, role, name, phone, termsAgreed } = data;
       const signupData = { email, password, role, name, phone, termsAgreed };
       const result = await signupMutation.mutateAsync(signupData);
+
+      // Auto-login after successful signup
+      const supabase = getSupabaseBrowserClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        console.error('Auto-login failed after signup:', signInError);
+        // Even if auto-login fails, redirect to the appropriate dashboard
+        // User can manually log in if needed
+      }
 
       // Redirect based on role
       router.push(result.redirectTo);

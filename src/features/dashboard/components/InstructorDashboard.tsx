@@ -1,10 +1,11 @@
 'use client';
 
 import { useInstructorDashboardQuery } from '@/features/dashboard/hooks/useInstructorDashboardQuery';
+import { type InstructorDashboardResponse } from '@/features/dashboard/backend/instructor-schema';
 import { DashboardMetrics } from '@/features/dashboard/components/DashboardMetrics';
-import { CourseStatusCard } from '@/features/dashboard/components/CourseStatusCard';
+import { CourseStatusCard, type CourseStatusCardProps } from '@/features/dashboard/components/CourseStatusCard';
 import { PendingGradingCounter } from '@/features/dashboard/components/PendingGradingCounter';
-import { RecentSubmissionsList } from '@/features/dashboard/components/RecentSubmissionsList';
+import { RecentSubmissionsList, type RecentSubmissionsListProps } from '@/features/dashboard/components/RecentSubmissionsList';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -12,7 +13,7 @@ import { AlertCircle, Users, BookOpen, FileText, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function InstructorDashboard() {
-  const { data, isLoading, error } = useInstructorDashboardQuery();
+  const { data, isLoading, error } = useInstructorDashboardQuery<InstructorDashboardResponse>();
 
   if (error) {
     return (
@@ -71,7 +72,9 @@ export default function InstructorDashboard() {
     );
   }
 
-  const { courses = [], pendingGradingCount = 0, recentSubmissions = [] } = data || {};
+  const courses = (data?.courses || []) as InstructorDashboardResponse['courses'];
+  const pendingGradingCount = data?.pendingGradingCount || 0;
+  const recentSubmissions = (data?.recentSubmissions || []) as InstructorDashboardResponse['recentSubmissions'];
 
   return (
     <div className="space-y-6">
@@ -81,11 +84,11 @@ export default function InstructorDashboard() {
       </div>
 
       {/* Dashboard Metrics */}
-      <DashboardMetrics 
+      <DashboardMetrics
         coursesCount={courses.length}
         pendingGradingCount={pendingGradingCount}
-        enrollmentCount={courses.reduce((sum, course) => sum + course.enrollmentCount, 0)}
-        assignmentCount={courses.reduce((sum, course) => sum + course.assignmentCount, 0)}
+        enrollmentCount={courses.reduce((sum, course) => sum + (course?.enrollmentCount || 0), 0)}
+        assignmentCount={courses.reduce((sum, course) => sum + (course?.assignmentCount || 0), 0)}
       />
 
       {/* Pending Grading Counter */}
@@ -108,8 +111,8 @@ export default function InstructorDashboard() {
             </div>
           ) : (
             <div className="space-y-4">
-              {courses.map((course) => (
-                <CourseStatusCard key={course.id} course={course} />
+              {courses.map((course) => course.id && (
+                <CourseStatusCard key={course.id} course={course as CourseStatusCardProps['course']} />
               ))}
             </div>
           )}
@@ -132,7 +135,7 @@ export default function InstructorDashboard() {
               <p className="text-sm">Submissions will appear here when students submit work.</p>
             </div>
           ) : (
-            <RecentSubmissionsList submissions={recentSubmissions} />
+            <RecentSubmissionsList submissions={recentSubmissions as RecentSubmissionsListProps['submissions']} />
           )}
         </CardContent>
       </Card>

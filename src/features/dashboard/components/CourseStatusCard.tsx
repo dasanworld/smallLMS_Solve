@@ -11,7 +11,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 
-interface CourseStatusCardProps {
+export interface CourseStatusCardProps {
   course: {
     id: string;
     title: string;
