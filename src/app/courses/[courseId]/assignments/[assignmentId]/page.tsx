@@ -105,15 +105,12 @@ export default function AssignmentDetailPage() {
     queryKey: ['assignment', courseId, assignmentId],
     queryFn: async () => {
       try {
-        console.log('📋 과제 상세 조회:', courseId, assignmentId);
         const response = await apiClient.get<AssignmentResponse>(
           `/api/courses/${courseId}/assignments/${assignmentId}`
         );
-        console.log('✅ 과제 상세 조회 완료:', response.data);
         return response.data;
       } catch (err) {
         const message = extractApiErrorMessage(err, 'Failed to fetch assignment.');
-        console.error('❌ 과제 조회 실패:', message);
         throw new Error(message);
       }
     },

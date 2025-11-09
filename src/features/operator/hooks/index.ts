@@ -60,7 +60,6 @@ export const useReports = (): UseReportsReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Updating report ${reportId} to status ${newStatus}`);
       // Update the local state to reflect the change
       setReports(prev => 
         prev.map(report => 
@@ -80,7 +79,6 @@ export const useReports = (): UseReportsReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Taking action ${action} on report ${reportId}`, { notes });
       // Update the local state to reflect the change
       setReports(prev => 
         prev.map(report => 

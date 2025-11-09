@@ -19,12 +19,10 @@ export const useCreateEnrollmentMutation = () => {
 
   return useMutation({
     mutationFn: async (courseId: string) => {
-      console.log('📚 수강신청 요청:', courseId);
       const response = await apiClient.post<{ id: string; status: string }>(
         '/api/enrollments',
         { courseId }
       );
-      console.log('✅ 수강신청 성공:', response.data);
       return response.data;
     },
     onSuccess: () => {
@@ -35,7 +33,6 @@ export const useCreateEnrollmentMutation = () => {
     },
     onError: (error) => {
       const message = extractApiErrorMessage(error, '수강신청에 실패했습니다.');
-      console.error('❌ 수강신청 실패:', message);
     },
   });
 };
@@ -48,11 +45,9 @@ export const useCancelEnrollmentMutation = () => {
 
   return useMutation({
     mutationFn: async (courseId: string) => {
-      console.log('📚 수강취소 요청:', courseId);
       const response = await apiClient.delete<{ status: string }>(
         `/api/enrollments/${courseId}`
       );
-      console.log('✅ 수강취소 성공:', response.data);
       return response.data;
     },
     onSuccess: () => {
@@ -63,7 +58,6 @@ export const useCancelEnrollmentMutation = () => {
     },
     onError: (error) => {
       const message = extractApiErrorMessage(error, '수강취소에 실패했습니다.');
-      console.error('❌ 수강취소 실패:', message);
     },
   });
 };
@@ -75,11 +69,9 @@ export const useMyEnrollmentsQuery = () => {
   return useQuery({
     queryKey: enrollmentQueryKeys.myEnrollments,
     queryFn: async () => {
-      console.log('📚 내 수강 코스 조회 중...');
       const response = await apiClient.get<{ enrollments: any[] }>(
         '/api/enrollments/me'
       );
-      console.log('✅ 내 수강 코스 조회 완료:', response.data.enrollments.length);
       return response.data.enrollments;
     },
     staleTime: 5 * 60 * 1000, // 5분

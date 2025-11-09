@@ -26,13 +26,9 @@ export default function EditAssignmentPage() {
     queryKey: ['instructor-courses-list-edit'],
     queryFn: async () => {
       try {
-        console.log('📚 강사 코스 목록 조회 중...');
         const response = await apiClient.get<{ courses: Course[] }>('/api/courses');
-        console.log('✅ 강사 코스 목록 조회 완료:', response.data.courses.length);
         return response.data.courses;
       } catch (err) {
-        const message = extractApiErrorMessage(err, 'Failed to fetch courses.');
-        console.error('❌ 코스 목록 조회 실패:', message);
         return [];
       }
     },
@@ -46,15 +42,12 @@ export default function EditAssignmentPage() {
     queryKey: ['assignment', courseId, assignmentId],
     queryFn: async () => {
       try {
-        console.log('📋 과제 상세 조회:', courseId, assignmentId);
         const response = await apiClient.get<AssignmentResponse>(
           `/api/courses/${courseId}/assignments/${assignmentId}`
         );
-        console.log('✅ 과제 상세 조회 완료:', response.data);
         return response.data;
       } catch (err) {
         const message = extractApiErrorMessage(err, 'Failed to fetch assignment.');
-        console.error('❌ 과제 조회 실패:', message);
         throw new Error(message);
       }
     },

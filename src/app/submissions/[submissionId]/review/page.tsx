@@ -65,7 +65,7 @@ export default function ReviewSubmissionPage() {
             const response = await apiClient.get<SubmissionGradingData>(`/api/submissions/${submissionIdString}`);
             setSubmission(response.data);
           } catch (err) {
-            console.error('Failed to refresh submission:', err);
+            // Error handling
           }
         };
         fetchSubmission();

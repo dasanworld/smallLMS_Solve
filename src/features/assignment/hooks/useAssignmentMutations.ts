@@ -21,8 +21,6 @@ export const useCreateAssignmentMutation = () => {
 
   return useMutation({
     mutationFn: async (data: CreateAssignmentRequest) => {
-      console.log('📝 Creating assignment with data:', data);
-      
       const payload = {
         courseId: data.courseId,
         title: data.title,
@@ -32,67 +30,39 @@ export const useCreateAssignmentMutation = () => {
         allowLate: data.allowLate,
         allowResubmission: data.allowResubmission,
       };
-      
-      console.log('📤 API Request payload:', payload);
-      console.log('📍 API Endpoint:', `/api/courses/${data.courseId}/assignments`);
-      
+
       try {
         const response = await apiClient.post<{ data: AssignmentResponse }>(
           `/api/courses/${data.courseId}/assignments`,
           payload
         );
-        console.log('✅ API response status:', response.status);
-        console.log('✅ API response data:', response.data);
-        console.log('✅ Assignment created:', response.data.data);
         return response.data.data;
       } catch (error: any) {
-        console.error('❌ API call failed - error type:', typeof error, error.constructor.name);
-        console.error('❌ API call failed - error itself:', error);
-        
         // Axios 에러인 경우
         if (error.isAxiosError) {
           const responseData = error.response?.data;
-          console.error('❌ Axios Error:', {
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            message: responseData?.error || error.message,
-            details: responseData?.details,
-            fullData: responseData,
-            config: {
-              method: error.config?.method,
-              url: error.config?.url,
-            },
-          });
-          
+
           // 사용자 친화적 에러 메시지 생성
-          let userMessage = error.response?.status === 400 
+          let userMessage = error.response?.status === 400
             ? (responseData?.error || '입력 데이터가 유효하지 않습니다')
             : `요청 실패: ${error.response?.statusText || error.message}`;
-          
+
           if (responseData?.details && Array.isArray(responseData.details)) {
-            const details = responseData.details.map((d: any) => 
+            const details = responseData.details.map((d: any) =>
               `${d.path}: ${d.message}`
             ).join(', ');
             userMessage += ` (${details})`;
           }
-          
-          console.error('❌ User-friendly error:', userMessage);
-          
+
           // 에러에 사용자 메시지 추가
           const errorWithMessage = new Error(userMessage);
           throw errorWithMessage;
         } else {
-          console.error('❌ Non-Axios Error:', {
-            message: error.message,
-            stack: error.stack,
-            name: error.name,
-          });
           throw error;
         }
       }
     },
     onSuccess: (_, variables) => {
-      console.log('🔄 Invalidating cache for course:', variables.courseId);
       // 과제 목록 캐시 무효화
       queryClient.invalidateQueries({
         queryKey: ['course-assignments', variables.courseId],
@@ -101,9 +71,6 @@ export const useCreateAssignmentMutation = () => {
       queryClient.invalidateQueries({
         queryKey: ['instructor-dashboard'],
       });
-    },
-    onError: (error: any) => {
-      console.error('❌ Assignment creation error:', error.message);
     },
   });
 };

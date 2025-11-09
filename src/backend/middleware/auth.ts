@@ -32,7 +32,6 @@ export const authenticate = createMiddleware<AppEnv>(async (c, next) => {
   const { data: { user }, error } = await supabase.auth.getUser(token);
 
   if (error || !user) {
-    console.error('Authentication failed:', error?.message);
     return respond(
       c,
       failure(
@@ -124,7 +123,6 @@ export const requireRole = (roles: string | string[]) => {
         .single();
 
       if (error) {
-        console.error('Error fetching user role:', error.message);
         return respond(
           c,
           failure(

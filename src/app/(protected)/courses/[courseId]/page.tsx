@@ -39,13 +39,10 @@ export default function CourseDetailPage() {
     queryKey: ['course', courseId],
     queryFn: async () => {
       try {
-        console.log('📚 코스 상세 정보 조회:', courseId);
         const response = await apiClient.get<{ data: CourseDetailResponse }>(`/api/courses/${courseId}`);
-        console.log('✅ 코스 정보 조회 완료:', response.data);
         return response.data.data;
       } catch (err) {
         const message = extractApiErrorMessage(err, '코스 정보를 불러올 수 없습니다.');
-        console.error('❌ 코스 정보 조회 실패:', message);
         throw new Error(message);
       }
     },

@@ -38,13 +38,10 @@ export const LearnerCoursesCatalog = ({}: LearnerCoursesCatalogProps) => {
     queryKey: ['available-courses'],
     queryFn: async () => {
       try {
-        console.log('📚 Fetching available courses...');
         const response = await apiClient.get<{ courses: Course[] }>('/api/courses');
-        console.log('✅ Courses fetched:', response.data.courses.length);
         return response.data.courses;
       } catch (err) {
         const message = extractApiErrorMessage(err, 'Failed to fetch courses.');
-        console.error('❌ Failed to fetch courses:', message);
         throw new Error(message);
       }
     },

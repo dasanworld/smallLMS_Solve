@@ -22,8 +22,5 @@ export const useSignupMutation = () => {
       const response = await apiClient.post<SignupResponse>('/api/auth/signup', signupData);
       return response.data;
     },
-    onError: (error) => {
-      console.error('Signup error:', error);
-    },
   });
 };

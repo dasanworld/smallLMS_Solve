@@ -36,7 +36,6 @@ export function GlobalNavigation() {
         const response = await apiClient.get<UserProfileResponse>('/api/auth/profile');
         return response.data;
       } catch (err) {
-        console.error('프로필 조회 실패:', extractApiErrorMessage(err, 'Failed to fetch profile'));
         return null;
       }
     },
@@ -61,7 +60,6 @@ export function GlobalNavigation() {
       // 랜딩페이지로 이동
       router.replace('/');
     } catch (error) {
-      console.error('로그아웃 중 오류:', error);
       router.replace('/');
     }
   }, [refresh, router]);

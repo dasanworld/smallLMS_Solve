@@ -27,15 +27,12 @@ export default function EditCoursePage() {
     queryKey: ['course', courseId],
     queryFn: async () => {
       try {
-        console.log('📚 코스 상세 조회:', courseId);
         const response = await apiClient.get<Course>(
           `/api/courses/${courseId}`
         );
-        console.log('✅ 코스 상세 조회 완료:', response.data);
         return response.data;
       } catch (err) {
         const message = extractApiErrorMessage(err, 'Failed to fetch course.');
-        console.error('❌ 코스 조회 실패:', message);
         throw new Error(message);
       }
     },
@@ -48,13 +45,10 @@ export default function EditCoursePage() {
 
   const handleFormSubmit = async (data: any) => {
     try {
-      console.log('📝 코스 수정 요청:', data);
       const response = await apiClient.put(`/api/courses/${courseId}`, data);
-      console.log('✅ 코스 수정 완료:', response.data);
       handleSuccess();
     } catch (err) {
       const message = extractApiErrorMessage(err, 'Failed to update course.');
-      console.error('❌ 코스 수정 실패:', message);
       throw new Error(message);
     }
   };

@@ -78,7 +78,7 @@ export const CourseStatusDialog = ({
       setSelectedStatus('');
       onOpenChange(false);
     } catch (error) {
-      console.error('상태 변경 실패:', error);
+      // Error handling
     }
   };
 

@@ -82,7 +82,6 @@ export const RoleSelectionForm = () => {
       });
 
       if (signInError) {
-        console.error('Auto-login failed after signup:', signInError);
         // Even if auto-login fails, redirect to the appropriate dashboard
         // User can manually log in if needed
       }
@@ -90,7 +89,7 @@ export const RoleSelectionForm = () => {
       // Redirect based on role
       router.push(result.redirectTo);
     } catch (error) {
-      console.error('Signup failed:', error);
+      // Error handling handled by mutation
     } finally {
       setIsSubmitting(false);
     }

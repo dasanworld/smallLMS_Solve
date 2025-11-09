@@ -56,7 +56,6 @@ export default function AllAssignmentsPage() {
         const response = await apiClient.get<UserProfileResponse>('/api/auth/profile');
         return response.data;
       } catch (err) {
-        console.error('프로필 조회 실패:', extractApiErrorMessage(err, 'Failed to fetch profile'));
         return null;
       }
     },
@@ -110,23 +109,18 @@ export default function AllAssignmentsPage() {
     queryFn: async () => {
       try {
         if (userRole === 'instructor') {
-          console.log('📚 강사 코스 목록 조회 중...');
           const response = await apiClient.get<{ courses: Course[] }>('/api/courses');
-          console.log('✅ 강사 코스 목록 조회 완료:', response.data.courses.length);
           return response.data.courses;
         } else if (userRole === 'learner') {
-          console.log('📚 러너 등록 코스 목록 조회 중...');
           const response = await apiClient.get<{ enrollments: Array<{ courses: Course }> }>('/api/enrollments/me');
           const enrolledCourses = response.data.enrollments
             .filter(e => e.courses) // courses 필드 존재 확인
             .map(e => e.courses);
-          console.log('✅ 러너 등록 코스 목록 조회 완료:', enrolledCourses.length);
           return enrolledCourses;
         }
         return [];
       } catch (err) {
         const message = extractApiErrorMessage(err, 'Failed to fetch courses.');
-        console.error('❌ 코스 목록 조회 실패:', message);
         throw new Error(message);
       }
     },
@@ -145,7 +139,6 @@ export default function AllAssignmentsPage() {
       try {
         if (courses.length === 0) return [];
 
-        console.log('📋 모든 과제 목록 조회 중...');
         const results = await Promise.all(
           courses.map(async (course) => {
             try {
@@ -159,7 +152,6 @@ export default function AllAssignmentsPage() {
                 assignmentCount: response.data.total || 0,
               };
             } catch (err) {
-              console.warn(`Failed to fetch assignments for course ${course.id}:`, err);
               return {
                 ...course,
                 assignments: [],
@@ -168,11 +160,9 @@ export default function AllAssignmentsPage() {
             }
           })
         );
-        console.log('✅ 모든 과제 목록 조회 완료');
         return results;
       } catch (err) {
         const message = extractApiErrorMessage(err, 'Failed to fetch assignments.');
-        console.error('❌ 과제 목록 조회 실패:', message);
         throw new Error(message);
       }
     },
@@ -212,7 +202,6 @@ export default function AllAssignmentsPage() {
               submissions.set(assignment.id, response.data);
             } catch (err) {
               // 제출이 없는 경우 무시
-              console.debug(`No submission found for assignment ${assignment.id}`);
             }
           }
         }

@@ -24,13 +24,9 @@ export default function NewAssignmentPage() {
     queryKey: ['instructor-courses-list-new'],
     queryFn: async () => {
       try {
-        console.log('📚 강사 코스 목록 조회 중...');
         const response = await apiClient.get<{ courses: Course[] }>('/api/courses');
-        console.log('✅ 강사 코스 목록 조회 완료:', response.data.courses.length);
         return response.data.courses;
       } catch (err) {
-        const message = extractApiErrorMessage(err, 'Failed to fetch courses.');
-        console.error('❌ 코스 목록 조회 실패:', message);
         return [];
       }
     },

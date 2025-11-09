@@ -51,8 +51,6 @@ export default function SubmissionsListPage() {
         const response = await apiClient.get<Submission[]>('/api/instructor/submissions');
         return response.data;
       } catch (err) {
-        const message = extractApiErrorMessage(err, 'Failed to fetch submissions');
-        console.error(message);
         return [];
       }
     },

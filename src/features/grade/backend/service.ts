@@ -208,7 +208,6 @@ export const getLearnerGradesService = async (
 
     return success(parsed.data);
   } catch (error) {
-    console.error('Error in getLearnerGradesService:', error);
     return failure(
       500,
       gradeErrorCodes.GRADES_FETCH_ERROR,

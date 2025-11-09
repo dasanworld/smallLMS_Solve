@@ -12,7 +12,6 @@ export const useInstructorDashboardQuery = <T extends InstructorDashboardRespons
         // Validate response with Zod schema
         const parsed = InstructorDashboardResponseSchema.safeParse(data);
         if (!parsed.success) {
-          console.error('Instructor dashboard response validation failed:', parsed.error);
           throw new Error('Invalid dashboard data format');
         }
 

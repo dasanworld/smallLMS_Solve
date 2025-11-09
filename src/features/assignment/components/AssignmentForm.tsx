@@ -105,29 +105,6 @@ export const AssignmentForm = ({
         courseId, // prop의 courseId로 덮어쓰기
       };
       
-      console.log('📋 Form submit data:', {
-        courseId: submitData.courseId,
-        title: submitData.title,
-        description: submitData.description,
-        dueDate: submitData.dueDate,
-        pointsWeight: submitData.pointsWeight,
-        pointsWeightType: typeof submitData.pointsWeight,
-        allowLate: submitData.allowLate,
-        allowResubmission: submitData.allowResubmission,
-      });
-      
-      // 날짜 유효성 확인
-      try {
-        const dueDateObj = new Date(submitData.dueDate);
-        console.log('📅 Parsed due date:', {
-          iso: submitData.dueDate,
-          parsed: dueDateObj.toISOString(),
-          isValid: !isNaN(dueDateObj.getTime()),
-        });
-      } catch (e) {
-        console.error('❌ Invalid due date format:', submitData.dueDate);
-      }
-      
       if (assignment) {
         await updateMutation.mutateAsync({
           assignmentId: assignment.id,
@@ -138,7 +115,7 @@ export const AssignmentForm = ({
       }
       onSuccess?.();
     } catch (err) {
-      console.error('❌ Form submission error:', err);
+      // Error handling handled by mutation
     } finally {
       setIsSubmitting(false);
     }

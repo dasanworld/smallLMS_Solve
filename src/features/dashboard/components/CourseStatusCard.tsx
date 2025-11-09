@@ -50,7 +50,6 @@ export function CourseStatusCard({ course }: CourseStatusCardProps) {
 
   const handleArchiveCourse = () => {
     // TODO: Implement archive course functionality
-    console.log('Archive course:', course.id);
   };
 
   return (

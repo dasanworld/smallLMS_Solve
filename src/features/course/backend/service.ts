@@ -157,9 +157,6 @@ export const getCourseByIdService = async (
       .eq('id', course.owner_id)
       .maybeSingle();
 
-    if (instructorError) {
-      console.error('Failed to fetch instructor data:', instructorError);
-    }
 
     const categoryData = Array.isArray(course.category) ? course.category[0] : course.category;
     const difficultyData = Array.isArray(course.difficulty) ? course.difficulty[0] : course.difficulty;
