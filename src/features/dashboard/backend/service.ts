@@ -72,6 +72,7 @@ export const getLearnerDashboardService = async (
   const enrolledCourses = [];
   const upcomingAssignments: any[] = [];
   const recentFeedback: any[] = [];
+  let allAssignmentsStatus: any[] = [];
 
   if (courseIds.length > 0) {
     // Get course details (소프트 삭제 필터 추가)
@@ -225,12 +226,34 @@ export const getLearnerDashboardService = async (
         gradedAt: submission.graded_at,
       });
     }
+
+    // Get all assignments with submission status for enrolled courses
+    const allAssignmentsStatus = [];
+    for (const assignment of assignments || []) {
+      const submission = submissions?.find(
+        sub => sub.assignment_id === assignment.id
+      );
+      const assignmentCourse = assignmentCourses?.find(c => c.id === assignment.course_id);
+
+      allAssignmentsStatus.push({
+        id: submission?.id || `${assignment.id}-no-submission`,
+        assignmentId: assignment.id,
+        assignmentTitle: assignment.title,
+        courseId: assignment.course_id,
+        courseTitle: assignmentCourse?.title || 'Unknown Course',
+        status: submission?.status || 'not_submitted',
+        isLate: submission?.is_late || false,
+        score: submission?.score,
+        submittedAt: submission?.id ? assignment.due_date : undefined,
+      });
+    }
   }
 
   const dashboardData = {
     enrolledCourses,
     upcomingAssignments,
     recentFeedback,
+    allAssignmentsStatus: courseIds.length > 0 ? allAssignmentsStatus : [],
   };
 
   // Validate response data

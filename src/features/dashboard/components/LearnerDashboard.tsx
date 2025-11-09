@@ -4,6 +4,7 @@ import { useLearnerDashboardQuery } from '@/features/dashboard/hooks/useLearnerD
 import { CourseProgressCard } from '@/features/dashboard/components/CourseProgressCard';
 import { UpcomingAssignments } from '@/features/dashboard/components/UpcomingAssignments';
 import { RecentFeedback } from '@/features/dashboard/components/RecentFeedback';
+import { SubmissionStatusCard } from '@/features/dashboard/components/SubmissionStatusCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -57,6 +58,7 @@ export const LearnerDashboard = () => {
   const hasEnrolledCourses = data?.enrolledCourses && data.enrolledCourses.length > 0;
   const hasUpcomingAssignments = data?.upcomingAssignments && data.upcomingAssignments.length > 0;
   const hasRecentFeedback = data?.recentFeedback && data.recentFeedback.length > 0;
+  const hasAllAssignmentsStatus = data?.allAssignmentsStatus && data.allAssignmentsStatus.length > 0;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -99,6 +101,17 @@ export const LearnerDashboard = () => {
         </section>
       )}
 
+      {hasAllAssignmentsStatus && (
+        <section className="mb-10">
+          <h2 className="mb-4 text-xl font-semibold">과제 제출 현황</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data?.allAssignmentsStatus.map((submission) => (
+              <SubmissionStatusCard key={submission.id} submission={submission} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {hasUpcomingAssignments && (
         <section className="mb-10">
           <h2 className="mb-4 text-xl font-semibold">다가오는 과제</h2>
@@ -113,7 +126,7 @@ export const LearnerDashboard = () => {
         </section>
       )}
 
-      {!hasUpcomingAssignments && !hasRecentFeedback && hasEnrolledCourses && (
+      {!hasAllAssignmentsStatus && !hasUpcomingAssignments && !hasRecentFeedback && hasEnrolledCourses && (
         <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center">
           <h2 className="mb-2 text-xl font-semibold">최근 활동이 없습니다</h2>
           <p className="text-slate-500">
