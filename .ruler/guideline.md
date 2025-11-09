@@ -244,3 +244,8 @@ Use `.maybeSingle()` instead of `.single()` when query may return zero rows.
 `.single()` throws error if result is not exactly one row; `.maybeSingle()` returns null safely.
 Apply proper type assertions for nested query results: `as { data: Type; error: any }`.
 Handle optional/nullable results with conditional checks before property access.
+
+## React Hooks Rules of Hooks
+All hooks (useState, useEffect, useQuery, useCallback, etc.) must be called before early return statements in components.
+Call hooks in the same order on every render; inconsistent hook ordering causes "Rendered fewer hooks than expected" error.
+Place all hooks at the top of component before any conditional returns (if isLoading, if error, etc.).
