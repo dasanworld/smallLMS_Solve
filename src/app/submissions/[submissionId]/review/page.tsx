@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { apiClient } from '@/lib/remote/api-client';
 import { SubmissionGradingData } from '@/features/grade/types';
 
 export default function ReviewSubmissionPage() {
@@ -24,15 +25,8 @@ export default function ReviewSubmissionPage() {
 
     const fetchSubmission = async () => {
       try {
-        const response = await fetch(`/api/submissions/${submissionIdString}`);
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error?.message || 'Failed to fetch submission');
-        }
-
-        const data = await response.json();
-        setSubmission(data);
+        const response = await apiClient.get<SubmissionGradingData>(`/api/submissions/${submissionIdString}`);
+        setSubmission(response.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
