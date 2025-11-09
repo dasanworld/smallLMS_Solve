@@ -67,6 +67,8 @@ export const AssignmentForm = ({
       // 로컬 시간을 ISO 문자열로 변환 (밀리초 추가)
       const isoDateTime = new Date(`${localDateTime}:00`).toISOString();
       setValue('dueDate', isoDateTime);
+      // 입력 필드를 blur하여 캘린더 닫기
+      e.target.blur();
     }
   };
 
