@@ -10,7 +10,7 @@ test.describe('Operator Management', () => {
   test.describe('카테고리 관리', () => {
     authTest(
       'should view categories list',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page } = authenticatedOperator;
 
         // 운영자 대시보드 또는 카테고리 관리 페이지로 이동
@@ -28,7 +28,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should create new category',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page, user } = authenticatedOperator;
         const timestamp = Date.now();
 
@@ -53,7 +53,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should update existing category',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page, user } = authenticatedOperator;
 
         // 먼저 카테고리 생성
@@ -99,7 +99,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should delete category',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page, user } = authenticatedOperator;
 
         // 먼저 카테고리 생성
@@ -137,7 +137,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should toggle category active status',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page, user } = authenticatedOperator;
 
         // 카테고리 생성
@@ -184,7 +184,7 @@ test.describe('Operator Management', () => {
   test.describe('난이도 관리', () => {
     authTest(
       'should view difficulties list',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page } = authenticatedOperator;
 
         await page.goto('/operator-dashboard');
@@ -201,7 +201,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should create new difficulty',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page, user } = authenticatedOperator;
         const timestamp = Date.now();
 
@@ -227,7 +227,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should update difficulty with sort order',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page, user } = authenticatedOperator;
         const timestamp = Date.now();
 
@@ -273,7 +273,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should delete difficulty',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page, user } = authenticatedOperator;
         const timestamp = Date.now();
 
@@ -314,7 +314,7 @@ test.describe('Operator Management', () => {
   test.describe('신고 관리', () => {
     authTest(
       'should view reports list',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page, user } = authenticatedOperator;
 
         const response = await page.request.get('/api/reports?page=1&limit=10', {
@@ -333,7 +333,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should view report detail',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page, user } = authenticatedOperator;
 
         // 신고 목록 조회
@@ -365,7 +365,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should update report status',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page, user } = authenticatedOperator;
 
         // 신고 목록에서 첫 번째 신고 가져오기
@@ -404,7 +404,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should process report action',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page, user } = authenticatedOperator;
 
         // 신고 목록 조회
@@ -441,7 +441,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should resolve report',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page, user } = authenticatedOperator;
 
         const listResponse = await page.request.get('/api/reports?page=1&limit=1', {
@@ -479,7 +479,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should filter reports by status',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page, user } = authenticatedOperator;
 
         const response = await page.request.get(
@@ -540,7 +540,7 @@ test.describe('Operator Management', () => {
   test.describe('권한 검증', () => {
     authTest(
       'should not allow learner to manage categories',
-      async ({ authenticatedLearner }) => {
+      async ({ learnerPage }) => {
         const { page, user } = authenticatedLearner;
 
         const response = await page.request.post('/api/metadata/categories', {
@@ -560,7 +560,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should not allow instructor to manage categories',
-      async ({ authenticatedInstructor }) => {
+      async ({ instructorPage }) => {
         const { page, user } = authenticatedInstructor;
 
         const response = await page.request.post('/api/metadata/categories', {
@@ -580,7 +580,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should not allow learner to view reports',
-      async ({ authenticatedLearner }) => {
+      async ({ learnerPage }) => {
         const { page, user } = authenticatedLearner;
 
         const response = await page.request.get('/api/reports', {
@@ -595,7 +595,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should not allow instructor to manage reports',
-      async ({ authenticatedInstructor }) => {
+      async ({ instructorPage }) => {
         const { page, user } = authenticatedInstructor;
 
         const response = await page.request.get('/api/reports', {
@@ -612,7 +612,7 @@ test.describe('Operator Management', () => {
   test.describe('운영자 대시보드', () => {
     authTest(
       'should display operator dashboard',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page } = authenticatedOperator;
 
         await page.goto('/operator-dashboard');
@@ -626,7 +626,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should show system statistics',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page } = authenticatedOperator;
 
         await page.goto('/operator-dashboard');
@@ -641,7 +641,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should navigate to metadata management',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page } = authenticatedOperator;
 
         await page.goto('/operator-dashboard');
@@ -657,7 +657,7 @@ test.describe('Operator Management', () => {
 
     authTest(
       'should navigate to reports management',
-      async ({ authenticatedOperator }) => {
+      async ({ operatorPage }) => {
         const { page } = authenticatedOperator;
 
         await page.goto('/operator-dashboard');

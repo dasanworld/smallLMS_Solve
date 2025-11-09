@@ -15,6 +15,11 @@ type AuthFixtures = {
   learnerPage: Page;
   instructorPage: Page;
   operatorPage: Page;
+  
+  // 호환성을 위한 별칭
+  authenticatedLearner?: { page: Page; user: any };
+  authenticatedInstructor?: { page: Page; user: any };
+  authenticatedOperator?: { page: Page; user: any };
 };
 
 export const test = base.extend<AuthFixtures>({
@@ -44,6 +49,19 @@ export const test = base.extend<AuthFixtures>({
     const user = testUsers.operator;
     await login(page, { email: user.email, password: user.password });
     await use(page);
+  },
+
+  // 호환성을 위한 별칭 (기존 테스트용)
+  authenticatedLearner: async ({ learnerPage }, use) => {
+    await use({ page: learnerPage, user: testUsers.learner });
+  },
+
+  authenticatedInstructor: async ({ instructorPage }, use) => {
+    await use({ page: instructorPage, user: testUsers.instructor });
+  },
+
+  authenticatedOperator: async ({ operatorPage }, use) => {
+    await use({ page: operatorPage, user: testUsers.operator });
   },
 });
 

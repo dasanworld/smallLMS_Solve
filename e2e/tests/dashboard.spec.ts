@@ -10,8 +10,8 @@ test.describe('Dashboard', () => {
   test.describe('학습자 대시보드', () => {
     authTest(
       'should display learner dashboard',
-      async ({ authenticatedLearner }) => {
-        const { page } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage;
 
         await page.goto('/dashboard');
 
@@ -24,8 +24,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should display enrolled courses in dashboard',
-      async ({ authenticatedLearner }) => {
-        const { page } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage;
 
         await page.goto('/dashboard');
 
@@ -38,8 +38,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should display recent assignments in dashboard',
-      async ({ authenticatedLearner }) => {
-        const { page } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage;
 
         await page.goto('/dashboard');
 
@@ -55,8 +55,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should display learning progress',
-      async ({ authenticatedLearner }) => {
-        const { page } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage;
 
         await page.goto('/dashboard');
 
@@ -70,8 +70,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should navigate to course from dashboard',
-      async ({ authenticatedLearner }) => {
-        const { page } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage;
 
         await page.goto('/dashboard');
 
@@ -88,8 +88,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should display upcoming assignments with due dates',
-      async ({ authenticatedLearner }) => {
-        const { page } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage;
 
         await page.goto('/dashboard');
 
@@ -103,8 +103,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should get learner dashboard data via API',
-      async ({ authenticatedLearner }) => {
-        const { page, user } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage; const user = { id: "", email: "" };
 
         const response = await page.request.get('/api/dashboard/learner', {
           headers: {
@@ -124,8 +124,8 @@ test.describe('Dashboard', () => {
   test.describe('강사 대시보드', () => {
     authTest(
       'should display instructor dashboard',
-      async ({ authenticatedInstructor }) => {
-        const { page } = authenticatedInstructor;
+      async ({ instructorPage }) => {
+        const page = instructorPage;
 
         await page.goto('/instructor-dashboard');
 
@@ -138,8 +138,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should display instructor courses',
-      async ({ authenticatedInstructor }) => {
-        const { page } = authenticatedInstructor;
+      async ({ instructorPage }) => {
+        const page = instructorPage;
 
         await page.goto('/instructor-dashboard');
 
@@ -152,8 +152,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should show course creation button',
-      async ({ authenticatedInstructor }) => {
-        const { page } = authenticatedInstructor;
+      async ({ instructorPage }) => {
+        const page = instructorPage;
 
         await page.goto('/instructor-dashboard');
 
@@ -167,8 +167,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should display recent submissions to grade',
-      async ({ authenticatedInstructor }) => {
-        const { page } = authenticatedInstructor;
+      async ({ instructorPage }) => {
+        const page = instructorPage;
 
         await page.goto('/instructor-dashboard');
 
@@ -184,8 +184,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should display course statistics',
-      async ({ authenticatedInstructor }) => {
-        const { page } = authenticatedInstructor;
+      async ({ instructorPage }) => {
+        const page = instructorPage;
 
         await page.goto('/instructor-dashboard');
 
@@ -199,8 +199,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should navigate to course management from dashboard',
-      async ({ authenticatedInstructor }) => {
-        const { page } = authenticatedInstructor;
+      async ({ instructorPage }) => {
+        const page = instructorPage;
 
         await page.goto('/instructor-dashboard');
 
@@ -217,7 +217,7 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should get instructor dashboard data via API',
-      async ({ authenticatedInstructor }) => {
+      async ({ instructorPage }) => {
         const { page, user } = authenticatedInstructor;
 
         const response = await page.request.get('/api/dashboard/instructor', {
@@ -255,8 +255,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should not allow learner to access instructor dashboard',
-      async ({ authenticatedLearner }) => {
-        const { page } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage;
 
         await page.goto('/instructor-dashboard');
 
@@ -272,7 +272,7 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should not allow instructor to access learner-only features',
-      async ({ authenticatedInstructor }) => {
+      async ({ instructorPage }) => {
         const { page, user } = authenticatedInstructor;
 
         // 학습자 대시보드 API 호출 시도
@@ -292,8 +292,8 @@ test.describe('Dashboard', () => {
   test.describe('대시보드 상호작용', () => {
     authTest(
       'should filter courses by status in dashboard',
-      async ({ authenticatedLearner }) => {
-        const { page } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage;
 
         await page.goto('/dashboard');
 
@@ -311,8 +311,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should sort assignments by due date',
-      async ({ authenticatedLearner }) => {
-        const { page } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage;
 
         await page.goto('/dashboard');
 
@@ -327,8 +327,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should display quick actions in dashboard',
-      async ({ authenticatedInstructor }) => {
-        const { page } = authenticatedInstructor;
+      async ({ instructorPage }) => {
+        const page = instructorPage;
 
         await page.goto('/instructor-dashboard');
 
@@ -344,8 +344,8 @@ test.describe('Dashboard', () => {
   test.describe('대시보드 알림 및 업데이트', () => {
     authTest(
       'should display notifications in dashboard',
-      async ({ authenticatedLearner }) => {
-        const { page } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage;
 
         await page.goto('/dashboard');
 
@@ -364,8 +364,8 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should show badge for ungraded submissions',
-      async ({ authenticatedInstructor }) => {
-        const { page } = authenticatedInstructor;
+      async ({ instructorPage }) => {
+        const page = instructorPage;
 
         await page.goto('/instructor-dashboard');
 
@@ -383,8 +383,8 @@ test.describe('Dashboard', () => {
   test.describe('대시보드 검색', () => {
     authTest(
       'should search for courses in dashboard',
-      async ({ authenticatedLearner }) => {
-        const { page } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage;
 
         await page.goto('/dashboard');
 

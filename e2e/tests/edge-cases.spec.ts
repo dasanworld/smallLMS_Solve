@@ -21,7 +21,7 @@ test.describe('Edge Cases & Error Handling', () => {
       await expect(page).toHaveURL(/\/login/);
     });
 
-    test('학습자는 강사 전용 페이지에 접근할 수 없다', async ({ learnerPage }) => {
+    authTest('학습자는 강사 전용 페이지에 접근할 수 없다', async ({ learnerPage }) => {
       // 학습자가 강사 대시보드 접근 시도
       await learnerPage.goto('/instructor-dashboard');
       

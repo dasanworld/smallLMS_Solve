@@ -68,8 +68,8 @@ test.describe('Course Management', () => {
   test.describe('강좌 등록 (학습자)', () => {
     authTest(
       'should enroll in a course as learner',
-      async ({ authenticatedLearner }) => {
-        const { page } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage;
 
         await page.goto('/courses');
 
@@ -95,8 +95,8 @@ test.describe('Course Management', () => {
 
     authTest(
       'should view enrolled courses in dashboard',
-      async ({ authenticatedLearner }) => {
-        const { page } = authenticatedLearner;
+      async ({ learnerPage }) => {
+        const page = learnerPage;
 
         await page.goto('/dashboard');
 
@@ -109,8 +109,8 @@ test.describe('Course Management', () => {
   test.describe('강좌 생성 (강사)', () => {
     authTest(
       'should create a new course as instructor',
-      async ({ authenticatedInstructor }) => {
-        const { page } = authenticatedInstructor;
+      async ({ instructorPage }) => {
+        const page = instructorPage;
         const timestamp = Date.now();
 
         await page.goto('/instructor-dashboard');
@@ -155,8 +155,8 @@ test.describe('Course Management', () => {
 
     authTest(
       'should view created courses as instructor',
-      async ({ authenticatedInstructor }) => {
-        const { page } = authenticatedInstructor;
+      async ({ instructorPage }) => {
+        const page = instructorPage;
 
         await page.goto('/instructor-dashboard');
 
@@ -169,8 +169,8 @@ test.describe('Course Management', () => {
   test.describe('강좌 수정 (강사)', () => {
     authTest(
       'should edit own course as instructor',
-      async ({ authenticatedInstructor }) => {
-        const { page } = authenticatedInstructor;
+      async ({ instructorPage }) => {
+        const page = instructorPage;
 
         await page.goto('/instructor-dashboard');
 
@@ -205,8 +205,8 @@ test.describe('Course Management', () => {
   test.describe('강좌 상태 관리 (강사)', () => {
     authTest(
       'should publish a draft course',
-      async ({ authenticatedInstructor }) => {
-        const { page } = authenticatedInstructor;
+      async ({ instructorPage }) => {
+        const page = instructorPage;
 
         // 먼저 draft 강좌 생성
         const timestamp = Date.now();
@@ -248,8 +248,8 @@ test.describe('Course Management', () => {
 
     authTest(
       'should archive a published course',
-      async ({ authenticatedInstructor }) => {
-        const { page } = authenticatedInstructor;
+      async ({ instructorPage }) => {
+        const page = instructorPage;
 
         await page.goto('/instructor-dashboard');
 
@@ -296,7 +296,7 @@ test.describe('Course Management', () => {
 
     authTest(
       'should create course via API as instructor',
-      async ({ authenticatedInstructor }) => {
+      async ({ instructorPage }) => {
         const { page, user } = authenticatedInstructor;
         const timestamp = Date.now();
 
@@ -323,7 +323,7 @@ test.describe('Course Management', () => {
 
     authTest(
       'should enroll in course via API as learner',
-      async ({ authenticatedLearner }) => {
+      async ({ learnerPage }) => {
         const { page, user } = authenticatedLearner;
 
         // 먼저 강좌 목록 조회
@@ -351,7 +351,7 @@ test.describe('Course Management', () => {
 
     authTest(
       'should get instructor courses via API',
-      async ({ authenticatedInstructor }) => {
+      async ({ instructorPage }) => {
         const { page, user } = authenticatedInstructor;
 
         const response = await page.request.get('/api/courses/my', {
@@ -372,7 +372,7 @@ test.describe('Course Management', () => {
   test.describe('권한 검증', () => {
     authTest(
       'should not allow learner to create courses',
-      async ({ authenticatedLearner }) => {
+      async ({ learnerPage }) => {
         const { page, user } = authenticatedLearner;
 
         const response = await page.request.post('/api/courses', {

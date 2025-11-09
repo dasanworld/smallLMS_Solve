@@ -5,18 +5,20 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Users, BarChart3, BookOpen, Check } from 'lucide-react';
-import { 
-  useCreateEnrollmentMutation, 
-  useCancelEnrollmentMutation, 
-  useIsEnrolled 
+import {
+  useCreateEnrollmentMutation,
+  useCancelEnrollmentMutation,
+  useIsEnrolled
 } from '@/features/enrollment/hooks/useEnrollmentMutations';
 import type { CourseDetailResponse } from '@/features/course/backend/schema';
+import type { UserProfileResponse } from '@/features/auth/backend/profile-service';
 
 /**
  * 코스 상세 페이지
@@ -28,7 +30,23 @@ export default function CourseDetailPage() {
   const params = useParams();
   const courseId = params.courseId as string;
   const { toast } = useToast();
+  const { user } = useCurrentUser();
   const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
+
+  // 사용자 프로필 조회 (역할 확인)
+  const { data: profile } = useQuery<UserProfileResponse | null>({
+    queryKey: ['userProfile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      try {
+        const response = await apiClient.get<UserProfileResponse>('/api/auth/profile');
+        return response.data;
+      } catch (err) {
+        return null;
+      }
+    },
+    enabled: !!user?.id,
+  });
 
   // 코스 정보 조회
   const {
@@ -47,6 +65,9 @@ export default function CourseDetailPage() {
       }
     },
   });
+
+  // 현재 사용자가 강사인지 확인
+  const isInstructor = profile?.role === 'instructor';
 
   // 수강신청/취소 Mutation
   const createEnrollmentMutation = useCreateEnrollmentMutation();
@@ -257,71 +278,73 @@ export default function CourseDetailPage() {
         </CardContent>
       </Card>
 
-      {/* 수강신청 섹션 */}
-      <Card className={`border-2 ${isEnrolled ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
-        <CardHeader>
-          <CardTitle className={isEnrolled ? 'text-green-900' : 'text-blue-900'}>
-            {isEnrolled ? '이미 수강 중입니다' : '코스 수강하기'}
-          </CardTitle>
-          <CardDescription className={isEnrolled ? 'text-green-800' : 'text-blue-800'}>
-            {isEnrolled 
-              ? '이 코스에 등록되어 있습니다. 학습을 시작하거나 수강을 취소할 수 있습니다.'
-              : '이 코스에 등록하여 학습을 시작하세요.'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {enrollmentError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{enrollmentError}</AlertDescription>
-            </Alert>
-          )}
-          <div className="flex gap-3">
-            {isEnrolled ? (
-              <>
-                <Button 
-                  size="lg" 
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                  disabled
-                >
-                  <Check className="mr-2 h-4 w-4" />
-                  수강 등록됨
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={handleCancel}
-                  disabled={cancelEnrollmentMutation.isPending}
-                >
-                  {cancelEnrollmentMutation.isPending ? '취소 중...' : '수강 취소'}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button 
-                  size="lg" 
-                  className="flex-1"
-                  onClick={handleEnroll}
-                  disabled={
-                    createEnrollmentMutation.isPending || 
-                    course?.status !== 'published'
-                  }
-                >
-                  {createEnrollmentMutation.isPending ? '신청 중...' : '지금 수강신청'}
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  onClick={() => window.history.back()}
-                >
-                  돌아가기
-                </Button>
-              </>
+      {/* 수강신청 섹션 - 강사는 표시 안 함 */}
+      {!isInstructor && (
+        <Card className={`border-2 ${isEnrolled ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
+          <CardHeader>
+            <CardTitle className={isEnrolled ? 'text-green-900' : 'text-blue-900'}>
+              {isEnrolled ? '이미 수강 중입니다' : '코스 수강하기'}
+            </CardTitle>
+            <CardDescription className={isEnrolled ? 'text-green-800' : 'text-blue-800'}>
+              {isEnrolled
+                ? '이 코스에 등록되어 있습니다. 학습을 시작하거나 수강을 취소할 수 있습니다.'
+                : '이 코스에 등록하여 학습을 시작하세요.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {enrollmentError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{enrollmentError}</AlertDescription>
+              </Alert>
             )}
-          </div>
-        </CardContent>
-      </Card>
+            <div className="flex gap-3">
+              {isEnrolled ? (
+                <>
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    disabled
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    수강 등록됨
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={handleCancel}
+                    disabled={cancelEnrollmentMutation.isPending}
+                  >
+                    {cancelEnrollmentMutation.isPending ? '취소 중...' : '수강 취소'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    size="lg"
+                    className="flex-1"
+                    onClick={handleEnroll}
+                    disabled={
+                      createEnrollmentMutation.isPending ||
+                      course?.status !== 'published'
+                    }
+                  >
+                    {createEnrollmentMutation.isPending ? '신청 중...' : '지금 수강신청'}
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => window.history.back()}
+                  >
+                    돌아가기
+                  </Button>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 커리큘럼 플레이스홀더 */}
       <Card>
