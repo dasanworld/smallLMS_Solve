@@ -36,9 +36,17 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
   // GET /api/courses/my - 강사의 코스 목록 조회
   app.get('/api/courses/my', async (c) => {
     try {
+      const logger = c.get('logger');
       const user = getUser(c);
 
+      logger.info('📚 GET /api/courses/my 요청', {
+        userId: user?.id,
+        userRole: user?.role,
+        hasAuth: !!user,
+      });
+
       if (!user) {
+        logger.warn('❌ 사용자 인증 안 됨');
         return respond(
           c,
           failure(
@@ -51,6 +59,7 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
 
       // 강사 역할 확인
       if (user.role !== 'instructor') {
+        logger.warn('❌ 강사가 아님', { userRole: user.role });
         return respond(
           c,
           failure(
@@ -63,8 +72,11 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
 
       const supabase = c.get('supabase');
       const result = await getInstructorCoursesService(supabase, user.id);
+      logger.info('✅ 강사 코스 조회 완료', { count: result.ok ? (result.value as any).courses.length : 0 });
       return respond(c, result);
     } catch (error) {
+      const logger = c.get('logger');
+      logger.error('❌ 강사 코스 조회 에러', { error: String(error) });
       return respond(
         c,
         failure(500, courseErrorCodes.COURSE_CREATION_ERROR, String(error))
