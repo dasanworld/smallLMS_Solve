@@ -119,11 +119,25 @@ export const createAssignmentRoutes = (app: Hono<AppEnv>) => {
 
       if (queryError) {
         logger.error('Assignment fetch failed:', queryError);
-        return c.json({ error: '과제 조회 실패' }, 500);
+        return respond(c, {
+          ok: false,
+          status: 500,
+          error: {
+            code: 'ASSIGNMENT_FETCH_ERROR',
+            message: '과제 조회 실패',
+          },
+        } as any);
       }
 
       if (!assignment) {
-        return c.json({ error: '과제를 찾을 수 없습니다' }, 404);
+        return respond(c, {
+          ok: false,
+          status: 404,
+          error: {
+            code: 'ASSIGNMENT_NOT_FOUND',
+            message: '과제를 찾을 수 없습니다',
+          },
+        } as any);
       }
 
       // 강사 권한 확인
@@ -134,13 +148,21 @@ export const createAssignmentRoutes = (app: Hono<AppEnv>) => {
         .maybeSingle();
 
       if (course?.owner_id !== userId) {
-        return c.json({ error: '이 과제에 접근할 권한이 없습니다' }, 403);
+        return respond(c, {
+          ok: false,
+          status: 403,
+          error: {
+            code: 'ACCESS_DENIED',
+            message: '이 과제에 접근할 권한이 없습니다',
+          },
+        } as any);
       }
 
       return respond(c, {
-        status: 'success',
+        ok: true,
+        status: 200,
         data: assignment,
-      });
+      } as any);
     } catch (error) {
       throw error;
     }
