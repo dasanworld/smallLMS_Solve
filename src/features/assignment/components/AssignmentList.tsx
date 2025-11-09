@@ -10,12 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { AssignmentResponse } from '../lib/dto';
 import { formatDistanceToNow } from 'date-fns';
+import { Play, Lock } from 'lucide-react';
 
 interface AssignmentListProps {
   assignments: AssignmentResponse[];
   courseId: string;
   onEdit?: (assignment: AssignmentResponse) => void;
   onDelete?: (assignmentId: string) => void;
+  onStatusChange?: (assignmentId: string, newStatus: 'draft' | 'published' | 'closed') => void;
 }
 
 /**
@@ -35,6 +37,7 @@ export const AssignmentList = ({
   courseId,
   onEdit,
   onDelete,
+  onStatusChange,
 }: AssignmentListProps) => {
   if (!assignments || assignments.length === 0) {
     return (
@@ -82,6 +85,39 @@ export const AssignmentList = ({
               </div>
 
               <div className="flex gap-2 ml-4">
+                {/* 상태 변경 버튼 */}
+                {onStatusChange && (
+                  <>
+                    {assignment.status === 'draft' && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="gap-1"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onStatusChange(assignment.id, 'published');
+                        }}
+                      >
+                        <Play className="h-3 w-3" />
+                        발행
+                      </Button>
+                    )}
+                    {assignment.status === 'published' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onStatusChange(assignment.id, 'closed');
+                        }}
+                      >
+                        <Lock className="h-3 w-3" />
+                        마감
+                      </Button>
+                    )}
+                  </>
+                )}
                 {onEdit && (
                   <Button
                     variant="outline"

@@ -11,12 +11,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Plus, FileText, Clock, Check } from 'lucide-react';
 import { AssignmentList } from '@/features/assignment/components/AssignmentList';
+import { useUpdateAssignmentStatusMutation } from '@/features/assignment/hooks/useAssignmentMutations';
+import { useToast } from '@/hooks/use-toast';
 import type { AssignmentResponse } from '@/features/assignment/lib/dto';
 import type { Course } from '@/features/course/backend/schema';
 
 export default function CourseAssignmentsPage() {
   const params = useParams();
   const courseId = params.courseId as string;
+  const { toast } = useToast();
+  const updateStatusMutation = useUpdateAssignmentStatusMutation();
 
   // 강사의 모든 코스 조회
   const {
@@ -81,6 +85,30 @@ export default function CourseAssignmentsPage() {
   });
 
   const isLoading = coursesLoading || assignmentsLoading;
+
+  // 과제 상태 변경 핸들러
+  const handleStatusChange = (assignmentId: string, newStatus: 'draft' | 'published' | 'closed') => {
+    updateStatusMutation.mutate(
+      { assignmentId, status: newStatus },
+      {
+        onSuccess: () => {
+          const statusLabel = newStatus === 'published' ? '발행' : newStatus === 'closed' ? '마감' : '초안';
+          toast({
+            title: '성공',
+            description: `과제가 ${statusLabel} 상태로 변경되었습니다.`,
+          });
+        },
+        onError: (error) => {
+          const message = error instanceof Error ? error.message : '상태 변경에 실패했습니다.';
+          toast({
+            title: '오류',
+            description: message,
+            variant: 'destructive',
+          });
+        },
+      }
+    );
+  };
 
   if (isLoading) {
     return (
@@ -191,7 +219,11 @@ export default function CourseAssignmentsPage() {
                 총 <span className="font-semibold text-slate-900">{assignments.length}</span>개의 과제
               </span>
             </div>
-            <AssignmentList assignments={assignments} courseId={courseId} />
+            <AssignmentList 
+              assignments={assignments} 
+              courseId={courseId}
+              onStatusChange={handleStatusChange}
+            />
           </div>
         )}
       </div>

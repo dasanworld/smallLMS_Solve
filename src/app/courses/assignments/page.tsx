@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
 import { useToast } from '@/hooks/use-toast';
+import { useUpdateAssignmentStatusMutation } from '@/features/assignment/hooks/useAssignmentMutations';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Plus, FileText, BookOpen, Filter } from 'lucide-react';
+import { AlertCircle, Plus, FileText, BookOpen, Filter, Play, Lock } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -28,6 +29,32 @@ interface CourseWithAssignments extends Course {
 
 export default function AllAssignmentsPage() {
   const [selectedCourseId, setSelectedCourseId] = useState<string>('all');
+  const { toast } = useToast();
+  const updateStatusMutation = useUpdateAssignmentStatusMutation();
+
+  // 과제 상태 변경 핸들러
+  const handleStatusChange = (assignmentId: string, newStatus: 'draft' | 'published' | 'closed') => {
+    updateStatusMutation.mutate(
+      { assignmentId, status: newStatus },
+      {
+        onSuccess: () => {
+          const statusLabel = newStatus === 'published' ? '발행' : newStatus === 'closed' ? '마감' : '초안';
+          toast({
+            title: '성공',
+            description: `과제가 ${statusLabel} 상태로 변경되었습니다.`,
+          });
+        },
+        onError: (error) => {
+          const message = error instanceof Error ? error.message : '상태 변경에 실패했습니다.';
+          toast({
+            title: '오류',
+            description: message,
+            variant: 'destructive',
+          });
+        },
+      }
+    );
+  };
 
   // 강사의 모든 코스 조회
   const {
@@ -229,12 +256,14 @@ export default function AllAssignmentsPage() {
                   ) : (
                     <div className="space-y-2">
                       {course.assignments.map((assignment) => (
-                        <Link
+                        <div
                           key={assignment.id}
-                          href={`/courses/${course.id}/assignments/${assignment.id}`}
                           className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
                         >
-                          <div className="flex-1">
+                          <Link
+                            href={`/courses/${course.id}/assignments/${assignment.id}`}
+                            className="flex-1"
+                          >
                             <div className="flex items-center gap-2">
                               <h4 className="font-medium text-slate-900">
                                 {assignment.title}
@@ -259,17 +288,48 @@ export default function AllAssignmentsPage() {
                             <p className="text-sm text-slate-500 mt-1 line-clamp-1">
                               {assignment.description}
                             </p>
-                          </div>
-                          <div className="text-sm text-slate-500 text-right ml-4">
-                            {new Date(assignment.dueDate) < new Date() ? (
-                              <span className="text-red-600">마감됨</span>
-                            ) : (
-                              <span>
-                                {new Date(assignment.dueDate).toLocaleDateString('ko-KR')}
-                              </span>
+                          </Link>
+                          <div className="flex items-center gap-2 ml-4">
+                            {/* 상태 변경 버튼 */}
+                            {assignment.status === 'draft' && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="gap-1"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleStatusChange(assignment.id, 'published');
+                                }}
+                              >
+                                <Play className="h-3 w-3" />
+                                발행
+                              </Button>
                             )}
+                            {assignment.status === 'published' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleStatusChange(assignment.id, 'closed');
+                                }}
+                              >
+                                <Lock className="h-3 w-3" />
+                                마감
+                              </Button>
+                            )}
+                            <div className="text-sm text-slate-500 text-right min-w-24">
+                              {new Date(assignment.dueDate) < new Date() ? (
+                                <span className="text-red-600">마감됨</span>
+                              ) : (
+                                <span>
+                                  {new Date(assignment.dueDate).toLocaleDateString('ko-KR')}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </Link>
+                        </div>
                       ))}
                     </div>
                   )}
