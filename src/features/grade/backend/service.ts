@@ -5,16 +5,25 @@ import {
   success,
   type HandlerResult,
 } from '@/backend/http/response';
-import { GradeResponseSchema } from '@/features/grade/backend/schema';
+import {
+  GradeResponseSchema,
+  SubmissionGradingSchema,
+  SubmissionsListSchema
+} from '@/features/grade/backend/schema';
 import {
   gradeErrorCodes,
   type GradeServiceError,
 } from '@/features/grade/backend/error';
 
+// Define the types based on the Zod schemas
+type SubmissionGradingData = z.infer<typeof SubmissionGradingSchema>;
+type SubmissionsListData = z.infer<typeof SubmissionsListSchema>;
+
 const ENROLLMENTS_TABLE = 'enrollments';
 const COURSES_TABLE = 'courses';
 const ASSIGNMENTS_TABLE = 'assignments';
 const SUBMISSIONS_TABLE = 'submissions';
+const USERS_TABLE = 'users';
 
 /**
  * Gets the learner's grades for all enrolled courses or a specific course
@@ -233,7 +242,7 @@ export const gradeSubmissionService = async (
   score: number,
   feedback: string,
   action: 'grade' | 'resubmission_required'
-): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionGradingSchema>, GradeServiceError, unknown>> => {
+): Promise<HandlerResult<SubmissionGradingData, GradeServiceError, unknown>> => {
   try {
     // Validate score range
     if (score < 0 || score > 100) {
@@ -369,7 +378,6 @@ export const gradeSubmissionService = async (
     };
 
     // Validate response data using the schema from the schema file
-    const { SubmissionGradingSchema } = await import('@/features/grade/backend/schema');
     const parsed = SubmissionGradingSchema.safeParse(responseData);
     if (!parsed.success) {
       return failure(
@@ -402,7 +410,7 @@ export const getSubmissionForGradingService = async (
   client: SupabaseClient,
   instructorId: string,
   submissionId: string
-): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionGradingSchema>, GradeServiceError, unknown>> => {
+): Promise<HandlerResult<SubmissionGradingData, GradeServiceError, unknown>> => {
   try {
     // Get submission with assignment and course details to check permissions
     const { data: submission, error: submissionError } = await client
@@ -468,7 +476,6 @@ export const getSubmissionForGradingService = async (
     };
 
     // Validate response data using the schema from the schema file
-    const { SubmissionGradingSchema } = await import('@/features/grade/backend/schema');
     const parsed = SubmissionGradingSchema.safeParse(responseData);
     if (!parsed.success) {
       return failure(
@@ -501,7 +508,7 @@ export const getAssignmentSubmissionsService = async (
   client: SupabaseClient,
   instructorId: string,
   assignmentId: string
-): Promise<HandlerResult<z.infer<typeof import('@/features/grade/backend/schema').SubmissionsListSchema>, GradeServiceError, unknown>> => {
+): Promise<HandlerResult<SubmissionsListData, GradeServiceError, unknown>> => {
   try {
     // Get assignment with course details to check permissions
     const { data: assignment, error: assignmentError } = await client
@@ -585,7 +592,6 @@ export const getAssignmentSubmissionsService = async (
     }));
 
     // Validate response data using the schema from the schema file
-    const { SubmissionsListSchema } = await import('@/features/grade/backend/schema');
     const parsed = SubmissionsListSchema.safeParse(responseData);
     if (!parsed.success) {
       return failure(
