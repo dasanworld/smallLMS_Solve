@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Search, BookOpen, AlertTriangle, ArrowRight } from 'lucide-react';
+import { AlertCircle, Search, BookOpen, AlertTriangle, ArrowRight, Check } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useCreateEnrollmentMutation } from '@/features/enrollment/hooks/useEnrollmentMutations';
+import { useCreateEnrollmentMutation, useIsEnrolled } from '@/features/enrollment/hooks/useEnrollmentMutations';
 import { Course } from '../backend/schema';
 
 interface LearnerCoursesCatalogProps {
@@ -175,6 +175,7 @@ interface CourseCatalogCardProps {
 function CourseCatalogCard({ course }: CourseCatalogCardProps) {
   const { toast } = useToast();
   const createEnrollmentMutation = useCreateEnrollmentMutation();
+  const isEnrolled = useIsEnrolled(course.id);
 
   const statusConfig = {
     draft: { label: '초안', color: 'bg-gray-100 text-gray-800' },
@@ -208,9 +209,17 @@ function CourseCatalogCard({ course }: CourseCatalogCardProps) {
           <div className="flex-1">
             <CardTitle className="line-clamp-2">{course.title}</CardTitle>
           </div>
-          <Badge className={config.color} variant="outline">
-            {config.label}
-          </Badge>
+          <div className="flex gap-2">
+            {isEnrolled && (
+              <Badge className="bg-green-100 text-green-800" variant="outline">
+                <Check className="h-3 w-3 mr-1" />
+                수강신청 완료
+              </Badge>
+            )}
+            <Badge className={config.color} variant="outline">
+              {config.label}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
 
@@ -240,14 +249,24 @@ function CourseCatalogCard({ course }: CourseCatalogCardProps) {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
-          <Button 
-            className="flex-1" 
-            variant={course.status === 'published' ? 'default' : 'outline'}
-            disabled={course.status !== 'published' || createEnrollmentMutation.isPending}
-            onClick={handleEnroll}
-          >
-            {createEnrollmentMutation.isPending ? '신청 중...' : (course.status === 'published' ? '수강신청' : '수강신청 불가')}
-          </Button>
+          {isEnrolled ? (
+            <Button 
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white" 
+              disabled
+            >
+              <Check className="h-4 w-4 mr-1" />
+              수강 중
+            </Button>
+          ) : (
+            <Button 
+              className="flex-1" 
+              variant={course.status === 'published' ? 'default' : 'outline'}
+              disabled={course.status !== 'published' || createEnrollmentMutation.isPending}
+              onClick={handleEnroll}
+            >
+              {createEnrollmentMutation.isPending ? '신청 중...' : (course.status === 'published' ? '수강신청' : '수강신청 불가')}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
