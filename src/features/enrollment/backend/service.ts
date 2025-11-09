@@ -57,7 +57,7 @@ export const createEnrollmentService = async (
       .eq('user_id', userId)
       .eq('course_id', courseId)
       .eq('status', 'active')
-      .single();
+      .maybeSingle();
 
     if (existingEnrollment) {
       return failure(
