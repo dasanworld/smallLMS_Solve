@@ -1,32 +1,26 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
 import { InstructorDashboardResponseSchema, type InstructorDashboardResponse } from '@/features/dashboard/backend/instructor-schema';
 
 export const useInstructorDashboardQuery = <T extends InstructorDashboardResponse = InstructorDashboardResponse>(): UseQueryResult<T> => {
   return useQuery({
     queryKey: ['instructor-dashboard'],
     queryFn: async () => {
-      const response = await fetch('/api/dashboard/instructor', {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      try {
+        const { data } = await apiClient.get('/api/dashboard/instructor');
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        // Validate response with Zod schema
+        const parsed = InstructorDashboardResponseSchema.safeParse(data);
+        if (!parsed.success) {
+          console.error('Instructor dashboard response validation failed:', parsed.error);
+          throw new Error('Invalid dashboard data format');
+        }
+
+        return parsed.data as T;
+      } catch (error) {
+        const message = extractApiErrorMessage(error, 'Failed to fetch instructor dashboard data.');
+        throw new Error(message);
       }
-
-      const data = await response.json();
-
-      // Validate response with Zod schema
-      const parsed = InstructorDashboardResponseSchema.safeParse(data);
-      if (!parsed.success) {
-        console.error('Instructor dashboard response validation failed:', parsed.error);
-        throw new Error('Invalid dashboard data format');
-      }
-
-      return parsed.data as T;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   }) as UseQueryResult<T>;

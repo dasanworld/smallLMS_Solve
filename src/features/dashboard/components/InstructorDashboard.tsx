@@ -79,8 +79,8 @@ export default function InstructorDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Instructor Dashboard</h1>
-        <p className="text-muted-foreground">Manage your courses and assignments</p>
+        <h1 className="text-3xl font-bold tracking-tight">강사 대시보드</h1>
+        <p className="text-muted-foreground">코스와 과제를 관리하세요</p>
       </div>
 
       {/* Dashboard Metrics */}
@@ -98,16 +98,16 @@ export default function InstructorDashboard() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Your Courses</CardTitle>
-            <Badge variant="secondary">{courses.length} courses</Badge>
+            <CardTitle>내 코스</CardTitle>
+            <Badge variant="secondary">{courses.length}개 코스</Badge>
           </div>
         </CardHeader>
         <CardContent>
           {courses.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <BookOpen className="mx-auto h-12 w-12" />
-              <p className="mt-2">You don't have any courses yet.</p>
-              <p className="text-sm">Create a course to get started.</p>
+              <p className="mt-2">아직 코스가 없습니다.</p>
+              <p className="text-sm">코스를 만들어서 시작하세요.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -123,16 +123,16 @@ export default function InstructorDashboard() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Recent Submissions</CardTitle>
-            <Badge variant="secondary">{recentSubmissions.length} submissions</Badge>
+            <CardTitle>최근 제출</CardTitle>
+            <Badge variant="secondary">{recentSubmissions.length}개 제출</Badge>
           </div>
         </CardHeader>
         <CardContent>
           {recentSubmissions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="mx-auto h-12 w-12" />
-              <p className="mt-2">No recent submissions.</p>
-              <p className="text-sm">Submissions will appear here when students submit work.</p>
+              <p className="mt-2">최근 제출이 없습니다.</p>
+              <p className="text-sm">학생들이 작업을 제출하면 여기에 표시됩니다.</p>
             </div>
           ) : (
             <RecentSubmissionsList submissions={recentSubmissions as RecentSubmissionsListProps['submissions']} />

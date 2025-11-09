@@ -7,7 +7,7 @@ import {
 import {
   getLogger,
   getSupabase,
-  getAuthUser,
+  getUser,
   type AppEnv,
 } from '@/backend/hono/context';
 import { getInstructorDashboardService } from './instructor-service';
@@ -19,10 +19,12 @@ import {
 
 export const registerInstructorDashboardRoutes = (app: Hono<AppEnv>) => {
   // GET /api/dashboard/instructor - Get instructor dashboard data
+  // requireRole 미들웨어가 인증과 역할 검증을 함께 처리
   app.get('/api/dashboard/instructor', requireRole('instructor'), async (c) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
-    const user = await getAuthUser(c);
+    // requireRole 미들웨어에서 user를 context에 설정하므로 getUser로 가져옴
+    const user = getUser(c);
 
     if (!user) {
       return respond(

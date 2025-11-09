@@ -136,18 +136,16 @@ export const getInstructorDashboardService = async (
     // Get student names for the recent submissions
     const submissionUserIds = submissionData?.map(sub => sub.user_id) || [];
     let students: any[] = [];
-    
+
     if (submissionUserIds.length > 0) {
-      // In a real implementation, we'd have a users table to get student names
-      // For now, we'll just return placeholder names or the user IDs
-      // Assuming we have a profiles or users table to get names
+      // Get user information from users table
       const { data: userData, error: userError } = await client
-        .from('profiles') // Assuming there's a profiles table with user information
-        .select('id, full_name, email')
+        .from('users')
+        .select('id, name, email')
         .in('id', submissionUserIds);
 
       if (userError) {
-        console.warn('Failed to fetch user profiles:', userError.message);
+        console.warn('Failed to fetch user information:', userError.message);
         // Continue without user names
       } else {
         students = userData || [];
@@ -166,7 +164,7 @@ export const getInstructorDashboardService = async (
         assignmentTitle: assignment?.title || 'Unknown Assignment',
         courseId: assignment?.course_id,
         courseTitle: course?.title || 'Unknown Course',
-        studentName: student?.full_name || student?.email || `Student ${submission.user_id.substring(0, 8)}`,
+        studentName: student?.name || student?.email || `Student ${submission.user_id.substring(0, 8)}`,
         submittedAt: submission.submitted_at || submission.created_at,
         status: submission.status,
         isLate: submission.is_late || false,
@@ -174,34 +172,48 @@ export const getInstructorDashboardService = async (
     }
   }
 
-  // Add enrollment count to each course
-  const coursesWithEnrollment = [];
-  for (const course of courses || []) {
-    // Get enrollment count for this course
-    const { count: enrollmentCount, error: enrollmentError } = await client
+  // Get enrollment counts for all courses at once (optimized: avoid N+1 query)
+  const courseIds = courses?.map(c => c.id) || [];
+  let enrollmentCountsByCourseid: Record<string, number> = {};
+
+  if (courseIds.length > 0) {
+    // Get all enrollments for all courses in one query
+    const { data: allEnrollments, error: enrollmentError } = await client
       .from(ENROLLMENTS_TABLE)
-      .select('*', { count: 'exact', head: true })
-      .eq('course_id', course.id)
+      .select('course_id')
+      .in('course_id', courseIds)
       .eq('status', 'active'); // Only count active enrollments
 
     if (enrollmentError) {
-      console.error(`Failed to count enrollments for course ${course.id}:`, enrollmentError.message);
-      // Continue with enrollment count as 0
+      console.error('Failed to fetch enrollments:', enrollmentError.message);
+      // Continue with empty enrollment counts
+    } else {
+      // Count enrollments by course_id
+      enrollmentCountsByCourseid = (allEnrollments || []).reduce(
+        (acc, enrollment: any) => {
+          acc[enrollment.course_id] = (acc[enrollment.course_id] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
     }
+  }
 
+  // Add enrollment count to each course
+  const coursesWithEnrollment = (courses || []).map((course) => {
     // Get assignment count for this course
     const courseAssignments = assignments.filter(a => a.course_id === course.id);
     const assignmentCount = courseAssignments.length;
 
-    coursesWithEnrollment.push({
+    return {
       id: course.id,
       title: course.title,
       status: course.status,
-      enrollmentCount: enrollmentCount || 0,
+      enrollmentCount: enrollmentCountsByCourseid[course.id] || 0,
       assignmentCount,
       createdAt: course.created_at,
-    });
-  }
+    };
+  });
 
   const dashboardData = {
     courses: coursesWithEnrollment,

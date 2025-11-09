@@ -16,28 +16,28 @@ export function DashboardMetrics({
 }: DashboardMetricsProps) {
   const metrics = [
     {
-      title: 'Courses',
+      title: '코스',
       value: coursesCount,
       icon: BookOpen,
-      description: 'Total courses you manage',
+      description: '관리 중인 총 코스',
     },
     {
-      title: 'Students',
+      title: '학생',
       value: enrollmentCount,
       icon: Users,
-      description: 'Total enrolled students',
+      description: '수강 중인 총 학생',
     },
     {
-      title: 'Assignments',
+      title: '과제',
       value: assignmentCount,
       icon: FileText,
-      description: 'Total assignments created',
+      description: '생성된 총 과제',
     },
     {
-      title: 'Pending Grading',
+      title: '채점 대기 중',
       value: pendingGradingCount,
       icon: Clock,
-      description: 'Submissions awaiting grading',
+      description: '채점 대기 중인 제출물',
     },
   ];
 

@@ -69,7 +69,23 @@ export const getAuthenticatedUser = (c: any) => {
  */
 export const requireRole = (roles: string | string[]) => {
   return createMiddleware<AppEnv>(async (c, next) => {
-    const user = getAuthenticatedUser(c);
+    // First try to get user from context (if set by authenticate middleware)
+    let user = getAuthenticatedUser(c);
+
+    // If user not in context, fetch from Authorization header
+    if (!user) {
+      const authHeader = c.req.header('Authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const supabase = getSupabase(c);
+        const { data: { user: authUser } } = await supabase.auth.getUser(token);
+        user = authUser || undefined;
+
+        if (user) {
+          c.set('user', user);
+        }
+      }
+    }
 
     if (!user) {
       return respond(
@@ -83,14 +99,14 @@ export const requireRole = (roles: string | string[]) => {
     }
 
     // Get user role from Supabase user metadata or a separate role table
-    // This assumes roles are stored in user's app_metadata or user_profiles table
+    // This assumes roles are stored in user's app_metadata or user_metadata
     let userRole = user.app_metadata?.role || user.user_metadata?.role;
 
-    // If role is not in user metadata, fetch from profiles table
+    // If role is not in user metadata, fetch from users table
     if (!userRole) {
       const supabase = getSupabase(c);
-      const { data: profile, error } = await supabase
-        .from('profiles')
+      const { data: userRecord, error } = await supabase
+        .from('users')
         .select('role')
         .eq('id', user.id)
         .single();
@@ -107,7 +123,7 @@ export const requireRole = (roles: string | string[]) => {
         );
       }
 
-      userRole = profile?.role;
+      userRole = userRecord?.role;
     }
 
     // Normalize roles to array
