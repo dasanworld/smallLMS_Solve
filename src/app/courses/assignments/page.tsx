@@ -1,17 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { useUpdateAssignmentStatusMutation } from '@/features/assignment/hooks/useAssignmentMutations';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Plus, FileText, BookOpen, Filter, Play, Lock } from 'lucide-react';
+import { AlertCircle, Plus, FileText, BookOpen, Filter, Play, Lock, Send } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -21,16 +22,49 @@ import {
 } from '@/components/ui/select';
 import type { AssignmentResponse } from '@/features/assignment/lib/dto';
 import type { Course } from '@/features/course/backend/schema';
+import type { UserProfileResponse } from '@/features/auth/backend/profile-service';
 
 interface CourseWithAssignments extends Course {
   assignments: AssignmentResponse[];
   assignmentCount: number;
 }
 
+type UserRole = 'instructor' | 'learner' | 'operator';
+
 export default function AllAssignmentsPage() {
   const [selectedCourseId, setSelectedCourseId] = useState<string>('all');
+  const [mounted, setMounted] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const { toast } = useToast();
+  const { user } = useCurrentUser();
   const updateStatusMutation = useUpdateAssignmentStatusMutation();
+
+  // 사용자 프로필 조회 (role 포함)
+  const { data: profile } = useQuery<UserProfileResponse | null>({
+    queryKey: ['userProfile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      try {
+        const response = await apiClient.get<UserProfileResponse>('/api/auth/profile');
+        return response.data;
+      } catch (err) {
+        console.error('프로필 조회 실패:', extractApiErrorMessage(err, 'Failed to fetch profile'));
+        return null;
+      }
+    },
+    enabled: !!user?.id && mounted,
+    retry: 1,
+  });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (profile?.role) {
+      setUserRole((profile.role as UserRole) || 'learner');
+    }
+  }, [profile]);
 
   // 과제 상태 변경 핸들러
   const handleStatusChange = (assignmentId: string, newStatus: 'draft' | 'published' | 'closed') => {
@@ -56,24 +90,33 @@ export default function AllAssignmentsPage() {
     );
   };
 
-  // 강사의 모든 코스 조회
+  // 역할별 코스 조회 (강사는 관리 코스, 러너는 등록 코스)
   const {
     data: courses = [],
     isLoading: coursesLoading,
   } = useQuery({
-    queryKey: ['instructor-courses'],
+    queryKey: ['user-courses', userRole],
     queryFn: async () => {
       try {
-        console.log('📚 강사 코스 목록 조회 중...');
-        const response = await apiClient.get<{ courses: Course[] }>('/api/courses');
-        console.log('✅ 강사 코스 목록 조회 완료:', response.data.courses.length);
-        return response.data.courses;
+        if (userRole === 'instructor') {
+          console.log('📚 강사 코스 목록 조회 중...');
+          const response = await apiClient.get<{ courses: Course[] }>('/api/courses');
+          console.log('✅ 강사 코스 목록 조회 완료:', response.data.courses.length);
+          return response.data.courses;
+        } else if (userRole === 'learner') {
+          console.log('📚 러너 등록 코스 목록 조회 중...');
+          const response = await apiClient.get<{ courses: Course[] }>('/api/courses/enrolled');
+          console.log('✅ 러너 등록 코스 목록 조회 완료:', response.data.courses.length);
+          return response.data.courses;
+        }
+        return [];
       } catch (err) {
         const message = extractApiErrorMessage(err, 'Failed to fetch courses.');
         console.error('❌ 코스 목록 조회 실패:', message);
         throw new Error(message);
       }
     },
+    enabled: !!userRole,
   });
 
   // 모든 코스의 과제 조회
@@ -170,21 +213,28 @@ export default function AllAssignmentsPage() {
     );
   }
 
+  // 강사만 과제 생성 가능
+  const isInstructor = userRole === 'instructor';
+  const pageTitle = isInstructor ? '모든 과제' : '나의 과제';
+  const pageDescription = isInstructor ? '모든 코스의 과제를 한눈에 관리하세요' : '등록한 코스의 과제를 확인하고 제출하세요';
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="space-y-6">
         {/* 헤더 */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">모든 과제</h1>
-            <p className="text-slate-500 mt-1">모든 코스의 과제를 한눈에 관리하세요</p>
+            <h1 className="text-3xl font-bold tracking-tight">{pageTitle}</h1>
+            <p className="text-slate-500 mt-1">{pageDescription}</p>
           </div>
-          <Link href="/courses/assignments/new">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              새 과제 만들기
-            </Button>
-          </Link>
+          {isInstructor && (
+            <Link href="/courses/assignments/new">
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                새 과제 만들기
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* 필터 및 통계 */}
@@ -222,10 +272,12 @@ export default function AllAssignmentsPage() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <FileText className="h-12 w-12 text-slate-400 mb-3" />
               <h3 className="text-lg font-medium text-slate-900">
-                아직 과제가 없습니다
+                {isInstructor ? '아직 과제가 없습니다' : '등록된 과제가 없습니다'}
               </h3>
               <p className="text-slate-500 text-sm mt-2 text-center max-w-xs">
-                과제를 만들어서 학생들에게 과제를 부여하세요.
+                {isInstructor
+                  ? '과제를 만들어서 학생들에게 과제를 부여하세요.'
+                  : '강사가 공개한 과제를 기다리고 있습니다.'}
               </p>
             </CardContent>
           </Card>
@@ -268,66 +320,104 @@ export default function AllAssignmentsPage() {
                               <h4 className="font-medium text-slate-900">
                                 {assignment.title}
                               </h4>
-                              <Badge
-                                variant="outline"
-                                className={
-                                  assignment.status === 'draft'
-                                    ? 'bg-gray-100 text-gray-800'
+                              {isInstructor ? (
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    assignment.status === 'draft'
+                                      ? 'bg-gray-100 text-gray-800'
+                                      : assignment.status === 'published'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : 'bg-slate-100 text-slate-800'
+                                  }
+                                >
+                                  {assignment.status === 'draft'
+                                    ? '초안'
                                     : assignment.status === 'published'
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : 'bg-slate-100 text-slate-800'
-                                }
-                              >
-                                {assignment.status === 'draft'
-                                  ? '초안'
-                                  : assignment.status === 'published'
-                                  ? '공개'
-                                  : '종료'}
-                              </Badge>
+                                    ? '공개'
+                                    : '종료'}
+                                </Badge>
+                              ) : (
+                                assignment.status === 'published' && (
+                                  <Badge className="bg-green-100 text-green-800">제출 가능</Badge>
+                                )
+                              )}
                             </div>
                             <p className="text-sm text-slate-500 mt-1 line-clamp-1">
                               {assignment.description}
                             </p>
                           </Link>
                           <div className="flex items-center gap-2 ml-4">
-                            {/* 상태 변경 버튼 */}
-                            {assignment.status === 'draft' && (
-                              <Button
-                                variant="default"
-                                size="sm"
-                                className="gap-1"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleStatusChange(assignment.id, 'published');
-                                }}
-                              >
-                                <Play className="h-3 w-3" />
-                                발행
-                              </Button>
+                            {isInstructor ? (
+                              <>
+                                {/* 강사용: 상태 변경 버튼 */}
+                                {assignment.status === 'draft' && (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="gap-1"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handleStatusChange(assignment.id, 'published');
+                                    }}
+                                  >
+                                    <Play className="h-3 w-3" />
+                                    발행
+                                  </Button>
+                                )}
+                                {assignment.status === 'published' && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handleStatusChange(assignment.id, 'closed');
+                                    }}
+                                  >
+                                    <Lock className="h-3 w-3" />
+                                    마감
+                                  </Button>
+                                )}
+                                <div className="text-sm text-slate-500 text-right min-w-24">
+                                  {new Date(assignment.dueDate) < new Date() ? (
+                                    <span className="text-red-600">마감됨</span>
+                                  ) : (
+                                    <span>
+                                      {new Date(assignment.dueDate).toLocaleDateString('ko-KR')}
+                                    </span>
+                                  )}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                {/* 러너용: 제출 버튼 */}
+                                {assignment.status === 'published' && (
+                                  <Link href={`/courses/${course.id}/assignments/${assignment.id}`}>
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      className="gap-1"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                      }}
+                                    >
+                                      <Send className="h-3 w-3" />
+                                      과제 제출
+                                    </Button>
+                                  </Link>
+                                )}
+                                <div className="text-sm text-slate-500 text-right min-w-24">
+                                  {new Date(assignment.dueDate) < new Date() ? (
+                                    <span className="text-red-600">마감됨</span>
+                                  ) : (
+                                    <span>
+                                      {new Date(assignment.dueDate).toLocaleDateString('ko-KR')}
+                                    </span>
+                                  )}
+                                </div>
+                              </>
                             )}
-                            {assignment.status === 'published' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleStatusChange(assignment.id, 'closed');
-                                }}
-                              >
-                                <Lock className="h-3 w-3" />
-                                마감
-                              </Button>
-                            )}
-                            <div className="text-sm text-slate-500 text-right min-w-24">
-                              {new Date(assignment.dueDate) < new Date() ? (
-                                <span className="text-red-600">마감됨</span>
-                              ) : (
-                                <span>
-                                  {new Date(assignment.dueDate).toLocaleDateString('ko-KR')}
-                                </span>
-                              )}
-                            </div>
                           </div>
                         </div>
                       ))}
