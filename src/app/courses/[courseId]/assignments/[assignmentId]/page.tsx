@@ -24,14 +24,12 @@ export default function AssignmentDetailPage() {
     error,
     isError,
   } = useQuery({
-    queryKey: ['assignment', assignmentId],
+    queryKey: ['assignment', courseId, assignmentId],
     queryFn: async () => {
       try {
-        console.log('📋 과제 상세 조회:', assignmentId);
-        // NOTE: 실제로는 GET /api/assignments/:assignmentId 엔드포인트가 필요함
-        // 현재는 임시로 빈 응답 반환
+        console.log('📋 과제 상세 조회:', courseId, assignmentId);
         const response = await apiClient.get<{ data: AssignmentResponse }>(
-          `/api/assignments/${assignmentId}`
+          `/api/courses/${courseId}/assignments/${assignmentId}`
         );
         console.log('✅ 과제 상세 조회 완료:', response.data.data);
         return response.data.data;
@@ -41,7 +39,7 @@ export default function AssignmentDetailPage() {
         throw new Error(message);
       }
     },
-    enabled: !!assignmentId,
+    enabled: !!assignmentId && !!courseId,
   });
 
   if (isLoading) {

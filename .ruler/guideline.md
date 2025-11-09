@@ -158,3 +158,52 @@ Use conditional rendering: `typeof field === 'string' ? field : field.name`.
 Use `as const` for immutable literals in error code definitions.
 Apply `as any` only when TypeScript inference fails; document reason.
 Prefer explicit types over excessive type assertions.
+
+## Datetime Input Form Handling
+Always convert `datetime-local` input (YYYY-MM-DDTHH:mm) to ISO 8601 string format for API requests.
+Use `getFullYear()`, `getMonth()`, `getDate()` (not UTC variants) for local timezone conversion.
+Handle bidirectional conversion: local format for input display, ISO for form state and API.
+Store date state in ISO 8601 format internally; convert to local on render with watched form values.
+
+## Form Submission Data Integrity
+Always explicitly include required fields from props in submit payload; don't rely on form state alone.
+Pass prop values directly to override form state when field is external (e.g., courseId from URL param).
+Create intermediate submitData object combining form data with prop overrides before mutation.
+Verify all required fields exist in payload before sending to API.
+
+## API Request Payload Construction
+Include all required fields defined in Zod request schema within request body.
+Don't assume fields in URL path are automatically in request body; include explicitly.
+Verify payload structure matches backend schema with console logs before API call.
+Log request endpoint, payload, and response for debugging API integration issues.
+
+## React Hook Form with Complex Fields
+Never rely on register() alone for non-standard input types; manually manage state with setValue().
+Use watched form values for bidirectional binding with datetime-local inputs.
+Apply onChange handlers to convert input formats (local ↔ ISO) at event level.
+Handle form validation by passing complete data object to mutation, not form state alone.
+
+## Component Props Passing
+Pass required context data as props to child components that need it (courseId, etc).
+Use prop values in component logic rather than deriving from URL params separately.
+Accept prop in component and use it directly in data submission logic.
+Avoid relying on URL params inside child components; use props for data flow.
+
+## Form Component API Integration
+Update AssignmentList component to accept assignments array directly as prop.
+Remove duplicate API calls from child components; use data fetched in parent page component.
+Pass pre-fetched data to child components via props instead of calling API again.
+Render child components only after parent has successfully loaded data to avoid double-fetching.
+
+## Calendar/Datetime Picker Implementation
+Use native HTML5 `input[type="datetime-local"]` for cross-browser compatibility.
+Never use double-click or blur handlers on datetime inputs; causes format errors.
+Keep calendar open until form submission; don't auto-close on date selection.
+Display today's date as reference in datetime picker (use defaultValue or value prop).
+Convert input value format at onChange event, store ISO 8601 internally, display local format in UI.
+
+## Error Messages and Debugging
+Log complete API request details: endpoint, payload, headers for failed requests.
+Extract error details from response.data.details array for specific field errors.
+Display user-friendly error message extracted from Axios error response data.
+Include error code and detailed error information in console logs for debugging.

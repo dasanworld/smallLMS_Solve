@@ -93,6 +93,60 @@ export const createAssignmentRoutes = (app: Hono<AppEnv>) => {
   });
 
   /**
+   * GET /api/courses/:courseId/assignments/:assignmentId
+   * 개별 과제 조회
+   */
+  app.get('/api/courses/:courseId/assignments/:assignmentId', async (c) => {
+    const userId = c.get('user')?.id;
+    if (!userId) {
+      return c.json({ error: '인증이 필요합니다' }, 401);
+    }
+
+    try {
+      const courseId = c.req.param('courseId');
+      const assignmentId = c.req.param('assignmentId');
+
+      const supabase = getSupabase(c);
+      const logger = getLogger(c);
+
+      // 해당 과제 조회
+      const { data: assignment, error: queryError } = await supabase
+        .from('assignments')
+        .select('*')
+        .eq('id', assignmentId)
+        .eq('course_id', courseId)
+        .maybeSingle();
+
+      if (queryError) {
+        logger.error('Assignment fetch failed:', queryError);
+        return c.json({ error: '과제 조회 실패' }, 500);
+      }
+
+      if (!assignment) {
+        return c.json({ error: '과제를 찾을 수 없습니다' }, 404);
+      }
+
+      // 강사 권한 확인
+      const { data: course } = await supabase
+        .from('courses')
+        .select('owner_id')
+        .eq('id', courseId)
+        .maybeSingle();
+
+      if (course?.owner_id !== userId) {
+        return c.json({ error: '이 과제에 접근할 권한이 없습니다' }, 403);
+      }
+
+      return respond(c, {
+        status: 'success',
+        data: assignment,
+      });
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  /**
    * PUT /api/assignments/:assignmentId
    * 과제 수정
    */
