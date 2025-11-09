@@ -173,7 +173,6 @@ export const getInstructorDashboardService = async (
   }
 
   // Get enrollment counts for all courses at once (optimized: avoid N+1 query)
-  const courseIds = courses?.map(c => c.id) || [];
   let enrollmentCountsByCourseid: Record<string, number> = {};
 
   if (courseIds.length > 0) {
