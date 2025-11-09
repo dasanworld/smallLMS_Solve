@@ -29,12 +29,20 @@ interface CourseWithAssignments extends Course {
   assignmentCount: number;
 }
 
+interface UserSubmission {
+  id: string;
+  status: 'submitted' | 'graded' | 'resubmission_required';
+  score: number | null;
+  submittedAt: string;
+}
+
 type UserRole = 'instructor' | 'learner' | 'operator';
 
 export default function AllAssignmentsPage() {
   const [selectedCourseId, setSelectedCourseId] = useState<string>('all');
   const [mounted, setMounted] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [userSubmissions, setUserSubmissions] = useState<Map<string, UserSubmission>>(new Map());
   const { toast } = useToast();
   const { user } = useCurrentUser();
   const updateStatusMutation = useUpdateAssignmentStatusMutation();
@@ -65,6 +73,9 @@ export default function AllAssignmentsPage() {
       setUserRole((profile.role as UserRole) || 'learner');
     }
   }, [profile]);
+
+  // 러너의 제출 정보 조회는 나중에 정의된 coursesWithAssignments를 사용하므로 별도 처리
+  // coursesWithAssignments가 로드된 후에 실행하기 위해 다른 위치에서 처리
 
   // 과제 상태 변경 핸들러
   const handleStatusChange = (assignmentId: string, newStatus: 'draft' | 'published' | 'closed') => {
@@ -220,6 +231,33 @@ export default function AllAssignmentsPage() {
   const isInstructor = userRole === 'instructor';
   const pageTitle = isInstructor ? '모든 과제' : '나의 과제';
   const pageDescription = isInstructor ? '모든 코스의 과제를 한눈에 관리하세요' : '등록한 코스의 과제를 확인하고 제출하세요';
+
+  // coursesWithAssignments가 로드된 후 러너의 제출 정보 조회
+  useEffect(() => {
+    if (userRole === 'learner' && coursesWithAssignments.length > 0) {
+      const fetchSubmissions = async () => {
+        const submissions = new Map<string, UserSubmission>();
+
+        for (const course of coursesWithAssignments) {
+          for (const assignment of course.assignments) {
+            try {
+              const response = await apiClient.get<UserSubmission>(
+                `/api/courses/${course.id}/assignments/${assignment.id}/my-submission`
+              );
+              submissions.set(assignment.id, response.data);
+            } catch (err) {
+              // 제출이 없는 경우 무시
+              console.debug(`No submission found for assignment ${assignment.id}`);
+            }
+          }
+        }
+
+        setUserSubmissions(submissions);
+      };
+
+      fetchSubmissions();
+    }
+  }, [userRole, coursesWithAssignments]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -394,19 +432,54 @@ export default function AllAssignmentsPage() {
                               </>
                             ) : (
                               <>
-                                {/* 러너용: 제출 버튼 */}
-                                {assignment.status === 'published' && (
-                                  <Link href={`/courses/${course.id}/assignments/${assignment.id}`}>
-                                    <Button
-                                      variant="default"
-                                      size="sm"
-                                      className="gap-1"
-                                    >
-                                      <Send className="h-3 w-3" />
-                                      과제 제출
-                                    </Button>
-                                  </Link>
-                                )}
+                                {/* 러너용: 제출 상태 및 버튼 */}
+                                <div className="flex items-center gap-3">
+                                  {userSubmissions.has(assignment.id) ? (
+                                    <>
+                                      {/* 제출 완료 상태 */}
+                                      <div className="text-right">
+                                        <div className="text-sm font-medium text-green-600">제출 완료</div>
+                                        {userSubmissions.get(assignment.id)?.score !== null && userSubmissions.get(assignment.id)?.score !== undefined && (
+                                          <div className="text-sm text-slate-600">
+                                            점수: <span className="font-semibold">{userSubmissions.get(assignment.id)?.score}점</span>
+                                          </div>
+                                        )}
+                                        {userSubmissions.get(assignment.id)?.status === 'resubmission_required' && (
+                                          <div className="text-sm text-orange-600">재제출 필요</div>
+                                        )}
+                                      </div>
+                                      {/* 재제출 또는 보기 버튼 */}
+                                      {assignment.allowResubmission && assignment.status === 'published' && (
+                                        <Link href={`/courses/${course.id}/assignments/${assignment.id}`}>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="gap-1"
+                                          >
+                                            <Send className="h-3 w-3" />
+                                            재제출
+                                          </Button>
+                                        </Link>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <>
+                                      {/* 미제출 상태 */}
+                                      {assignment.status === 'published' && (
+                                        <Link href={`/courses/${course.id}/assignments/${assignment.id}`}>
+                                          <Button
+                                            variant="default"
+                                            size="sm"
+                                            className="gap-1"
+                                          >
+                                            <Send className="h-3 w-3" />
+                                            과제 제출
+                                          </Button>
+                                        </Link>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
                                 <div className="text-sm text-slate-500 text-right min-w-24">
                                   {new Date(assignment.dueDate) < new Date() ? (
                                     <span className="text-red-600">마감됨</span>
