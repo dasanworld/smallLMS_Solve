@@ -1,14 +1,21 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Users, BarChart3, BookOpen } from 'lucide-react';
+import { AlertCircle, Users, BarChart3, BookOpen, Check } from 'lucide-react';
+import { 
+  useCreateEnrollmentMutation, 
+  useCancelEnrollmentMutation, 
+  useIsEnrolled 
+} from '@/features/enrollment/hooks/useEnrollmentMutations';
 import type { Course } from '@/features/course/backend/schema';
 
 /**
@@ -20,6 +27,8 @@ import type { Course } from '@/features/course/backend/schema';
 export default function CourseDetailPage() {
   const params = useParams();
   const courseId = params.courseId as string;
+  const { toast } = useToast();
+  const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
 
   // 코스 정보 조회
   const {
@@ -41,6 +50,59 @@ export default function CourseDetailPage() {
       }
     },
   });
+
+  // 수강신청/취소 Mutation
+  const createEnrollmentMutation = useCreateEnrollmentMutation();
+  const cancelEnrollmentMutation = useCancelEnrollmentMutation();
+
+  // 현재 수강 여부 확인
+  const isEnrolled = useIsEnrolled(courseId);
+
+  // 수강신청 핸들러
+  const handleEnroll = async () => {
+    try {
+      setEnrollmentError(null);
+      await createEnrollmentMutation.mutateAsync(courseId);
+      toast({
+        title: '수강신청 완료',
+        description: '코스에 등록되었습니다.',
+        variant: 'default',
+      });
+    } catch (err) {
+      const message = extractApiErrorMessage(err, '수강신청에 실패했습니다.');
+      setEnrollmentError(message);
+      toast({
+        title: '수강신청 실패',
+        description: message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // 수강취소 핸들러
+  const handleCancel = async () => {
+    if (!window.confirm('정말로 이 코스를 취소하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      setEnrollmentError(null);
+      await cancelEnrollmentMutation.mutateAsync(courseId);
+      toast({
+        title: '수강취소 완료',
+        description: '코스가 취소되었습니다.',
+        variant: 'default',
+      });
+    } catch (err) {
+      const message = extractApiErrorMessage(err, '수강취소에 실패했습니다.');
+      setEnrollmentError(message);
+      toast({
+        title: '수강취소 실패',
+        description: message,
+        variant: 'destructive',
+      });
+    }
+  };
 
   // 로딩 상태
   if (isLoading) {
@@ -191,31 +253,68 @@ export default function CourseDetailPage() {
       </Card>
 
       {/* 수강신청 섹션 */}
-      <Card className="bg-blue-50 border-blue-200">
+      <Card className={`border-2 ${isEnrolled ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
         <CardHeader>
-          <CardTitle className="text-blue-900">코스 수강하기</CardTitle>
-          <CardDescription className="text-blue-800">
-            이 코스에 등록하여 학습을 시작하세요.
+          <CardTitle className={isEnrolled ? 'text-green-900' : 'text-blue-900'}>
+            {isEnrolled ? '이미 수강 중입니다' : '코스 수강하기'}
+          </CardTitle>
+          <CardDescription className={isEnrolled ? 'text-green-800' : 'text-blue-800'}>
+            {isEnrolled 
+              ? '이 코스에 등록되어 있습니다. 학습을 시작하거나 수강을 취소할 수 있습니다.'
+              : '이 코스에 등록하여 학습을 시작하세요.'}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex gap-3">
-          <Button 
-            size="lg" 
-            className="flex-1"
-            onClick={() => {
-              // TODO: 수강신청 구현 (PHASE 1-2)
-              console.log('수강신청 버튼 클릭:', courseId);
-            }}
-          >
-            지금 수강신청
-          </Button>
-          <Button 
-            size="lg" 
-            variant="outline"
-            onClick={() => window.history.back()}
-          >
-            돌아가기
-          </Button>
+        <CardContent className="space-y-3">
+          {enrollmentError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{enrollmentError}</AlertDescription>
+            </Alert>
+          )}
+          <div className="flex gap-3">
+            {isEnrolled ? (
+              <>
+                <Button 
+                  size="lg" 
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  disabled
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  수강 등록됨
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={handleCancel}
+                  disabled={cancelEnrollmentMutation.isPending}
+                >
+                  {cancelEnrollmentMutation.isPending ? '취소 중...' : '수강 취소'}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  size="lg" 
+                  className="flex-1"
+                  onClick={handleEnroll}
+                  disabled={
+                    createEnrollmentMutation.isPending || 
+                    course?.status !== 'published'
+                  }
+                >
+                  {createEnrollmentMutation.isPending ? '신청 중...' : '지금 수강신청'}
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  onClick={() => window.history.back()}
+                >
+                  돌아가기
+                </Button>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
 
