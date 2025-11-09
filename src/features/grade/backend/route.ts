@@ -77,31 +77,8 @@ export const registerGradeRoutes = (app: Hono<AppEnv>) => {
     return respond(c, result as any);
   });
 
-  // GET /api/submissions/:id - Get submission details for grading
-  app.get('/api/submissions/:id', authenticate, async (c) => {
-    const supabase = c.get('supabase');
-    const user = c.get('user');
-    const submissionId = c.req.param('id');
-
-    if (!user) {
-      return respond(c, failure(401, gradeErrorCodes.UNAUTHORIZED, 'Unauthorized'));
-    }
-
-    // Check if user is an instructor
-    if (user.role !== 'instructor') {
-      return respond(c, failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions'));
-    }
-
-    const result = await getSubmissionForGradingService(
-      supabase,
-      user.id,
-      submissionId
-    );
-
-    return respond(c, result as any);
-  });
-
   // PUT /api/submissions/:id/grade - Grade submission with score and feedback
+  // Must be registered BEFORE the generic GET /api/submissions/:id route
   app.put('/api/submissions/:id/grade', authenticate, async (c) => {
     const supabase = c.get('supabase');
     const user = c.get('user');
@@ -139,6 +116,30 @@ export const registerGradeRoutes = (app: Hono<AppEnv>) => {
     } catch (error) {
       return respond(c, failure(400, gradeErrorCodes.INVALID_SCORE_RANGE, 'Invalid request body'));
     }
+  });
+
+  // GET /api/submissions/:id - Get submission details for grading
+  app.get('/api/submissions/:id', authenticate, async (c) => {
+    const supabase = c.get('supabase');
+    const user = c.get('user');
+    const submissionId = c.req.param('id');
+
+    if (!user) {
+      return respond(c, failure(401, gradeErrorCodes.UNAUTHORIZED, 'Unauthorized'));
+    }
+
+    // Check if user is an instructor
+    if (user.role !== 'instructor') {
+      return respond(c, failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions'));
+    }
+
+    const result = await getSubmissionForGradingService(
+      supabase,
+      user.id,
+      submissionId
+    );
+
+    return respond(c, result as any);
   });
 
   // GET /api/assignments/:id/submissions - Get all submissions for assignment
