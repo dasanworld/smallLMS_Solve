@@ -14,7 +14,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, ArrowLeft, Edit, FileText, RefreshCw, Play, Lock, Send } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Edit, FileText, RefreshCw, Play, Lock, Send, CheckCircle2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import type { AssignmentResponse } from '@/features/assignment/backend/schema';
 import type { UserProfileResponse } from '@/features/auth/backend/profile-service';
 import { formatDistanceToNow } from 'date-fns';
@@ -50,6 +58,7 @@ export default function AssignmentDetailPage() {
   // 제출 폼 상태
   const [submitContent, setSubmitContent] = useState('');
   const [submitLink, setSubmitLink] = useState('');
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   // 사용자 제출 상태 조회
   const { data: userSubmission, refetch: refetchSubmission } = useQuery({
@@ -132,10 +141,7 @@ export default function AssignmentDetailPage() {
       },
       {
         onSuccess: async () => {
-          toast({
-            title: '성공',
-            description: '과제가 제출되었습니다.',
-          });
+          setShowSuccessDialog(true);
           setSubmitContent('');
           setSubmitLink('');
           // 제출 상태 갱신
@@ -473,6 +479,46 @@ export default function AssignmentDetailPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* 제출 성공 Dialog */}
+        <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                  <CheckCircle2 className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <DialogTitle>제출 완료</DialogTitle>
+                  <DialogDescription>
+                    과제가 성공적으로 제출되었습니다.
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+            <div className="space-y-3 py-4">
+              <div className="rounded-lg bg-green-50 p-4 text-sm text-green-900">
+                <p className="font-medium mb-1">✓ 제출 완료</p>
+                <p className="text-green-800">
+                  과제가 제출되었으며, 강사가 검토하면 피드백을 받을 수 있습니다.
+                </p>
+              </div>
+            </div>
+            <DialogFooter className="flex gap-2 sm:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowSuccessDialog(false)}
+              >
+                닫기
+              </Button>
+              <Link href="/dashboard">
+                <Button className="gap-2">
+                  대시보드로 돌아가기
+                </Button>
+              </Link>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

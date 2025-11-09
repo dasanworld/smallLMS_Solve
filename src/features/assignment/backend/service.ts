@@ -772,7 +772,7 @@ export const submitAssignmentService = async (
 
     logger.info('Assignment submitted successfully', { assignmentId, userId, submissionId: submission.id });
 
-    return success(200, {
+    return success({
       id: submission.id,
       assignmentId: submission.assignment_id,
       userId: submission.user_id,
@@ -785,7 +785,7 @@ export const submitAssignmentService = async (
       gradedAt: submission.graded_at,
       submittedAt: submission.submitted_at,
       updatedAt: submission.updated_at,
-    });
+    }, 200);
   } catch (error) {
     logger.error('Submit assignment service error', { error });
     return failure(500, assignmentErrorCodes.INTERNAL_SERVER_ERROR, 'Internal server error');

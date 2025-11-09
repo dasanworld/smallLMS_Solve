@@ -98,46 +98,68 @@ export const getLearnerDashboardService = async (
     }
 
     // Get all submissions for the user
-    const { data: submissions, error: submissionsError } = await client
-      .from(SUBMISSIONS_TABLE)
-      .select('id, assignment_id, status, feedback, score, graded_at, is_late, submitted_at')
-      .eq('user_id', userId)
-      .in('assignment_id', assignments?.map(a => a.id) || []);
+    let submissions: any[] = [];
+    if (assignments && assignments.length > 0) {
+      const { data: submissionsData, error: submissionsError } = await client
+        .from(SUBMISSIONS_TABLE)
+        .select('id, assignment_id, status, feedback, score, graded_at, is_late, submitted_at')
+        .eq('user_id', userId)
+        .in('assignment_id', assignments.map(a => a.id));
 
-    if (submissionsError) {
-      return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch submissions', submissionsError.message);
+      if (submissionsError) {
+        return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch submissions', submissionsError.message);
+      }
+
+      submissions = submissionsData || [];
     }
 
     // Fetch course details for assignments (소프트 삭제 필터 추가)
-    const { data: assignmentCourses, error: assignmentCoursesError } = await client
-      .from(COURSES_TABLE)
-      .select('id, title')
-      .in('id', assignments?.map(a => a.course_id) || [])
-      .is('deleted_at', null); // 소프트 삭제된 코스 제외
+    let assignmentCourses: any[] = [];
+    if (assignments && assignments.length > 0) {
+      const courseIdsFromAssignments = [...new Set(assignments.map(a => a.course_id))];
+      const { data: courses, error: assignmentCoursesError } = await client
+        .from(COURSES_TABLE)
+        .select('id, title')
+        .in('id', courseIdsFromAssignments)
+        .is('deleted_at', null); // 소프트 삭제된 코스 제외
 
-    if (assignmentCoursesError) {
-      return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignment course details', assignmentCoursesError.message);
+      if (assignmentCoursesError) {
+        return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignment course details', assignmentCoursesError.message);
+      }
+
+      assignmentCourses = courses || [];
     }
 
     // Fetch course details for assignment submissions (소프트 삭제 필터 추가)
-    const { data: submissionAssignmentDetails, error: submissionAssignmentError } = await client
-      .from(ASSIGNMENTS_TABLE)
-      .select('id, title, course_id')
-      .in('id', submissions?.map(s => s.assignment_id) || [])
-      .is('deleted_at', null); // 소프트 삭제된 과제 제외
+    let submissionAssignmentDetails: any[] = [];
+    let submissionAssignmentCourses: any[] = [];
 
-    if (submissionAssignmentError) {
-      return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignment details for submissions', submissionAssignmentError.message);
-    }
+    if (submissions.length > 0) {
+      const { data: subAssignmentDetails, error: submissionAssignmentError } = await client
+        .from(ASSIGNMENTS_TABLE)
+        .select('id, title, course_id')
+        .in('id', submissions.map(s => s.assignment_id))
+        .is('deleted_at', null); // 소프트 삭제된 과제 제외
 
-    const { data: submissionAssignmentCourses, error: submissionAssignmentCourseError } = await client
-      .from(COURSES_TABLE)
-      .select('id, title')
-      .in('id', submissionAssignmentDetails?.map(a => a.course_id) || [])
-      .is('deleted_at', null); // 소프트 삭제된 코스 제외
+      if (submissionAssignmentError) {
+        return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignment details for submissions', submissionAssignmentError.message);
+      }
 
-    if (submissionAssignmentCourseError) {
-      return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch courses for submission assignments', submissionAssignmentCourseError.message);
+      submissionAssignmentDetails = subAssignmentDetails || [];
+
+      if (submissionAssignmentDetails.length > 0) {
+        const { data: subAssignmentCourses, error: submissionAssignmentCourseError } = await client
+          .from(COURSES_TABLE)
+          .select('id, title')
+          .in('id', submissionAssignmentDetails.map(a => a.course_id))
+          .is('deleted_at', null); // 소프트 삭제된 코스 제외
+
+        if (submissionAssignmentCourseError) {
+          return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch courses for submission assignments', submissionAssignmentCourseError.message);
+        }
+
+        submissionAssignmentCourses = subAssignmentCourses || [];
+      }
     }
 
     // Process each enrolled course to calculate progress
