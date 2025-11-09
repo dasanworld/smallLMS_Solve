@@ -59,6 +59,7 @@ export default function AssignmentDetailPage() {
   const [submitContent, setSubmitContent] = useState('');
   const [submitLink, setSubmitLink] = useState('');
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [isEditingSubmission, setIsEditingSubmission] = useState(false);
 
   // 사용자 제출 상태 조회
   const { data: userSubmission, refetch: refetchSubmission } = useQuery({
@@ -144,6 +145,7 @@ export default function AssignmentDetailPage() {
           setShowSuccessDialog(true);
           setSubmitContent('');
           setSubmitLink('');
+          setIsEditingSubmission(false);
           // 제출 상태 갱신
           await refetchSubmission();
         },
@@ -365,8 +367,8 @@ export default function AssignmentDetailPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {userSubmission ? (
-                // 제출 완료 상태
+              {userSubmission && !isEditingSubmission ? (
+                // 제출 완료 상태 (읽기 모드)
                 <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-200">
                   <div>
                     <p className="text-sm font-medium text-slate-700 mb-2">제출 내용</p>
@@ -393,18 +395,18 @@ export default function AssignmentDetailPage() {
                       <p className="text-red-600 font-medium">지각 제출</p>
                     )}
                   </div>
-                  {assignment.allowResubmission && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSubmitContent(userSubmission.content);
-                        setSubmitLink(userSubmission.link || '');
-                      }}
-                      className="w-full"
-                    >
-                      재제출하기
-                    </Button>
-                  )}
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      setSubmitContent(userSubmission.content);
+                      setSubmitLink(userSubmission.link || '');
+                      setIsEditingSubmission(true);
+                    }}
+                    className="w-full gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    수정하기
+                  </Button>
                 </div>
               ) : (
                 // 미제출 상태
@@ -446,14 +448,30 @@ export default function AssignmentDetailPage() {
                     </Alert>
                   )}
 
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={submitMutation.isPending || !submitContent.trim()}
-                    className="w-full gap-2"
-                  >
-                    <Send className="h-4 w-4" />
-                    {submitMutation.isPending ? '제출 중...' : '제출하기'}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={submitMutation.isPending || !submitContent.trim()}
+                      className="flex-1 gap-2"
+                    >
+                      <Send className="h-4 w-4" />
+                      {submitMutation.isPending ? '제출 중...' : isEditingSubmission ? '수정 제출' : '제출하기'}
+                    </Button>
+                    {isEditingSubmission && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditingSubmission(false);
+                          setSubmitContent('');
+                          setSubmitLink('');
+                        }}
+                        disabled={submitMutation.isPending}
+                        className="flex-1"
+                      >
+                        취소
+                      </Button>
+                    )}
+                  </div>
                 </>
               )}
             </CardContent>
@@ -498,7 +516,7 @@ export default function AssignmentDetailPage() {
             </DialogHeader>
             <div className="space-y-3 py-4">
               <div className="rounded-lg bg-green-50 p-4 text-sm text-green-900">
-                <p className="font-medium mb-1">✓ 제출 완료</p>
+                <p className="font-medium mb-1">✓ {isEditingSubmission ? '수정 제출 완료' : '제출 완료'}</p>
                 <p className="text-green-800">
                   과제가 제출되었으며, 강사가 검토하면 피드백을 받을 수 있습니다.
                 </p>
