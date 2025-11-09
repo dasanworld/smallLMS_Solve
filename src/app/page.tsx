@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { Copy, CheckCircle2, Boxes, Database, LogOut, Server } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient, extractApiErrorMessage } from "@/lib/remote/api-client";
+import type { UserProfileResponse } from "@/features/auth/lib/dto";
 
 type SetupCommand = {
   id: string;
@@ -80,6 +83,24 @@ export default function Home() {
   const { user, isAuthenticated, isLoading, refresh } = useCurrentUser();
   const router = useRouter();
 
+  // 사용자 프로필 조회 (역할 정보 포함)
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      const { data } = await apiClient.get('/api/auth/profile');
+      return data;
+    } catch (error) {
+      const message = extractApiErrorMessage(error, 'Failed to fetch user profile.');
+      throw new Error(message);
+    }
+  }, []);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useQuery<UserProfileResponse>({
+    queryKey: ['user-profile', user?.id],
+    queryFn: fetchUserProfile,
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const handleSignOut = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
     await supabase.auth.signOut();
@@ -88,19 +109,24 @@ export default function Home() {
   }, [refresh, router]);
 
   const authActions = useMemo(() => {
-    if (isLoading) {
+    if (isLoading || isProfileLoading) {
       return (
         <span className="text-sm text-slate-300">세션 확인 중...</span>
       );
     }
 
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && userProfile) {
+      // 역할에 따라 대시보드 경로 결정
+      const dashboardPath = userProfile.role === 'instructor'
+        ? '/instructor-dashboard'
+        : '/dashboard';
+
       return (
         <div className="flex items-center gap-3 text-sm text-slate-200">
           <span className="truncate">{user.email ?? "알 수 없는 사용자"}</span>
           <div className="flex items-center gap-2">
             <Link
-              href="/dashboard"
+              href={dashboardPath}
               className="rounded-md border border-slate-600 px-3 py-1 transition hover:border-slate-400 hover:bg-slate-800"
             >
               대시보드
@@ -134,7 +160,7 @@ export default function Home() {
         </Link>
       </div>
     );
-  }, [handleSignOut, isAuthenticated, isLoading, user]);
+  }, [handleSignOut, isAuthenticated, isLoading, isProfileLoading, user, userProfile]);
 
   const handleCopy = (command: string) => {
     navigator.clipboard.writeText(command);

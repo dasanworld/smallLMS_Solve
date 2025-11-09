@@ -4,6 +4,8 @@ import { LearnerDashboard } from "@/features/dashboard/components/LearnerDashboa
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { apiClient, extractApiErrorMessage } from "@/lib/remote/api-client";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { type UserProfileResponse } from "@/features/auth/lib/dto";
 
 type DashboardPageProps = {
@@ -22,19 +24,27 @@ const fetchUserProfile = async () => {
 
 export default function DashboardPage({ params }: DashboardPageProps) {
   void params;
+  const router = useRouter();
   const { user, isLoading: isAuthLoading } = useCurrentUser();
-  
+
   // Fetch user profile to get the role
-  const { 
-    data: userProfile, 
-    isLoading: isProfileLoading, 
-    isError 
+  const {
+    data: userProfile,
+    isLoading: isProfileLoading,
+    isError
   } = useQuery<UserProfileResponse>({
     queryKey: ['user-profile', user?.id],
     queryFn: () => fetchUserProfile(),
     enabled: !!user?.id, // Only run if user is authenticated
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // 강사인 경우 강사 대시보드로 자동 리다이렉트
+  useEffect(() => {
+    if (userProfile && userProfile.role === 'instructor') {
+      router.replace('/instructor-dashboard');
+    }
+  }, [userProfile, router]);
 
   if (isAuthLoading || isProfileLoading) {
     return (

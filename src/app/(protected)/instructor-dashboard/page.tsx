@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import InstructorDashboard from '@/features/dashboard/components/InstructorDashboard';
 import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
 import { useQuery } from '@tanstack/react-query';
@@ -37,6 +38,13 @@ export default function InstructorDashboardPage({ params }: InstructorDashboardP
     enabled: !!user?.id, // Only run if user is authenticated
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // 학습자인 경우 학습자 대시보드로 자동 리다이렉트
+  useEffect(() => {
+    if (userProfile && userProfile.role !== 'instructor') {
+      router.replace('/dashboard');
+    }
+  }, [userProfile, router]);
 
   if (isAuthLoading || isProfileLoading) {
     return (
