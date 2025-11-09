@@ -27,7 +27,7 @@ export function GlobalNavigation() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
 
-  // 사용자 프로필 조회 (role 포함)
+  // 사용자 프로필 조회 (role 포함) - hooks는 최상단에서 항상 호출되어야 함
   const { data: profile, isLoading: profileLoading } = useQuery<UserProfileResponse | null>({
     queryKey: ['userProfile', user?.id],
     queryFn: async () => {
@@ -48,6 +48,25 @@ export function GlobalNavigation() {
     setMounted(true);
   }, []);
 
+  // 로그아웃 핸들러 - 조건부 return 전에 정의
+  const handleLogout = useCallback(async () => {
+    try {
+      // Supabase에서 로그아웃
+      const supabase = getSupabaseBrowserClient();
+      await supabase.auth.signOut();
+      
+      // 사용자 컨텍스트 새로고침
+      await refresh();
+      
+      // 랜딩페이지로 이동
+      router.replace('/');
+    } catch (error) {
+      console.error('로그아웃 중 오류:', error);
+      router.replace('/');
+    }
+  }, [refresh, router]);
+
+  // 조건부 렌더링 (모든 hooks 이후)
   if (!mounted || isLoading) {
     return null;
   }
@@ -114,23 +133,6 @@ export function GlobalNavigation() {
         return 'bg-green-100 text-green-800';
     }
   };
-
-  const handleLogout = useCallback(async () => {
-    try {
-      // Supabase에서 로그아웃
-      const supabase = getSupabaseBrowserClient();
-      await supabase.auth.signOut();
-      
-      // 사용자 컨텍스트 새로고침
-      await refresh();
-      
-      // 랜딩페이지로 이동
-      router.replace('/');
-    } catch (error) {
-      console.error('로그아웃 중 오류:', error);
-      router.replace('/');
-    }
-  }, [refresh, router]);
 
   const menuItems = getMenuItems();
   const isActive = (href: string) => {
