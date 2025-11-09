@@ -153,7 +153,7 @@ export const getCourseByIdService = async (
     // 강사 정보 조회
     const { data: instructorData, error: instructorError } = await supabase
       .from('users')
-      .select('full_name')
+      .select('name')
       .eq('id', course.owner_id)
       .maybeSingle();
 
@@ -168,7 +168,7 @@ export const getCourseByIdService = async (
       ...course,
       category: categoryData || null,
       difficulty: difficultyData || null,
-      instructor_name: instructorData?.full_name || null,
+      instructor_name: instructorData?.name || null,
     } as CourseDetailResponse);
   } catch (err) {
     return failure(500, courseErrorCodes.COURSE_UPDATE_ERROR, String(err));
