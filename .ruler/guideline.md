@@ -100,3 +100,61 @@ Ensure all imported functions are actually exported from modules.
 Match function parameter types exactly with expected service function signatures.
 Apply type assertions for Supabase query results due to schema inference limitations.
 Test build before assuming all type errors are resolved.
+
+## Variable Scope Management
+Never declare variables with the same name in nested scopes (e.g., `supabase` in same function).
+Check variable re-declaration before writing new code in existing blocks.
+
+## Handler Result Type Safety
+Use `.data` property for successful results, `.error` for failures in HandlerResult.
+Never use `.value` when accessing HandlerResult contents.
+Access error properties via `(result as any).error?.message` for error state handling.
+
+## Error Code Format Consistency
+Define error codes as string literals, not objects: `ERROR_CODE: 'ERROR_CODE'`.
+Use `(typeof errorCodes)[keyof typeof errorCodes]` pattern for error code typing.
+Standardize error code format across all feature modules (assignment, course, enrollment, etc).
+
+## Failure Function Parameter Order
+Call `failure(statusCode, errorCode, message, details?)` with correct parameter sequence.
+Never swap status code and error code positions in failure calls.
+
+## Domain Entity Status Enums
+Verify schema-defined status values before using in code conditionals.
+For course status: use `'published' | 'draft' | 'archived'`, never `'active'`.
+Create separate type definitions for different status enums (CourseStatus, ReportStatus, etc).
+
+## Logger Type Consistency
+Use `AppLogger` type from `@/backend/hono/context` for all logger implementations.
+Never import external logger libraries like `pino` without verification.
+Use AppLogger methods: `info()`, `error()`, `warn()`, `debug()` only.
+
+## API Response Schema Design
+Distinguish between base entity schema (Course) and detailed schema (CourseDetailResponse).
+Include additional fields in detail schemas (e.g., instructor_name, category object).
+Fetch supplementary data in service layer before returning to client.
+
+## Supabase Nested Query Handling
+Split complex relational queries into separate sequential queries.
+Avoid `.select('table(nested_field)')` patterns for type safety.
+Query foreign key relationships separately: fetch parent, then child by ID.
+
+## StatusCode Type Validation
+Use only valid HTTP status codes from Hono's ContentfulStatusCode type.
+Avoid non-standard codes like 204; use 200 for success responses.
+Verify status code availability in type definitions before implementation.
+
+## Dependency Module Imports
+Check all imported modules exist before compilation.
+Verify @/components/ui/* components are installed in project.
+Use `shadcn-ui` CLI to install missing UI components before usage.
+
+## Type Object vs Primitive Handling
+Distinguish between object properties (e.g., `category: CategorySchema`) and IDs (e.g., `category_id: number`).
+Handle rendering logic: check if property is object or string before accessing nested fields.
+Use conditional rendering: `typeof field === 'string' ? field : field.name`.
+
+## Cast Assertion Usage
+Use `as const` for immutable literals in error code definitions.
+Apply `as any` only when TypeScript inference fails; document reason.
+Prefer explicit types over excessive type assertions.
