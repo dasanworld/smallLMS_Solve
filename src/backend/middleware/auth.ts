@@ -43,8 +43,20 @@ export const authenticate = createMiddleware<AppEnv>(async (c, next) => {
     );
   }
 
-  // Attach user information to context
-  c.set('user', user);
+  // Fetch user role from users table
+  const { data: userRecord } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  // Attach user information to context with role
+  const userWithRole = {
+    ...user,
+    role: userRecord?.role || 'learner' // Default to learner if role not found
+  };
+
+  c.set('user', userWithRole);
 
   await next();
 });
