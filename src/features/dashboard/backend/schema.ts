@@ -48,7 +48,7 @@ export const SubmissionStatusSchema = z.object({
   courseTitle: z.string(),
   status: z.string(), // not_submitted, submitted, graded, resubmission_required
   isLate: z.boolean().optional().default(false),
-  score: z.number().optional(),
+  score: z.number().nullable().optional(),
   submittedAt: z.string().optional(), // ISO date string
 });
 
