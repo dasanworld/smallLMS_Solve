@@ -207,3 +207,40 @@ Log complete API request details: endpoint, payload, headers for failed requests
 Extract error details from response.data.details array for specific field errors.
 Display user-friendly error message extracted from Axios error response data.
 Include error code and detailed error information in console logs for debugging.
+
+## Query Data Undefined Prevention
+Never return null from React Query queryFn without data; throw error instead.
+React Query expects either data return or error throw; returning undefined causes crash.
+Handle empty/null responses explicitly: return default data or throw Error with message.
+Use enabled flag to prevent queries from running when dependencies are unavailable.
+Set retry: 1 or retry: false to avoid repeated failed requests for non-retryable errors.
+
+## Global Navigation and Authentication Context
+Fetch user profile with role information only after authentication is confirmed.
+Use conditional checks: return null while loading instead of rendering with missing data.
+Load role-based menu items after profile data is available; never assume role.
+Apply type-safe role checks: cast profile.role to UserRole type before switch statement.
+
+## Hydration Mismatch Prevention
+Ensure server and client render identical HTML; avoid conditional rendering based on state.
+Use useState with useEffect to defer client-only rendering after mount.
+Never render different content on server vs client (e.g., different role initially).
+Check mounted state before rendering dynamic content that differs between server/client.
+
+## Component Props Type Validation
+Verify all component props are passed with correct types from parent components.
+Ensure child components accept props that parent components provide (avoid prop mismatch).
+Use TypeScript interface to define expected props; generate errors if props don't match.
+Pass context data explicitly via props rather than deriving from components.
+
+## Course Edit Page Props Integration
+Pass initial form data via initialData prop, not course prop.
+Use UpdateCourseRequestSchema for edit forms; CreateCourseRequestSchema for creation.
+Implement handleFormSubmit callback that receives form data and sends to backend.
+Extract courseId from URL params and pass to form submission handler explicitly.
+
+## Supabase Query Result Handling
+Use `.maybeSingle()` instead of `.single()` when query may return zero rows.
+`.single()` throws error if result is not exactly one row; `.maybeSingle()` returns null safely.
+Apply proper type assertions for nested query results: `as { data: Type; error: any }`.
+Handle optional/nullable results with conditional checks before property access.
