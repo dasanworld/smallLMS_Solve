@@ -85,13 +85,12 @@ export const getLearnerDashboardService = async (
       return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch courses', coursesError.message);
     }
 
-    // Get all assignments for enrolled courses that are published (소프트 삭제 필터 추가)
+    // Get all assignments for enrolled courses (모든 상태의 과제 포함, 소프트 삭제된 과제는 제외)
     const { data: assignments, error: assignmentsError } = await client
       .from(ASSIGNMENTS_TABLE)
       .select('id, title, course_id, due_date, status')
       .in('course_id', courseIds)
-      .eq('status', 'published')
-      .is('deleted_at', null); // 소프트 삭제된 과제 제외
+      .is('deleted_at', null); // 소프트 삭제된 과제만 제외 (모든 상태 포함)
 
     if (assignmentsError) {
       return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignments', assignmentsError.message);
