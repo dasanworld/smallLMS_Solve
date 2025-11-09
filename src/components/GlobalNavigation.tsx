@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -21,7 +22,7 @@ import type { UserProfileResponse } from '@/features/auth/backend/profile-servic
 type UserRole = 'instructor' | 'learner' | 'operator';
 
 export function GlobalNavigation() {
-  const { user, isLoading } = useCurrentUser();
+  const { user, isLoading, refresh } = useCurrentUser();
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -114,38 +115,22 @@ export function GlobalNavigation() {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
-      // 로그아웃 API 호출
-      const response = await fetch('/api/auth/logout', { 
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        console.error('로그아웃 실패:', response.statusText);
-      }
-
-      // 캐시 무효화 (React Query 캐시 초기화)
-      // queryClient.clear();
-
-      // 세션 정보 초기화를 위해 짧은 지연 후 이동
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // 랜딩페이지로 이동
-      router.push('/');
+      // Supabase에서 로그아웃
+      const supabase = getSupabaseBrowserClient();
+      await supabase.auth.signOut();
       
-      // 페이지 새로고침하여 인증 상태 완전히 초기화
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 200);
+      // 사용자 컨텍스트 새로고침
+      await refresh();
+      
+      // 랜딩페이지로 이동
+      router.replace('/');
     } catch (error) {
       console.error('로그아웃 중 오류:', error);
-      router.push('/');
+      router.replace('/');
     }
-  };
+  }, [refresh, router]);
 
   const menuItems = getMenuItems();
   const isActive = (href: string) => {

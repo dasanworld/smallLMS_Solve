@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Copy, CheckCircle2, Boxes, Database, Server } from "lucide-react";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient, extractApiErrorMessage } from "@/lib/remote/api-client";
@@ -79,7 +80,8 @@ const backendBuildingBlocks = [
 
 export default function Home() {
   const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
-  const { user, isAuthenticated, isLoading } = useCurrentUser();
+  const { user, isAuthenticated, isLoading, refresh } = useCurrentUser();
+  const router = useRouter();
 
   // 사용자 프로필 조회 (역할 정보 포함)
   const fetchUserProfile = useCallback(async () => {
@@ -99,6 +101,14 @@ export default function Home() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // 로그아웃 기능은 글로벌 네비게이션으로 통일됨
+  // const handleSignOut = useCallback(async () => {
+  //   const supabase = getSupabaseBrowserClient();
+  //   await supabase.auth.signOut();
+  //   await refresh();
+  //   router.replace("/");
+  // }, [refresh, router]);
+
   const authActions = useMemo(() => {
     if (isLoading || isProfileLoading) {
       return (
@@ -115,12 +125,15 @@ export default function Home() {
       return (
         <div className="flex items-center gap-3 text-sm text-slate-200">
           <span className="truncate">{user.email ?? "알 수 없는 사용자"}</span>
-          <Link
-            href={dashboardPath}
-            className="rounded-md border border-slate-600 px-3 py-1 transition hover:border-slate-400 hover:bg-slate-800"
-          >
-            대시보드
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href={dashboardPath}
+              className="rounded-md border border-slate-600 px-3 py-1 transition hover:border-slate-400 hover:bg-slate-800"
+            >
+              대시보드
+            </Link>
+            {/* 로그아웃은 글로벌 네비게이션에서 처리 */}
+          </div>
         </div>
       );
     }
