@@ -11,7 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Users, BookOpen, FileText, Clock, Plus, RefreshCw } from 'lucide-react';
+import { AlertCircle, Users, BookOpen, FileText, Clock, Plus, RefreshCw, Calendar, CheckCircle } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -82,6 +83,7 @@ export default function InstructorDashboard() {
   }
 
   const courses = (data?.courses || []) as InstructorDashboardResponse['courses'];
+  const assignments = (data?.assignments || []) as InstructorDashboardResponse['assignments'];
   const pendingGradingCount = data?.pendingGradingCount || 0;
   const recentSubmissions = (data?.recentSubmissions || []) as InstructorDashboardResponse['recentSubmissions'];
 
@@ -165,6 +167,7 @@ export default function InstructorDashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CardTitle>과제 관리</CardTitle>
+              <Badge variant="secondary">{assignments.length}개 과제</Badge>
             </div>
             <Link href="/courses/assignments">
               <Button variant="outline" size="sm" className="gap-2">
@@ -174,37 +177,55 @@ export default function InstructorDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          {courses.length === 0 ? (
+          {assignments.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="mx-auto h-12 w-12" />
-              <p className="mt-2">아직 코스가 없습니다.</p>
-              <p className="text-sm">코스를 만들면 과제를 추가할 수 있습니다.</p>
+              <p className="mt-2">아직 과제가 없습니다.</p>
+              <p className="text-sm">코스에 과제를 추가해서 시작하세요.</p>
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm text-slate-600">
-                각 코스의 과제를 관리하거나 <Link href="/courses/assignments" className="font-medium text-blue-600 hover:underline">모든 과제를 한눈에</Link> 볼 수 있습니다.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {courses.map((course) => 
-                  course.id && (
-                    <Link 
-                      key={course.id}
-                      href={`/courses/${course.id}/assignments`}
+              {/* Assignment List */}
+              <div className="space-y-2">
+                {assignments.slice(0, 5).map((assignment) => {
+                  const course = courses.find(c => c.id === assignment.courseId);
+                  const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
+                  const isOverdue = dueDate && dueDate < new Date();
+                  
+                  return (
+                    <Link
+                      key={assignment.id}
+                      href={`/courses/${assignment.courseId}/assignments/${assignment.id}`}
                     >
-                      <div className="p-4 border rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
-                        <p className="font-medium truncate">{course.title}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <FileText className="h-4 w-4 text-slate-400" />
-                          <span className="text-sm text-slate-600">
-                            {course.assignmentCount || 0}개의 과제
-                          </span>
+                      <div className="p-3 border rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{assignment.title}</p>
+                            <p className="text-xs text-slate-500">{course?.title}</p>
+                          </div>
+                          {assignment.status === 'published' && (
+                            <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          )}
                         </div>
+                        {dueDate && (
+                          <div className="flex items-center gap-1 mt-2 text-xs">
+                            <Calendar className="h-3 w-3 text-slate-400" />
+                            <span className={isOverdue ? 'text-red-600 font-medium' : 'text-slate-500'}>
+                              {isOverdue ? '기한 종료: ' : '기한: '}
+                              {formatDistanceToNow(dueDate, { addSuffix: true })}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </Link>
-                  )
-                )}
+                  );
+                })}
               </div>
+              {assignments.length > 5 && (
+                <p className="text-xs text-slate-500 text-center pt-2">
+                  +{assignments.length - 5}개의 과제가 더 있습니다 <Link href="/courses/assignments" className="text-blue-600 hover:underline">전체 보기</Link>
+                </p>
+              )}
             </div>
           )}
         </CardContent>

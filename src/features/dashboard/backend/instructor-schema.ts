@@ -1,5 +1,17 @@
 import { z } from 'zod';
 
+// Assignment information for instructor dashboard
+export const InstructorAssignmentSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  courseId: z.string(),
+  dueDate: z.string().optional(), // ISO date string
+  status: z.enum(['draft', 'published', 'closed']),
+  submissionCount: z.number().optional().default(0),
+});
+
+export type InstructorAssignment = z.infer<typeof InstructorAssignmentSchema>;
+
 // Course information for instructor dashboard
 export const InstructorCourseSchema = z.object({
   id: z.string(),
@@ -30,6 +42,7 @@ export type RecentSubmission = z.infer<typeof RecentSubmissionSchema>;
 // Instructor Dashboard Response
 export const InstructorDashboardResponseSchema = z.object({
   courses: z.array(InstructorCourseSchema),
+  assignments: z.array(InstructorAssignmentSchema).optional().default([]),
   pendingGradingCount: z.number(),
   recentSubmissions: z.array(RecentSubmissionSchema).optional().default([]),
 });

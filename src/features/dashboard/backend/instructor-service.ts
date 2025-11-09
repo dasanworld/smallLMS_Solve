@@ -214,8 +214,19 @@ export const getInstructorDashboardService = async (
     };
   });
 
+  // Format assignments for dashboard display
+  const assignmentsWithSubmissionCount = (assignments || []).map((assignment) => ({
+    id: assignment.id,
+    title: assignment.title,
+    courseId: assignment.course_id,
+    dueDate: assignment.due_date,
+    status: assignment.status,
+    submissionCount: 0, // Can be enhanced later to fetch actual submission count
+  }));
+
   const dashboardData = {
     courses: coursesWithEnrollment,
+    assignments: assignmentsWithSubmissionCount,
     pendingGradingCount,
     recentSubmissions,
   };
