@@ -140,22 +140,33 @@ export const createAssignmentRoutes = (app: Hono<AppEnv>) => {
         } as any);
       }
 
-      // 강사 권한 확인
+      // 접근 권한 확인 (강사 또는 등록된 학습자)
       const { data: course } = await supabase
         .from('courses')
         .select('owner_id')
         .eq('id', courseId)
         .maybeSingle();
 
+      // 강사가 아닌 경우 학습자 등록 여부 확인
       if (course?.owner_id !== userId) {
-        return respond(c, {
-          ok: false,
-          status: 403,
-          error: {
-            code: 'ACCESS_DENIED',
-            message: '이 과제에 접근할 권한이 없습니다',
-          },
-        } as any);
+        const { data: enrollment } = await supabase
+          .from('enrollments')
+          .select('id')
+          .eq('course_id', courseId)
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (!enrollment) {
+          return respond(c, {
+            ok: false,
+            status: 403,
+            error: {
+              code: 'ACCESS_DENIED',
+              message: '이 과제에 접근할 권한이 없습니다',
+            },
+          } as any);
+        }
       }
 
       // 응답 데이터 변환 (snake_case → camelCase)
