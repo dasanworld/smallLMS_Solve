@@ -46,7 +46,7 @@ export const getInstructorDashboardService = async (
   if (courseIds.length > 0) {
     const { data: courseAssignments, error: assignmentsError } = await client
       .from(ASSIGNMENTS_TABLE)
-      .select('id, title, course_id, due_date, status')
+      .select('id, title, description, course_id, due_date, status')
       .in('course_id', courseIds)
       .eq('status', 'published')
       .is('deleted_at', null); // 소프트 삭제된 과제 제외
@@ -218,6 +218,7 @@ export const getInstructorDashboardService = async (
   const assignmentsWithSubmissionCount = (assignments || []).map((assignment) => ({
     id: assignment.id,
     title: assignment.title,
+    description: assignment.description,
     courseId: assignment.course_id,
     dueDate: assignment.due_date,
     status: assignment.status,

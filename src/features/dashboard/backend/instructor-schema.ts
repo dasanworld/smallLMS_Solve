@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const InstructorAssignmentSchema = z.object({
   id: z.string(),
   title: z.string(),
+  description: z.string().optional(),
   courseId: z.string(),
   dueDate: z.string().optional(), // ISO date string
   status: z.enum(['draft', 'published', 'closed']),
