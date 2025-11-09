@@ -115,8 +115,36 @@ export function GlobalNavigation() {
   };
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/');
+    try {
+      // 로그아웃 API 호출
+      const response = await fetch('/api/auth/logout', { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.error('로그아웃 실패:', response.statusText);
+      }
+
+      // 캐시 무효화 (React Query 캐시 초기화)
+      // queryClient.clear();
+
+      // 세션 정보 초기화를 위해 짧은 지연 후 이동
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // 랜딩페이지로 이동
+      router.push('/');
+      
+      // 페이지 새로고침하여 인증 상태 완전히 초기화
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 200);
+    } catch (error) {
+      console.error('로그아웃 중 오류:', error);
+      router.push('/');
+    }
   };
 
   const menuItems = getMenuItems();
