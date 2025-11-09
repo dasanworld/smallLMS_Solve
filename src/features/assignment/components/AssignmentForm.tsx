@@ -40,6 +40,7 @@ export const AssignmentForm = ({
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<CreateAssignmentRequest>({
     resolver: zodResolver(CreateAssignmentRequestSchema),
     defaultValues: assignment ? {
@@ -58,6 +59,27 @@ export const AssignmentForm = ({
   });
 
   const pointsWeight = watch('pointsWeight');
+
+  // datetime-local 입력 값을 ISO 8601 datetime으로 변환
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const localDateTime = e.target.value; // YYYY-MM-DDTHH:mm
+    if (localDateTime) {
+      // 로컬 시간을 ISO 문자열로 변환 (밀리초 추가)
+      const isoDateTime = new Date(`${localDateTime}:00`).toISOString();
+      setValue('dueDate', isoDateTime);
+    }
+  };
+
+  // ISO datetime을 datetime-local 형식으로 변환
+  const formatDateForInput = (isoString: string) => {
+    const date = new Date(isoString);
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
 
   const onSubmit = async (data: CreateAssignmentRequest) => {
     setIsSubmitting(true);
@@ -120,8 +142,13 @@ export const AssignmentForm = ({
             <Input
               type="datetime-local"
               {...register('dueDate')}
+              onChange={handleDateChange}
+              defaultValue={assignment ? formatDateForInput(assignment.dueDate) : ''}
               disabled={isLoading}
             />
+            <p className="text-slate-500 text-sm mt-1">
+              날짜와 시간을 선택하세요 (예: 2025-11-20 14:30)
+            </p>
             {errors.dueDate && (
               <p className="text-red-500 text-sm mt-1">{errors.dueDate.message}</p>
             )}
