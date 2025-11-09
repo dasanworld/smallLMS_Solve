@@ -40,15 +40,35 @@ export const useCreateAssignmentMutation = () => {
           `/api/courses/${data.courseId}/assignments`,
           payload
         );
+        console.log('✅ API response status:', response.status);
+        console.log('✅ API response data:', response.data);
         console.log('✅ Assignment created:', response.data.data);
         return response.data.data;
       } catch (error: any) {
-        console.error('❌ API call failed:', {
-          error,
-          status: error.status,
-          response: error.response,
-          message: error.message,
-        });
+        console.error('❌ API call failed - error type:', typeof error, error.constructor.name);
+        console.error('❌ API call failed - error itself:', error);
+        
+        // Axios 에러인 경우
+        if (error.isAxiosError) {
+          console.error('❌ Axios Error:', {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            headers: error.response?.headers,
+            config: {
+              method: error.config?.method,
+              url: error.config?.url,
+              data: error.config?.data,
+            },
+          });
+        } else {
+          console.error('❌ Non-Axios Error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+          });
+        }
+        
         throw error;
       }
     },
