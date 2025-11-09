@@ -36,7 +36,7 @@ export function GlobalNavigation() {
     if (isInstructor) return '강사';
     if (isOperator) return '운영자';
     if (isLearner) return '러너';
-    return '사용자';
+    return '미설정';
   };
 
   const getRoleColor = () => {
@@ -63,7 +63,7 @@ export function GlobalNavigation() {
 
           {/* 데스크톱 메뉴 */}
           <div className="hidden md:flex items-center gap-8">
-            {/* 공통 메뉴 - 홈 */}
+            {/* 메뉴 1 - 홈 */}
             <Link
               href="/"
               className={cn(
@@ -75,7 +75,7 @@ export function GlobalNavigation() {
               홈
             </Link>
 
-            {/* 공통 메뉴 - 대시보드 */}
+            {/* 메뉴 2 - 대시보드 */}
             <Link
               href={isInstructor ? '/instructor-dashboard' : isOperator ? '/operator-dashboard' : '/dashboard'}
               className={cn(
@@ -89,7 +89,7 @@ export function GlobalNavigation() {
               대시보드
             </Link>
 
-            {/* 강사/학습자 메뉴 - 코스관리 */}
+            {/* 메뉴 3 - 코스관리 */}
             {(isInstructor || isLearner) && (
               <Link
                 href={isInstructor ? '/courses' : '/explore-courses'}
@@ -101,11 +101,11 @@ export function GlobalNavigation() {
                 )}
               >
                 <BookOpen className="h-4 w-4" />
-                {isInstructor ? '코스관리' : '강의'}
+                코스관리
               </Link>
             )}
 
-            {/* 강사 메뉴 - 과제관리 */}
+            {/* 메뉴 4 - 과제관리 */}
             {isInstructor && (
               <Link
                 href="/courses/assignments"
@@ -119,12 +119,13 @@ export function GlobalNavigation() {
               </Link>
             )}
 
-            {/* 강사 메뉴 - 채점관리 (TBD) */}
+            {/* 메뉴 5 - 채점관리 */}
             {isInstructor && (
               <Link
                 href="#"
                 className="flex items-center gap-1.5 text-sm font-medium text-gray-400 cursor-not-allowed"
                 onClick={(e) => e.preventDefault()}
+                title="준비 중"
               >
                 <BarChart3 className="h-4 w-4" />
                 채점관리
@@ -198,7 +199,7 @@ export function GlobalNavigation() {
                         className="flex items-center gap-2"
                       >
                         <BookOpen className="h-4 w-4" />
-                        {isInstructor ? '코스관리' : '강의'}
+                        코스관리
                       </Link>
                     </DropdownMenuItem>
                   )}
