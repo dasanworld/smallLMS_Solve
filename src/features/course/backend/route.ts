@@ -171,10 +171,10 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
       
       logger.info('📚 GET /api/courses/:id 요청', { courseId, userId: user?.id });
       
+      // 학습자 조회는 instructorId 없이, 강사만 권한 확인
       const result = await getCourseByIdService(
         supabase,
-        courseId,
-        user?.id
+        courseId
       );
       
       if (!result.ok) {
