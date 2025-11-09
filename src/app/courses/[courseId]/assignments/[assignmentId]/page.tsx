@@ -11,6 +11,25 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, ArrowLeft, Edit, FileText } from 'lucide-react';
 import type { AssignmentResponse } from '@/features/assignment/backend/schema';
+import { formatDistanceToNow } from 'date-fns';
+
+/**
+ * 날짜 안전 파싱 함수
+ */
+const parseDate = (dateValue: string | Date | null | undefined): Date | null => {
+  if (!dateValue) return null;
+  const date = new Date(dateValue);
+  return isNaN(date.getTime()) ? null : date;
+};
+
+/**
+ * 로컬 날짜 문자열로 포맷팅
+ */
+const formatDateTime = (dateValue: string | Date | null | undefined): string => {
+  const date = parseDate(dateValue);
+  if (!date) return 'Invalid Date';
+  return date.toLocaleString('ko-KR');
+};
 
 export default function AssignmentDetailPage() {
   const params = useParams();
@@ -103,13 +122,7 @@ export default function AssignmentDetailPage() {
               </Badge>
             </div>
             <p className="text-slate-500">
-              마감: {new Date(assignment.dueDate).toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              마감: {formatDateTime(assignment.dueDate)} {assignment.dueDate && parseDate(assignment.dueDate) && `(${formatDistanceToNow(parseDate(assignment.dueDate)!, { addSuffix: true })})`}
             </p>
           </div>
           <Link href={`/courses/${courseId}/assignments/${assignmentId}/edit`}>
@@ -166,13 +179,13 @@ export default function AssignmentDetailPage() {
 
             {/* 타임스탬프 */}
             <div className="pt-4 border-t border-slate-200 text-xs text-slate-500 space-y-1">
-              <p>생성: {new Date(assignment.createdAt).toLocaleString('ko-KR')}</p>
-              <p>수정: {new Date(assignment.updatedAt).toLocaleString('ko-KR')}</p>
+              <p>생성: {formatDateTime(assignment.createdAt)}</p>
+              <p>수정: {formatDateTime(assignment.updatedAt)}</p>
               {assignment.publishedAt && (
-                <p>공개: {new Date(assignment.publishedAt).toLocaleString('ko-KR')}</p>
+                <p>공개: {formatDateTime(assignment.publishedAt)}</p>
               )}
               {assignment.closedAt && (
-                <p>종료: {new Date(assignment.closedAt).toLocaleString('ko-KR')}</p>
+                <p>종료: {formatDateTime(assignment.closedAt)}</p>
               )}
             </div>
           </CardContent>
