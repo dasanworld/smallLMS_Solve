@@ -105,8 +105,10 @@ export default function AllAssignmentsPage() {
           return response.data.courses;
         } else if (userRole === 'learner') {
           console.log('📚 러너 등록 코스 목록 조회 중...');
-          const response = await apiClient.get<{ enrollments: Array<{ course: Course }> }>('/api/enrollments/me');
-          const enrolledCourses = response.data.enrollments.map(e => e.course);
+          const response = await apiClient.get<{ enrollments: Array<{ courses: Course }> }>('/api/enrollments/me');
+          const enrolledCourses = response.data.enrollments
+            .filter(e => e.courses) // courses 필드 존재 확인
+            .map(e => e.courses);
           console.log('✅ 러너 등록 코스 목록 조회 완료:', enrolledCourses.length);
           return enrolledCourses;
         }
