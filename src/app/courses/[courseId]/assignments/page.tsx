@@ -28,11 +28,11 @@ export default function CourseAssignmentsPage() {
     queryFn: async () => {
       try {
         console.log('📋 과제 목록 조회:', courseId);
-        const response = await apiClient.get<{ assignments: AssignmentResponse[] }>(
+        const response = await apiClient.get<{ data: AssignmentResponse[]; total: number; limit: number; offset: number }>(
           `/api/courses/${courseId}/assignments`
         );
-        console.log('✅ 과제 목록 조회 완료:', response.data.assignments.length);
-        return response.data.assignments;
+        console.log('✅ 과제 목록 조회 완료:', response.data.data.length);
+        return response.data.data;
       } catch (err) {
         const message = extractApiErrorMessage(err, 'Failed to fetch assignments.');
         console.error('❌ 과제 목록 조회 실패:', message);
