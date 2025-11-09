@@ -13,7 +13,7 @@ export const CreateAssignmentRequestSchema = z.object({
   courseId: z.string().uuid('유효한 코스 ID가 필요합니다'),
   title: z.string().min(1, '제목은 필수입니다').max(255, '제목은 255자 이하여야 합니다'),
   description: z.string().min(1, '설명은 필수입니다'),
-  dueDate: z.string().datetime('유효한 날짜 형식이 필요합니다'),
+  dueDate: z.string().datetime('유효한 날짜 형식이 필요합니다').optional(),
   pointsWeight: z.number().min(0, '가중치는 0 이상이어야 합니다').max(1, '가중치는 1.0 이하여야 합니다'),
   allowLate: z.boolean().default(false),
   allowResubmission: z.boolean().default(false),

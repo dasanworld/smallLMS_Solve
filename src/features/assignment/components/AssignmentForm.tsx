@@ -43,6 +43,7 @@ export const AssignmentForm = ({
     watch,
     setValue,
     getValues,
+    control,
   } = useForm<CreateAssignmentRequest>({
     resolver: zodResolver(CreateAssignmentRequestSchema),
     defaultValues: assignment ? {
@@ -60,6 +61,10 @@ export const AssignmentForm = ({
       allowResubmission: false,
     },
   });
+
+  // Checkbox 값 모니터링
+  const allowLate = watch('allowLate');
+  const allowResubmission = watch('allowResubmission');
 
   const pointsWeight = watch('pointsWeight');
   const dueDateValue = watch('dueDate');
@@ -179,7 +184,7 @@ export const AssignmentForm = ({
 
           {/* 마감일 */}
           <div>
-            <label className="block text-sm font-medium mb-2">마감일 *</label>
+            <label className="block text-sm font-medium mb-2">마감일</label>
             <input
               type="datetime-local"
               value={dueDateValue ? formatDateForInput(dueDateValue) : ''}
@@ -188,7 +193,7 @@ export const AssignmentForm = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="text-slate-500 text-sm mt-1">
-              캘린더에서 날짜와 시간을 선택하세요 (기본값: 7일 후)
+              선택사항입니다. 캘린더에서 날짜와 시간을 선택하세요 {assignment ? '' : '(기본값: 7일 후)'}
             </p>
             {errors.dueDate && (
               <p className="text-red-500 text-sm mt-1">{errors.dueDate.message}</p>
@@ -221,22 +226,26 @@ export const AssignmentForm = ({
           {/* 정책 */}
           <div className="space-y-3">
             <div className="flex items-center">
-              <Checkbox
+              <input
                 id="allowLate"
+                type="checkbox"
                 {...register('allowLate')}
                 disabled={isLoading}
+                className="w-4 h-4 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
-              <label htmlFor="allowLate" className="ml-2 text-sm">
+              <label htmlFor="allowLate" className="ml-2 text-sm cursor-pointer">
                 지각 제출 허용
               </label>
             </div>
             <div className="flex items-center">
-              <Checkbox
+              <input
                 id="allowResubmission"
+                type="checkbox"
                 {...register('allowResubmission')}
                 disabled={isLoading}
+                className="w-4 h-4 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
-              <label htmlFor="allowResubmission" className="ml-2 text-sm">
+              <label htmlFor="allowResubmission" className="ml-2 text-sm cursor-pointer">
                 재제출 허용
               </label>
             </div>
