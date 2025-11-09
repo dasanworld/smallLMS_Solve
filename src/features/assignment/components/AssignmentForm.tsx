@@ -68,16 +68,7 @@ export const AssignmentForm = ({
       // 로컬 시간을 ISO 문자열로 변환 (밀리초 추가)
       const isoDateTime = new Date(`${localDateTime}:00`).toISOString();
       setValue('dueDate', isoDateTime);
-      // 다음 필드(가중치)로 포커스 이동
-      setTimeout(() => {
-        pointsWeightRef.current?.focus();
-      }, 50);
     }
-  };
-
-  // 더블클릭으로 캘린더 열기
-  const handleDateDoubleClick = (e: React.MouseEvent<HTMLInputElement>) => {
-    (e.target as HTMLInputElement).click();
   };
 
   // ISO datetime을 datetime-local 형식으로 변환
@@ -149,17 +140,16 @@ export const AssignmentForm = ({
           {/* 마감일 */}
           <div>
             <label className="block text-sm font-medium mb-2">마감일 *</label>
-            <Input
+            <input
               type="datetime-local"
               {...register('dueDate')}
               onChange={handleDateChange}
-              onDoubleClick={handleDateDoubleClick}
               defaultValue={assignment ? formatDateForInput(assignment.dueDate) : formatDateForInput(new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString())}
               disabled={isLoading}
-              className="cursor-text"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="text-slate-500 text-sm mt-1">
-              더블클릭하여 캘린더 열기 (기본값: 7일 후)
+              캘린더에서 날짜와 시간을 선택하세요 (기본값: 7일 후)
             </p>
             {errors.dueDate && (
               <p className="text-red-500 text-sm mt-1">{errors.dueDate.message}</p>
