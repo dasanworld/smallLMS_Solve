@@ -113,16 +113,15 @@ export default function InstructorDashboard() {
               <Badge variant="secondary">{courses.length}개 코스</Badge>
             </div>
             <div className="flex items-center gap-2">
-              {/* ✅ 새로고침 버튼 */}
+              {/* ✅ 새로고침 버튼 (아이콘만) */}
               <Button
                 variant="outline"
-                size="sm"
-                className="gap-2"
+                size="icon"
                 onClick={handleRefresh}
                 disabled={isFetching}
+                title="새로고침"
               >
                 <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-                새로고침
               </Button>
               {/* ✅ 코스 만들기 버튼 */}
               <Link href="/courses">

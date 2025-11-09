@@ -97,6 +97,10 @@ export const useCreateAssignmentMutation = () => {
       queryClient.invalidateQueries({
         queryKey: ['course-assignments', variables.courseId],
       });
+      // 대시보드 통계 캐시 무효화 (assignment count 포함)
+      queryClient.invalidateQueries({
+        queryKey: ['instructor-dashboard'],
+      });
     },
     onError: (error: any) => {
       console.error('❌ Assignment creation error:', error.message);
@@ -127,6 +131,10 @@ export const useUpdateAssignmentMutation = () => {
       queryClient.invalidateQueries({
         queryKey: ['course-assignments', data.courseId],
       });
+      // 대시보드 통계 캐시 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['instructor-dashboard'],
+      });
     },
   });
 };
@@ -148,6 +156,10 @@ export const useDeleteAssignmentMutation = () => {
       });
       queryClient.invalidateQueries({
         queryKey: ['course-assignments'],
+      });
+      // 대시보드 통계 캐시 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['instructor-dashboard'],
       });
     },
   });
@@ -174,6 +186,10 @@ export const useUpdateAssignmentStatusMutation = () => {
       });
       queryClient.invalidateQueries({
         queryKey: ['course-assignments', data.courseId],
+      });
+      // 대시보드 통계 캐시 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['instructor-dashboard'],
       });
     },
   });
