@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Search, BookOpen, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useCreateEnrollmentMutation } from '@/features/enrollment/hooks/useEnrollmentMutations';
 import { Course } from '../backend/schema';
 
 interface LearnerCoursesCatalogProps {
@@ -171,6 +173,9 @@ interface CourseCatalogCardProps {
 }
 
 function CourseCatalogCard({ course }: CourseCatalogCardProps) {
+  const { toast } = useToast();
+  const createEnrollmentMutation = useCreateEnrollmentMutation();
+
   const statusConfig = {
     draft: { label: '초안', color: 'bg-gray-100 text-gray-800' },
     published: { label: '진행 중', color: 'bg-blue-100 text-blue-800' },
@@ -178,6 +183,23 @@ function CourseCatalogCard({ course }: CourseCatalogCardProps) {
   };
 
   const config = statusConfig[course.status as keyof typeof statusConfig] || statusConfig.draft;
+
+  const handleEnroll = async () => {
+    try {
+      await createEnrollmentMutation.mutateAsync(course.id);
+      toast({
+        title: '수강신청 성공',
+        description: `"${course.title}" 강의를 수강신청했습니다.`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '수강신청에 실패했습니다.';
+      toast({
+        title: '수강신청 실패',
+        description: message,
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <Card className="flex flex-col hover:shadow-lg transition-shadow">
@@ -221,9 +243,10 @@ function CourseCatalogCard({ course }: CourseCatalogCardProps) {
           <Button 
             className="flex-1" 
             variant={course.status === 'published' ? 'default' : 'outline'}
-            disabled={course.status !== 'published'}
+            disabled={course.status !== 'published' || createEnrollmentMutation.isPending}
+            onClick={handleEnroll}
           >
-            {course.status === 'published' ? '수강신청' : '수강신청 불가'}
+            {createEnrollmentMutation.isPending ? '신청 중...' : (course.status === 'published' ? '수강신청' : '수강신청 불가')}
           </Button>
         </div>
       </CardContent>
