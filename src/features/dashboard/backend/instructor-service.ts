@@ -39,7 +39,7 @@ export const getInstructorDashboardService = async (
     return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch courses', coursesError.message);
   }
 
-  // Get all assignments for instructor's courses that are published (소프트 삭제 필터 추가)
+  // Get all assignments for instructor's courses (모든 상태의 과제 포함, 소프트 삭제된 과제는 제외)
   const courseIds = courses?.map(course => course.id) || [];
   let assignments: any[] = [];
   
@@ -48,8 +48,7 @@ export const getInstructorDashboardService = async (
       .from(ASSIGNMENTS_TABLE)
       .select('id, title, description, course_id, due_date, status')
       .in('course_id', courseIds)
-      .eq('status', 'published')
-      .is('deleted_at', null); // 소프트 삭제된 과제 제외
+      .is('deleted_at', null); // 소프트 삭제된 과제만 제외 (모든 상태 포함)
 
     if (assignmentsError) {
       return failure(500, dashboardErrorCodes.fetchError, 'Failed to fetch assignments', assignmentsError.message);
