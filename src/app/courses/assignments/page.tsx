@@ -401,9 +401,6 @@ export default function AllAssignmentsPage() {
                                       variant="default"
                                       size="sm"
                                       className="gap-1"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                      }}
                                     >
                                       <Send className="h-3 w-3" />
                                       과제 제출
