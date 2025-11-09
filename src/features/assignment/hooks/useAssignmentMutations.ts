@@ -44,7 +44,13 @@ export const useCreateAssignmentMutation = () => {
       });
     },
     onError: (error: any) => {
-      console.error('❌ Assignment creation error:', error.response?.data || error.message);
+      console.error('❌ Assignment creation error:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        error: error.toString(),
+      });
     },
   });
 };

@@ -100,9 +100,23 @@ export const AssignmentForm = ({
         description: data.description,
         dueDate: data.dueDate,
         pointsWeight: data.pointsWeight,
+        pointsWeightType: typeof data.pointsWeight,
         allowLate: data.allowLate,
         allowResubmission: data.allowResubmission,
       });
+      
+      // 날짜 유효성 확인
+      try {
+        const dueDateObj = new Date(data.dueDate);
+        console.log('📅 Parsed due date:', {
+          iso: data.dueDate,
+          parsed: dueDateObj.toISOString(),
+          isValid: !isNaN(dueDateObj.getTime()),
+        });
+      } catch (e) {
+        console.error('❌ Invalid due date format:', data.dueDate);
+      }
+      
       if (assignment) {
         await updateMutation.mutateAsync({
           assignmentId: assignment.id,
@@ -112,6 +126,8 @@ export const AssignmentForm = ({
         await createMutation.mutateAsync(data);
       }
       onSuccess?.();
+    } catch (err) {
+      console.error('❌ Form submission error:', err);
     } finally {
       setIsSubmitting(false);
     }
