@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
+import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,12 +16,28 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Home, BookOpen, ClipboardList, LogOut, User, Menu, Award, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { UserProfileResponse } from '@/features/auth/backend/profile-service';
 
 export function GlobalNavigation() {
   const { user, isLoading } = useCurrentUser();
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+
+  // 사용자 프로필 조회 (role 포함)
+  const { data: profile } = useQuery<UserProfileResponse>({
+    queryKey: ['userProfile', user?.id],
+    queryFn: async () => {
+      try {
+        const response = await apiClient.get<{ data: UserProfileResponse }>('/api/auth/profile');
+        return response.data.data;
+      } catch (err) {
+        console.error('프로필 조회 실패:', extractApiErrorMessage(err, 'Failed to fetch profile'));
+        return null;
+      }
+    },
+    enabled: !!user?.id && mounted,
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -30,26 +48,24 @@ export function GlobalNavigation() {
   }
 
   // 인증되지 않은 사용자는 네비게이션 표시 안 함
-  if (!user) {
+  if (!user || !profile) {
     return null;
   }
 
-  const isInstructor = user.role === 'instructor';
-  const isOperator = user.role === 'operator';
-  const isLearner = user.role === 'learner';
+  // 강사(instructor)에만 네비게이션 표시
+  if (profile.role !== 'instructor') {
+    return null;
+  }
+
+  // 강사(instructor)만 네비게이션이 렌더링되므로 항상 true
+  const isInstructor = true;
 
   const getRoleLabel = () => {
-    if (isInstructor) return '강사';
-    if (isOperator) return '운영자';
-    if (isLearner) return '러너';
-    return '미설정';
+    return '강사';
   };
 
   const getRoleColor = () => {
-    if (isInstructor) return 'bg-blue-100 text-blue-800';
-    if (isOperator) return 'bg-red-100 text-red-800';
-    if (isLearner) return 'bg-green-100 text-green-800';
-    return 'bg-gray-100 text-gray-800';
+    return 'bg-blue-100 text-blue-800';
   };
 
   const handleLogout = async () => {
@@ -145,13 +161,13 @@ export function GlobalNavigation() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
                   <User className="h-4 w-4" />
-                  <span className="hidden sm:inline text-xs">{user?.email || '사용자'}</span>
+                  <span className="hidden sm:inline text-xs">{profile?.email || '사용자'}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-2 py-2 border-b">
-                  <p className="text-xs font-medium text-gray-700">{user?.name}</p>
-                  <p className="text-xs text-gray-500">{user?.email}</p>
+                  <p className="text-xs font-medium text-gray-700">{profile?.name}</p>
+                  <p className="text-xs text-gray-500">{profile?.email}</p>
                   <p className="text-xs text-gray-500 mt-1">역할: {getRoleLabel()}</p>
                 </div>
                 <DropdownMenuSeparator />
