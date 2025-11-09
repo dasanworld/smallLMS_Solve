@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Home, BookOpen, ClipboardList, LogOut, User, Menu } from 'lucide-react';
+import { Home, BookOpen, ClipboardList, LogOut, User, Menu, Award, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function GlobalNavigation() {
@@ -32,6 +32,20 @@ export function GlobalNavigation() {
   const isOperator = user.role === 'operator';
   const isLearner = user.role === 'learner';
 
+  const getRoleLabel = () => {
+    if (isInstructor) return '강사';
+    if (isOperator) return '운영자';
+    if (isLearner) return '학습자';
+    return '사용자';
+  };
+
+  const getRoleColor = () => {
+    if (isInstructor) return 'bg-blue-100 text-blue-800';
+    if (isOperator) return 'bg-red-100 text-red-800';
+    if (isLearner) return 'bg-green-100 text-green-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
@@ -48,8 +62,8 @@ export function GlobalNavigation() {
           </Link>
 
           {/* 데스크톱 메뉴 */}
-          <div className="hidden md:flex items-center gap-6">
-            {/* 공통 메뉴 */}
+          <div className="hidden md:flex items-center gap-8">
+            {/* 공통 메뉴 - 홈 */}
             <Link
               href="/"
               className={cn(
@@ -61,106 +75,84 @@ export function GlobalNavigation() {
               홈
             </Link>
 
-            {/* 강사 메뉴 */}
+            {/* 공통 메뉴 - 대시보드 */}
+            <Link
+              href={isInstructor ? '/instructor-dashboard' : isOperator ? '/operator-dashboard' : '/dashboard'}
+              className={cn(
+                'flex items-center gap-1.5 text-sm font-medium transition-colors',
+                (pathname === '/instructor-dashboard' || pathname === '/operator-dashboard' || pathname === '/dashboard')
+                  ? 'text-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              )}
+            >
+              <ClipboardList className="h-4 w-4" />
+              대시보드
+            </Link>
+
+            {/* 강사/학습자 메뉴 - 코스관리 */}
+            {(isInstructor || isLearner) && (
+              <Link
+                href={isInstructor ? '/courses' : '/explore-courses'}
+                className={cn(
+                  'flex items-center gap-1.5 text-sm font-medium transition-colors',
+                  (isInstructor && pathname.startsWith('/courses')) || (isLearner && pathname === '/explore-courses')
+                    ? 'text-blue-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                )}
+              >
+                <BookOpen className="h-4 w-4" />
+                {isInstructor ? '코스관리' : '강의'}
+              </Link>
+            )}
+
+            {/* 강사 메뉴 - 과제관리 */}
             {isInstructor && (
-              <>
-                <Link
-                  href="/instructor-dashboard"
-                  className={cn(
-                    'flex items-center gap-1.5 text-sm font-medium transition-colors',
-                    pathname === '/instructor-dashboard'
-                      ? 'text-blue-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  )}
-                >
-                  <ClipboardList className="h-4 w-4" />
-                  대시보드
-                </Link>
-                <Link
-                  href="/courses"
-                  className={cn(
-                    'flex items-center gap-1.5 text-sm font-medium transition-colors',
-                    pathname.startsWith('/courses') ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
-                  )}
-                >
-                  <BookOpen className="h-4 w-4" />
-                  코스
-                </Link>
-                <Link
-                  href="/courses/assignments"
-                  className={cn(
-                    'flex items-center gap-1.5 text-sm font-medium transition-colors',
-                    pathname === '/courses/assignments'
-                      ? 'text-blue-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  )}
-                >
-                  <ClipboardList className="h-4 w-4" />
-                  모든 과제
-                </Link>
-              </>
+              <Link
+                href="/courses/assignments"
+                className={cn(
+                  'flex items-center gap-1.5 text-sm font-medium transition-colors',
+                  pathname === '/courses/assignments' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
+                )}
+              >
+                <Award className="h-4 w-4" />
+                과제관리
+              </Link>
             )}
 
-            {/* 학습자 메뉴 */}
-            {isLearner && (
-              <>
-                <Link
-                  href="/dashboard"
-                  className={cn(
-                    'flex items-center gap-1.5 text-sm font-medium transition-colors',
-                    pathname === '/dashboard' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
-                  )}
-                >
-                  <ClipboardList className="h-4 w-4" />
-                  대시보드
-                </Link>
-                <Link
-                  href="/explore-courses"
-                  className={cn(
-                    'flex items-center gap-1.5 text-sm font-medium transition-colors',
-                    pathname === '/explore-courses'
-                      ? 'text-blue-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  )}
-                >
-                  <BookOpen className="h-4 w-4" />
-                  강의 둘러보기
-                </Link>
-              </>
-            )}
-
-            {/* 운영자 메뉴 */}
-            {isOperator && (
-              <>
-                <Link
-                  href="/operator-dashboard"
-                  className={cn(
-                    'flex items-center gap-1.5 text-sm font-medium transition-colors',
-                    pathname === '/operator-dashboard'
-                      ? 'text-blue-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  )}
-                >
-                  <ClipboardList className="h-4 w-4" />
-                  관리자 대시보드
-                </Link>
-              </>
+            {/* 강사 메뉴 - 채점관리 (TBD) */}
+            {isInstructor && (
+              <Link
+                href="#"
+                className="flex items-center gap-1.5 text-sm font-medium text-gray-400 cursor-not-allowed"
+                onClick={(e) => e.preventDefault()}
+              >
+                <BarChart3 className="h-4 w-4" />
+                채점관리
+              </Link>
             )}
           </div>
 
           {/* 사용자 메뉴 */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* 역할 배지 */}
+            <div className={cn('px-3 py-1.5 rounded-full text-xs font-medium', getRoleColor())}>
+              {getRoleLabel()}
+            </div>
+
+            {/* 사용자 드롭다운 */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
                   <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">{user?.name || '사용자'}</span>
+                  <span className="hidden sm:inline text-xs">{user?.email || '사용자'}</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem disabled>
-                  <span className="text-xs text-gray-500">{user?.email}</span>
-                </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-2 py-2 border-b">
+                  <p className="text-xs font-medium text-gray-700">{user?.name}</p>
+                  <p className="text-xs text-gray-500">{user?.email}</p>
+                  <p className="text-xs text-gray-500 mt-1">역할: {getRoleLabel()}</p>
+                </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                   <LogOut className="h-4 w-4 mr-2" />
@@ -177,7 +169,7 @@ export function GlobalNavigation() {
                     <Menu className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem asChild>
                     <Link href="/" className="flex items-center gap-2">
                       <Home className="h-4 w-4" />
@@ -185,58 +177,48 @@ export function GlobalNavigation() {
                     </Link>
                   </DropdownMenuItem>
 
+                  <DropdownMenuSeparator />
+
+                  {/* 대시보드 */}
+                  <DropdownMenuItem asChild>
+                    <Link 
+                      href={isInstructor ? '/instructor-dashboard' : isOperator ? '/operator-dashboard' : '/dashboard'}
+                      className="flex items-center gap-2"
+                    >
+                      <ClipboardList className="h-4 w-4" />
+                      대시보드
+                    </Link>
+                  </DropdownMenuItem>
+
+                  {/* 코스관리 */}
+                  {(isInstructor || isLearner) && (
+                    <DropdownMenuItem asChild>
+                      <Link 
+                        href={isInstructor ? '/courses' : '/explore-courses'}
+                        className="flex items-center gap-2"
+                      >
+                        <BookOpen className="h-4 w-4" />
+                        {isInstructor ? '코스관리' : '강의'}
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+
+                  {/* 과제관리 */}
                   {isInstructor && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link href="/instructor-dashboard" className="flex items-center gap-2">
-                          <ClipboardList className="h-4 w-4" />
-                          대시보드
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/courses" className="flex items-center gap-2">
-                          <BookOpen className="h-4 w-4" />
-                          코스
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/courses/assignments" className="flex items-center gap-2">
-                          <ClipboardList className="h-4 w-4" />
-                          모든 과제
-                        </Link>
-                      </DropdownMenuItem>
-                    </>
+                    <DropdownMenuItem asChild>
+                      <Link href="/courses/assignments" className="flex items-center gap-2">
+                        <Award className="h-4 w-4" />
+                        과제관리
+                      </Link>
+                    </DropdownMenuItem>
                   )}
 
-                  {isLearner && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link href="/dashboard" className="flex items-center gap-2">
-                          <ClipboardList className="h-4 w-4" />
-                          대시보드
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/explore-courses" className="flex items-center gap-2">
-                          <BookOpen className="h-4 w-4" />
-                          강의 둘러보기
-                        </Link>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-
-                  {isOperator && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link href="/operator-dashboard" className="flex items-center gap-2">
-                          <ClipboardList className="h-4 w-4" />
-                          관리자 대시보드
-                        </Link>
-                      </DropdownMenuItem>
-                    </>
+                  {/* 채점관리 */}
+                  {isInstructor && (
+                    <DropdownMenuItem disabled className="text-gray-400 cursor-not-allowed">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      채점관리
+                    </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
