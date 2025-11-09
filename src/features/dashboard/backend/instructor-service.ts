@@ -27,7 +27,7 @@ const ENROLLMENTS_TABLE = 'enrollments';
 export const getInstructorDashboardService = async (
   client: SupabaseClient,
   userId: string,
-): Promise<HandlerResult<InstructorDashboardResponse, DashboardServiceAffected> => {
+): Promise<HandlerResult<InstructorDashboardResponse, DashboardServiceError>> => {
   // Get instructor's courses (소프트 삭제 필터 추가)
   const { data: courses, error: coursesError } = await client
     .from(COURSES_TABLE)
