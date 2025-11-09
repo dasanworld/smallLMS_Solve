@@ -173,7 +173,7 @@ interface CourseCatalogCardProps {
 function CourseCatalogCard({ course }: CourseCatalogCardProps) {
   const statusConfig = {
     draft: { label: '초안', color: 'bg-gray-100 text-gray-800' },
-    active: { label: '진행 중', color: 'bg-blue-100 text-blue-800' },
+    published: { label: '진행 중', color: 'bg-blue-100 text-blue-800' },
     archived: { label: '종료', color: 'bg-gray-100 text-gray-800' },
   };
 
