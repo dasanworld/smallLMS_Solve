@@ -65,7 +65,7 @@ export default function EditCoursePage() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-8">
         <div className="space-y-4">
-          <Link href="/courses">
+          <Link href={`/courses/${courseId}`}>
             <Button variant="outline" size="icon" className="h-10 w-10">
               <ArrowLeft className="h-4 w-4" />
             </Button>
