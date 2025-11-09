@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useInstructorDashboardQuery } from '@/features/dashboard/hooks/useInstructorDashboardQuery';
 import { type InstructorDashboardResponse } from '@/features/dashboard/backend/instructor-schema';
 import { DashboardMetrics } from '@/features/dashboard/components/DashboardMetrics';
@@ -9,7 +10,8 @@ import { RecentSubmissionsList, type RecentSubmissionsListProps } from '@/featur
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Users, BookOpen, FileText, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, Users, BookOpen, FileText, Clock, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function InstructorDashboard() {
@@ -98,8 +100,17 @@ export default function InstructorDashboard() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>내 코스</CardTitle>
-            <Badge variant="secondary">{courses.length}개 코스</Badge>
+            <div className="flex items-center gap-2">
+              <CardTitle>내 코스</CardTitle>
+              <Badge variant="secondary">{courses.length}개 코스</Badge>
+            </div>
+            {/* ✅ 코스 만들기 버튼 */}
+            <Link href="/courses">
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                코스 만들기
+              </Button>
+            </Link>
           </div>
         </CardHeader>
         <CardContent>
@@ -107,7 +118,13 @@ export default function InstructorDashboard() {
             <div className="text-center py-8 text-muted-foreground">
               <BookOpen className="mx-auto h-12 w-12" />
               <p className="mt-2">아직 코스가 없습니다.</p>
-              <p className="text-sm">코스를 만들어서 시작하세요.</p>
+              <p className="text-sm mb-4">코스를 만들어서 시작하세요.</p>
+              <Link href="/courses">
+                <Button variant="outline" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  첫 코스 만들기
+                </Button>
+              </Link>
             </div>
           ) : (
             <div className="space-y-4">
