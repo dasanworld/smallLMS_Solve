@@ -115,7 +115,7 @@ export function GlobalNavigation() {
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
+    router.push('/');
   };
 
   const menuItems = getMenuItems();
