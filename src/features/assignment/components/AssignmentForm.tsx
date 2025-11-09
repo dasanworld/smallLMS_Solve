@@ -42,6 +42,7 @@ export const AssignmentForm = ({
     formState: { errors },
     watch,
     setValue,
+    getValues,
   } = useForm<CreateAssignmentRequest>({
     resolver: zodResolver(CreateAssignmentRequestSchema),
     defaultValues: assignment ? {
@@ -54,18 +55,22 @@ export const AssignmentForm = ({
       allowResubmission: assignment.allowResubmission,
     } : {
       courseId,
+      dueDate: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       allowLate: false,
       allowResubmission: false,
     },
   });
 
   const pointsWeight = watch('pointsWeight');
+  const dueDateValue = watch('dueDate');
 
   // datetime-local 입력 값을 ISO 8601 datetime으로 변환
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const localDateTime = e.target.value; // YYYY-MM-DDTHH:mm
+    const localDateTime = e.target.value; // YYYY-MM-DDTHH:mm (로컬 시간)
     if (localDateTime) {
-      // 로컬 시간을 ISO 문자열로 변환 (밀리초 추가)
+      // 로컬 시간을 ISO 문자열로 변환
+      // datetime-local은 이미 사용자의 로컬 시간대로 입력되므로
+      // 직접 ISO 형식으로 변환하되, 초(ss) 포함
       const isoDateTime = new Date(`${localDateTime}:00`).toISOString();
       setValue('dueDate', isoDateTime);
     }
@@ -73,12 +78,16 @@ export const AssignmentForm = ({
 
   // ISO datetime을 datetime-local 형식으로 변환
   const formatDateForInput = (isoString: string) => {
+    // ISO 문자열(UTC)을 로컬 시간으로 변환
     const date = new Date(isoString);
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    
+    // 로컬 시간대로 변환
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
@@ -142,9 +151,8 @@ export const AssignmentForm = ({
             <label className="block text-sm font-medium mb-2">마감일 *</label>
             <input
               type="datetime-local"
-              {...register('dueDate')}
+              value={dueDateValue ? formatDateForInput(dueDateValue) : ''}
               onChange={handleDateChange}
-              defaultValue={assignment ? formatDateForInput(assignment.dueDate) : formatDateForInput(new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString())}
               disabled={isLoading}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
