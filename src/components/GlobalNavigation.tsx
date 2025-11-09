@@ -35,7 +35,7 @@ export function GlobalNavigation() {
   const getRoleLabel = () => {
     if (isInstructor) return '강사';
     if (isOperator) return '운영자';
-    if (isLearner) return '학습자';
+    if (isLearner) return '러너';
     return '사용자';
   };
 
