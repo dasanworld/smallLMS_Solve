@@ -735,7 +735,6 @@ export const submitAssignmentService = async (
           status: 'submitted',
           is_late: isLate,
           submitted_at: now.toISOString(),
-          updated_at: now.toISOString(),
         })
         .eq('id', existingSubmission.id)
         .select()
@@ -759,8 +758,6 @@ export const submitAssignmentService = async (
           status: 'submitted',
           is_late: isLate,
           submitted_at: now.toISOString(),
-          created_at: now.toISOString(),
-          updated_at: now.toISOString(),
         })
         .select()
         .single();
