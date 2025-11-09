@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Search, BookOpen, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Search, BookOpen, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Course } from '../backend/schema';
 
@@ -214,14 +215,25 @@ function CourseCatalogCard({ course }: CourseCatalogCardProps) {
           )}
         </div>
 
-        {/* 수강신청 버튼 */}
-        <Button 
-          className="mt-auto w-full" 
-          variant={course.status === 'active' ? 'default' : 'outline'}
-          disabled={course.status !== 'active'}
-        >
-          {course.status === 'active' ? '수강신청' : '수강신청 불가'}
-        </Button>
+        {/* 버튼 그룹 */}
+        <div className="mt-auto flex gap-2 w-full">
+          <Link href={`/courses/${course.id}`} className="flex-1">
+            <Button 
+              className="w-full" 
+              variant="outline"
+            >
+              상세보기
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+          <Button 
+            className="flex-1" 
+            variant={course.status === 'active' ? 'default' : 'outline'}
+            disabled={course.status !== 'active'}
+          >
+            {course.status === 'active' ? '수강신청' : '수강신청 불가'}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

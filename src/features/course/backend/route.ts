@@ -166,15 +166,30 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
     try {
       const courseId = c.req.param('id');
       const user = getUser(c);
+      const logger = c.get('logger');
 
       const supabase = c.get('supabase');
+      
+      logger.info('📚 GET /api/courses/:id 요청', { courseId, userId: user?.id });
+      
       const result = await getCourseByIdService(
         supabase,
         courseId,
         user?.id
       );
-      return respond(c, result);
+      
+      if (!result.ok) {
+        logger.warn('❌ 코스 조회 실패', { courseId, error: (result as any).error });
+        return respond(c, result);
+      }
+      
+      logger.info('✅ 코스 조회 완료', { courseId });
+      
+      // ✅ API 응답 형식 통일: { data: course }
+      return respond(c, success({ data: result.value }));
     } catch (error) {
+      const logger = c.get('logger');
+      logger.error('❌ 코스 조회 에러', { error: String(error) });
       return respond(
         c,
         failure(500, courseErrorCodes.COURSE_UPDATE_ERROR, String(error))
