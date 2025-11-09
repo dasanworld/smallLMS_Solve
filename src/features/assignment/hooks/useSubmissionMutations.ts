@@ -8,6 +8,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/remote/api-client';
 import type {
   GradeSubmissionRequest,
+  SubmitAssignmentRequest,
   SubmissionResponse,
 } from '../backend/schema';
 
@@ -39,6 +40,35 @@ export const useGradeSubmissionMutation = () => {
       });
       queryClient.invalidateQueries({
         queryKey: ['submission-stats', data.assignmentId],
+      });
+    },
+  });
+};
+
+/**
+ * 과제 제출 Mutation Hook (러너용)
+ */
+export const useSubmitAssignmentMutation = (courseId: string, assignmentId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: SubmitAssignmentRequest) => {
+      const response = await apiClient.post<SubmissionResponse>(
+        `/api/courses/${courseId}/assignments/${assignmentId}/submit`,
+        {
+          content: data.content,
+          link: data.link,
+        }
+      );
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // 캐시 업데이트
+      queryClient.invalidateQueries({
+        queryKey: ['assignment', courseId, assignmentId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['user-submissions', courseId, assignmentId],
       });
     },
   });

@@ -12,6 +12,7 @@ import {
   UpdateAssignmentRequestSchema,
   UpdateAssignmentStatusRequestSchema,
   GradeSubmissionRequestSchema,
+  SubmitAssignmentRequestSchema,
 } from './schema';
 import {
   createAssignmentService,
@@ -22,6 +23,7 @@ import {
   getAssignmentSubmissionsService,
   gradeSubmissionService,
   getSubmissionStatsService,
+  submitAssignmentService,
 } from './service';
 
 /**
@@ -377,6 +379,43 @@ export const createAssignmentRoutes = (app: Hono<AppEnv>) => {
       const result = await gradeSubmissionService(
         { supabase, logger },
         userId,
+        validated
+      );
+
+      return respond(c, result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return c.json({ error: '유효하지 않은 입력입니다', details: error.errors }, 400);
+      }
+      throw error;
+    }
+  });
+
+  // ============ Assignment 제출 라우트 (러너용) ============
+
+  /**
+   * POST /api/courses/:courseId/assignments/:assignmentId/submit
+   * 과제 제출 (러너)
+   */
+  app.post('/api/courses/:courseId/assignments/:assignmentId/submit', async (c) => {
+    const userId = c.get('user')?.id;
+    if (!userId) {
+      return c.json({ error: '인증이 필요합니다' }, 401);
+    }
+
+    try {
+      const courseId = c.req.param('courseId');
+      const assignmentId = c.req.param('assignmentId');
+      const body = await c.req.json();
+      const validated = SubmitAssignmentRequestSchema.parse(body);
+
+      const supabase = getSupabase(c);
+      const logger = getLogger(c);
+      const result = await submitAssignmentService(
+        { supabase, logger },
+        userId,
+        courseId,
+        assignmentId,
         validated
       );
 

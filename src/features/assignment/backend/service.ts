@@ -10,6 +10,7 @@ import type {
   CreateAssignmentRequest,
   UpdateAssignmentRequest,
   GradeSubmissionRequest,
+  SubmitAssignmentRequest,
   AssignmentResponse,
   AssignmentListResponse,
   SubmissionResponse,
@@ -648,5 +649,149 @@ function computeSubmissionStats(
     resubmissionRequired: stats.resubmissionRequired,
     averageScore,
   };
+}
+
+// ============ Submission 제출 서비스 (러너용) ============
+
+/**
+ * 과제 제출 서비스
+ * - 사용자 등록 상태 확인
+ * - 과제 상태 검증 (published만 제출 가능)
+ * - 마감일 검증
+ * - 제출물 생성 또는 업데이트
+ */
+export const submitAssignmentService = async (
+  deps: Dependencies,
+  userId: string,
+  courseId: string,
+  assignmentId: string,
+  data: SubmitAssignmentRequest
+): Promise<HandlerResult<SubmissionResponse, AssignmentErrorCode, unknown>> => {
+  const { supabase, logger } = deps;
+
+  try {
+    // 1. 사용자 등록 상태 확인
+    const { data: enrollment, error: enrollmentError } = await supabase
+      .from('enrollments')
+      .select('id')
+      .eq('course_id', courseId)
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .single();
+
+    if (enrollmentError || !enrollment) {
+      logger.warn('User not enrolled in course', { userId, courseId });
+      return failure(403, assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 'User not enrolled in course');
+    }
+
+    // 2. 과제 상태 확인
+    const { data: assignment, error: assignmentError } = await supabase
+      .from('assignments')
+      .select('id, due_date, status, allow_late')
+      .eq('id', assignmentId)
+      .eq('course_id', courseId)
+      .is('deleted_at', null)
+      .single();
+
+    if (assignmentError || !assignment) {
+      logger.warn('Assignment not found', { assignmentId, courseId });
+      return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found');
+    }
+
+    // 3. 과제 상태 검증 (published만 제출 가능)
+    if (assignment.status !== 'published') {
+      logger.warn('Assignment not available for submission', { assignmentId, status: assignment.status });
+      return failure(400, assignmentErrorCodes.ASSIGNMENT_CLOSED, 'Assignment is not available for submission');
+    }
+
+    // 4. 마감일 검증
+    const now = new Date();
+    const dueDate = new Date(assignment.due_date);
+    const isLate = now > dueDate;
+
+    if (isLate && !assignment.allow_late) {
+      logger.warn('Late submission not allowed', { assignmentId, userId });
+      return failure(400, assignmentErrorCodes.SUBMISSION_PAST_DUE_DATE, 'Late submission is not allowed');
+    }
+
+    // 5. 기존 제출물 확인 (재제출인지 확인)
+    const { data: existingSubmission } = await supabase
+      .from('submissions')
+      .select('id, status')
+      .eq('assignment_id', assignmentId)
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .single();
+
+    // 6. 제출물 생성 또는 업데이트
+    let submission;
+    if (existingSubmission) {
+      // 재제출인 경우 업데이트
+      const { data: updated, error: updateError } = await supabase
+        .from('submissions')
+        .update({
+          content: data.content,
+          link: data.link || null,
+          status: 'submitted',
+          is_late: isLate,
+          submitted_at: now.toISOString(),
+          updated_at: now.toISOString(),
+        })
+        .eq('id', existingSubmission.id)
+        .select()
+        .single();
+
+      if (updateError || !updated) {
+        logger.error('Failed to update submission', { assignmentId, userId, error: updateError });
+        return failure(500, assignmentErrorCodes.INTERNAL_SERVER_ERROR, 'Failed to submit assignment');
+      }
+
+      submission = updated;
+    } else {
+      // 새 제출물 생성
+      const { data: created, error: createError } = await supabase
+        .from('submissions')
+        .insert({
+          assignment_id: assignmentId,
+          user_id: userId,
+          content: data.content,
+          link: data.link || null,
+          status: 'submitted',
+          is_late: isLate,
+          submitted_at: now.toISOString(),
+          created_at: now.toISOString(),
+          updated_at: now.toISOString(),
+        })
+        .select()
+        .single();
+
+      if (createError || !created) {
+        logger.error('Failed to create submission', { assignmentId, userId, error: createError });
+        return failure(500, assignmentErrorCodes.INTERNAL_SERVER_ERROR, 'Failed to submit assignment');
+      }
+
+      submission = created;
+    }
+
+    logger.info('Assignment submitted successfully', { assignmentId, userId, submissionId: submission.id });
+
+    return success(200, {
+      id: submission.id,
+      assignmentId: submission.assignment_id,
+      userId: submission.user_id,
+      content: submission.content,
+      link: submission.link,
+      status: submission.status,
+      isLate: submission.is_late,
+      score: submission.score,
+      feedback: submission.feedback,
+      gradedAt: submission.graded_at,
+      submittedAt: submission.submitted_at,
+      updatedAt: submission.updated_at,
+    });
+  } catch (error) {
+    logger.error('Submit assignment service error', { error });
+    return failure(500, assignmentErrorCodes.INTERNAL_SERVER_ERROR, 'Internal server error');
+  }
 }
 

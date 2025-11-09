@@ -78,6 +78,16 @@ export type AssignmentListResponse = z.infer<typeof AssignmentListResponseSchema
 // ============ Submission 관련 스키마 ============
 
 /**
+ * 과제 제출 요청 스키마 (러너용)
+ */
+export const SubmitAssignmentRequestSchema = z.object({
+  content: z.string().min(1, '제출 내용은 필수입니다').max(10000, '제출 내용은 10000자 이하여야 합니다'),
+  link: z.string().url('유효한 URL을 입력하세요').optional().nullable(),
+});
+
+export type SubmitAssignmentRequest = z.infer<typeof SubmitAssignmentRequestSchema>;
+
+/**
  * 제출물 채점 요청 스키마
  */
 export const GradeSubmissionRequestSchema = z.object({

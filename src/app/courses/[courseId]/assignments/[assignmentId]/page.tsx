@@ -1,18 +1,20 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { useUpdateAssignmentStatusMutation } from '@/features/assignment/hooks/useAssignmentMutations';
+import { useSubmitAssignmentMutation } from '@/features/assignment/hooks/useSubmissionMutations';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, ArrowLeft, Edit, FileText, RefreshCw, Play, Lock } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Edit, FileText, RefreshCw, Play, Lock, Send } from 'lucide-react';
 import type { AssignmentResponse } from '@/features/assignment/backend/schema';
 import type { UserProfileResponse } from '@/features/auth/backend/profile-service';
 import { formatDistanceToNow } from 'date-fns';
@@ -37,11 +39,17 @@ const formatDateTime = (dateValue: string | Date | null | undefined): string => 
 
 export default function AssignmentDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const courseId = params.courseId as string;
   const assignmentId = params.assignmentId as string;
   const { user } = useCurrentUser();
   const { toast } = useToast();
   const updateStatusMutation = useUpdateAssignmentStatusMutation();
+  const submitMutation = useSubmitAssignmentMutation(courseId, assignmentId);
+
+  // 제출 폼 상태
+  const [submitContent, setSubmitContent] = useState('');
+  const [submitLink, setSubmitLink] = useState('');
 
   // 사용자 프로필 조회 (역할 확인)
   const { data: profile } = useQuery<UserProfileResponse | null>({
@@ -87,6 +95,43 @@ export default function AssignmentDetailPage() {
 
   const handleRefresh = async () => {
     await refetch();
+  };
+
+  // 과제 제출 핸들러
+  const handleSubmit = async () => {
+    if (!submitContent.trim()) {
+      toast({
+        title: '오류',
+        description: '제출 내용은 필수입니다.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    submitMutation.mutate(
+      {
+        content: submitContent,
+        link: submitLink || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: '성공',
+            description: '과제가 제출되었습니다.',
+          });
+          setSubmitContent('');
+          setSubmitLink('');
+        },
+        onError: (error) => {
+          const message = error instanceof Error ? error.message : '제출에 실패했습니다.';
+          toast({
+            title: '오류',
+            description: message,
+            variant: 'destructive',
+          });
+        },
+      }
+    );
   };
 
   // 과제 상태 변경 핸들러
@@ -283,18 +328,81 @@ export default function AssignmentDetailPage() {
           </CardContent>
         </Card>
 
-        {/* 제출물 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>제출물</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-slate-500">
-              <FileText className="h-12 w-12 mx-auto mb-3 text-slate-400" />
-              <p className="text-sm">제출물 관리 기능은 준비 중입니다.</p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* 제출물 - 강사는 제출 폼 숨김 */}
+        {profile?.role !== 'instructor' && assignment?.status === 'published' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>과제 제출</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  제출 내용 <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  value={submitContent}
+                  onChange={(e) => setSubmitContent(e.target.value)}
+                  placeholder="과제 내용을 입력하세요"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={6}
+                  disabled={submitMutation.isPending}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  관련 링크 (선택사항)
+                </label>
+                <input
+                  type="url"
+                  value={submitLink}
+                  onChange={(e) => setSubmitLink(e.target.value)}
+                  placeholder="https://example.com"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={submitMutation.isPending}
+                />
+              </div>
+
+              {new Date() > new Date(assignment.dueDate) && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    마감일을 넘었습니다. {assignment.allowLate ? '지각 제출이 허용됩니다.' : '지각 제출은 허용되지 않습니다.'}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                onClick={handleSubmit}
+                disabled={submitMutation.isPending || !submitContent.trim()}
+                className="w-full gap-2"
+              >
+                <Send className="h-4 w-4" />
+                {submitMutation.isPending ? '제출 중...' : '제출하기'}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 강사용 제출물 안내 */}
+        {profile?.role === 'instructor' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>제출물</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-slate-500">
+                <FileText className="h-12 w-12 mx-auto mb-3 text-slate-400" />
+                <p className="text-sm">학생 제출물 관리는 과제 관리 페이지에서 진행하세요.</p>
+                <Link href={`/courses/${courseId}/assignments/${assignmentId}/submissions`}>
+                  <Button variant="outline" className="mt-4">
+                    제출물 관리
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
