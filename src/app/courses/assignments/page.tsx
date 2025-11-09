@@ -191,6 +191,40 @@ export default function AllAssignmentsPage() {
 
   const isLoading = coursesLoading || assignmentsLoading;
 
+  // 강사만 과제 생성 가능
+  const isInstructor = userRole === 'instructor';
+  const pageTitle = isInstructor ? '모든 과제' : '나의 과제';
+  const pageDescription = isInstructor ? '모든 코스의 과제를 한눈에 관리하세요' : '등록한 코스의 과제를 확인하고 제출하세요';
+
+  // coursesWithAssignments가 로드된 후 러너의 제출 정보 조회
+  // ⚠️ IMPORTANT: 모든 hooks는 early return 이전에 호출되어야 함
+  useEffect(() => {
+    if (userRole === 'learner' && coursesWithAssignments.length > 0) {
+      const fetchSubmissions = async () => {
+        const submissions = new Map<string, UserSubmission>();
+
+        for (const course of coursesWithAssignments) {
+          for (const assignment of course.assignments) {
+            try {
+              const response = await apiClient.get<UserSubmission>(
+                `/api/courses/${course.id}/assignments/${assignment.id}/my-submission`
+              );
+              submissions.set(assignment.id, response.data);
+            } catch (err) {
+              // 제출이 없는 경우 무시
+              console.debug(`No submission found for assignment ${assignment.id}`);
+            }
+          }
+        }
+
+        setUserSubmissions(submissions);
+      };
+
+      fetchSubmissions();
+    }
+  }, [userRole, coursesWithAssignments]);
+
+  // Early returns 이후로 계속 진행
   if (isLoading) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
@@ -226,38 +260,6 @@ export default function AllAssignmentsPage() {
       </div>
     );
   }
-
-  // 강사만 과제 생성 가능
-  const isInstructor = userRole === 'instructor';
-  const pageTitle = isInstructor ? '모든 과제' : '나의 과제';
-  const pageDescription = isInstructor ? '모든 코스의 과제를 한눈에 관리하세요' : '등록한 코스의 과제를 확인하고 제출하세요';
-
-  // coursesWithAssignments가 로드된 후 러너의 제출 정보 조회
-  useEffect(() => {
-    if (userRole === 'learner' && coursesWithAssignments.length > 0) {
-      const fetchSubmissions = async () => {
-        const submissions = new Map<string, UserSubmission>();
-
-        for (const course of coursesWithAssignments) {
-          for (const assignment of course.assignments) {
-            try {
-              const response = await apiClient.get<UserSubmission>(
-                `/api/courses/${course.id}/assignments/${assignment.id}/my-submission`
-              );
-              submissions.set(assignment.id, response.data);
-            } catch (err) {
-              // 제출이 없는 경우 무시
-              console.debug(`No submission found for assignment ${assignment.id}`);
-            }
-          }
-        }
-
-        setUserSubmissions(submissions);
-      };
-
-      fetchSubmissions();
-    }
-  }, [userRole, coursesWithAssignments]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
