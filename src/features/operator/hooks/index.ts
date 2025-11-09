@@ -189,7 +189,6 @@ export const useMetadata = (): UseMetadataReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Creating category: ${name}`, { description });
       // Add to local state
       const newCategory: Category = {
         id: categories.length + 1,
@@ -213,7 +212,6 @@ export const useMetadata = (): UseMetadataReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Creating difficulty: ${name}`, { description, sort_order });
       // Add to local state
       const newDifficulty: Difficulty = {
         id: difficulties.length + 1,
@@ -238,7 +236,6 @@ export const useMetadata = (): UseMetadataReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Updating category ${id}: ${name}`, { description });
       // Update in local state
       setCategories(prev => 
         prev.map(cat => 
@@ -258,7 +255,6 @@ export const useMetadata = (): UseMetadataReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Updating difficulty ${id}: ${name}`, { description, sort_order });
       // Update in local state
       setDifficulties(prev => 
         prev.map(diff => 
@@ -278,7 +274,6 @@ export const useMetadata = (): UseMetadataReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Deactivating category ${id}`);
       // Update in local state
       setCategories(prev => 
         prev.map(cat => 
@@ -298,7 +293,6 @@ export const useMetadata = (): UseMetadataReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Deactivating difficulty ${id}`);
       // Update in local state
       setDifficulties(prev => 
         prev.map(diff => 
@@ -387,7 +381,6 @@ export const useCategoryManagement = (): UseCategoryManagementReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Creating category: ${name}`, { description });
       // Add to local state
       const newCategory: Category = {
         id: categories.length + 1,
@@ -411,7 +404,6 @@ export const useCategoryManagement = (): UseCategoryManagementReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Updating category ${id}: ${name}`, { description });
       // Update in local state
       setCategories(prev => 
         prev.map(cat => 
@@ -431,7 +423,6 @@ export const useCategoryManagement = (): UseCategoryManagementReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Deactivating category ${id}`);
       // Update in local state
       setCategories(prev => 
         prev.map(cat => 
@@ -518,7 +509,6 @@ export const useDifficultyManagement = (): UseDifficultyManagementReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Creating difficulty: ${name}`, { description, sort_order });
       // Add to local state
       const newDifficulty: Difficulty = {
         id: difficulties.length + 1,
@@ -543,7 +533,6 @@ export const useDifficultyManagement = (): UseDifficultyManagementReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Updating difficulty ${id}: ${name}`, { description, sort_order });
       // Update in local state
       setDifficulties(prev => 
         prev.map(diff => 
@@ -563,7 +552,6 @@ export const useDifficultyManagement = (): UseDifficultyManagementReturn => {
     
     try {
       // In a real implementation, this would make an API call
-      console.log(`Deactivating difficulty ${id}`);
       // Update in local state
       setDifficulties(prev => 
         prev.map(diff => 

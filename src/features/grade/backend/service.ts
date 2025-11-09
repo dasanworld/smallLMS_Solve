@@ -390,7 +390,6 @@ export const gradeSubmissionService = async (
 
     return success(parsed.data);
   } catch (error) {
-    console.error('Error in gradeSubmissionService:', error);
     return failure(
       500,
       gradeErrorCodes.GRADES_FETCH_ERROR,
@@ -503,7 +502,6 @@ export const getSubmissionForGradingService = async (
 
     return success(parsed.data);
   } catch (error) {
-    console.error('Error in getSubmissionForGradingService:', error);
     return failure(
       500,
       gradeErrorCodes.GRADES_FETCH_ERROR,
@@ -636,7 +634,6 @@ export const getInstructorSubmissionsService = async (
 
     return success(parsed.data);
   } catch (error) {
-    console.error('Error in getInstructorSubmissionsService:', error);
     return failure(
       500,
       gradeErrorCodes.GRADES_FETCH_ERROR,
@@ -757,7 +754,6 @@ export const getAssignmentSubmissionsService = async (
 
     return success(parsed.data);
   } catch (error) {
-    console.error('Error in getAssignmentSubmissionsService:', error);
     return failure(
       500,
       gradeErrorCodes.GRADES_FETCH_ERROR,
