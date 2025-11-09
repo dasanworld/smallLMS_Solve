@@ -25,7 +25,7 @@ export function GlobalNavigation() {
   const [mounted, setMounted] = useState(false);
 
   // 사용자 프로필 조회 (role 포함)
-  const { data: profile } = useQuery<UserProfileResponse>({
+  const { data: profile, isLoading: profileLoading } = useQuery<UserProfileResponse | null>({
     queryKey: ['userProfile', user?.id],
     queryFn: async () => {
       try {
@@ -33,17 +33,19 @@ export function GlobalNavigation() {
         return response.data.data;
       } catch (err) {
         console.error('프로필 조회 실패:', extractApiErrorMessage(err, 'Failed to fetch profile'));
-        return null;
+        // 에러 발생 시 null을 throw하지 않고 반환
+        throw err;
       }
     },
     enabled: !!user?.id && mounted,
+    retry: 1,
   });
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted || isLoading) {
+  if (!mounted || isLoading || profileLoading) {
     return null;
   }
 
