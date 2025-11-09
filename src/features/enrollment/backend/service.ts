@@ -25,7 +25,16 @@ export const createEnrollmentService = async (
       .is('deleted_at', null)
       .single();
 
-    if (courseError || !course) {
+    if (courseError) {
+      console.error('❌ 코스 조회 에러:', { courseError, courseId });
+      return failure(
+        404,
+        enrollmentErrorCodes.INVALID_COURSE_ID,
+        `코스를 찾을 수 없습니다. (${courseError.message})`
+      );
+    }
+    
+    if (!course) {
       return failure(
         404,
         enrollmentErrorCodes.INVALID_COURSE_ID,
@@ -78,11 +87,20 @@ export const createEnrollmentService = async (
       .select('id, status')
       .single();
 
-    if (createError || !newEnrollment) {
+    if (createError) {
+      console.error('❌ 수강신청 생성 에러:', { createError, userId, courseId });
       return failure(
         500,
         enrollmentErrorCodes.ENROLLMENT_CREATION_ERROR,
-        '수강신청에 실패했습니다.'
+        `수강신청에 실패했습니다. (${createError.message})`
+      );
+    }
+    
+    if (!newEnrollment) {
+      return failure(
+        500,
+        enrollmentErrorCodes.ENROLLMENT_CREATION_ERROR,
+        '수강신청 응답이 없습니다.'
       );
     }
 
