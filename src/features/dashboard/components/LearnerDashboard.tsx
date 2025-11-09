@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useLearnerDashboardQuery } from '@/features/dashboard/hooks/useLearnerDashboardQuery';
 import { CourseProgressCard } from '@/features/dashboard/components/CourseProgressCard';
 import { UpcomingAssignments } from '@/features/dashboard/components/UpcomingAssignments';
@@ -7,10 +8,21 @@ import { RecentFeedback } from '@/features/dashboard/components/RecentFeedback';
 import { SubmissionStatusCard } from '@/features/dashboard/components/SubmissionStatusCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export const LearnerDashboard = () => {
-  const { data, isLoading, isError, error } = useLearnerDashboardQuery();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { data, isLoading, isError, error, refetch } = useLearnerDashboardQuery();
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (isError) {
     return (
@@ -63,10 +75,26 @@ export const LearnerDashboard = () => {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <header className="mb-8 space-y-2">
-        <h1 className="text-3xl font-bold">학습자 대시보드</h1>
-        <p className="text-slate-500">
-          현재 수강 중인 강의와 과제 현황을 확인하세요
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">학습자 대시보드</h1>
+            <p className="text-slate-500 mt-1">
+              현재 수강 중인 강의와 과제 현황을 확인하세요
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing || isLoading}
+            title="새로고침"
+            className="h-10 w-10"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+            />
+          </Button>
+        </div>
       </header>
 
       {!hasEnrolledCourses ? (
