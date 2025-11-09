@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ export const AssignmentForm = ({
   onSuccess,
 }: AssignmentFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const pointsWeightRef = useRef<HTMLInputElement>(null);
 
   const createMutation = useCreateAssignmentMutation();
   const updateMutation = useUpdateAssignmentMutation();
@@ -69,6 +70,10 @@ export const AssignmentForm = ({
       setValue('dueDate', isoDateTime);
       // 입력 필드를 blur하여 캘린더 닫기
       e.target.blur();
+      // 다음 필드(가중치)로 포커스 이동
+      setTimeout(() => {
+        pointsWeightRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -162,6 +167,7 @@ export const AssignmentForm = ({
               가중치 (0~1.0) * - {(pointsWeight * 100).toFixed(1)}%
             </label>
             <Input
+              ref={pointsWeightRef}
               type="number"
               step="0.01"
               min="0"
