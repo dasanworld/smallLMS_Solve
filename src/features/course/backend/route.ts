@@ -219,7 +219,7 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
         );
       }
 
-      const supabase = c.get('supabase');
+      // ✅ supabase는 이미 라인 190에서 정의됨
       const result = await updateCourseService(
         supabase,
         courseId,
@@ -272,7 +272,7 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
         );
       }
 
-      const supabase = c.get('supabase');
+      // ✅ supabase는 이미 라인 243에서 정의됨
       const result = await updateCourseStatusService(
         supabase,
         courseId,
