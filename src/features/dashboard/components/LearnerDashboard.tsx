@@ -82,7 +82,15 @@ export const LearnerDashboard = () => {
         </div>
       ) : (
         <section className="mb-10">
-          <h2 className="mb-4 text-xl font-semibold">수강 중인 강의</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">수강 중인 강의</h2>
+            <a 
+              href="/explore-courses" 
+              className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              새 강의 수강신청
+            </a>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {data?.enrolledCourses.map((course) => (
               <CourseProgressCard key={course.courseId} course={course} />
