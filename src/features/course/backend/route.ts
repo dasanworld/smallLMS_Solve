@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
-import { AppEnv, getUser } from '@/backend/hono/context';
+import type { User } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { AppEnv, getUser, getLogger } from '@/backend/hono/context';
 import { respond, failure, success } from '@/backend/http/response';
 import { courseErrorCodes } from './error';
 import {
@@ -17,6 +19,40 @@ import {
   deleteCourseService,
   getCategoriesAndDifficultiesService,
 } from './service';
+
+/**
+ * ✅ Helper 함수: 사용자 역할 조회
+ * user_metadata 또는 users 테이블에서 역할을 확인
+ */
+const getUserRole = async (
+  user: User | undefined,
+  supabase: SupabaseClient,
+  logger: any
+): Promise<string | null> => {
+  if (!user) return null;
+
+  // 1. user_metadata 또는 app_metadata에서 역할 확인
+  let userRole = user.user_metadata?.role || user.app_metadata?.role;
+
+  // 2. 없으면 users 테이블에서 조회
+  if (!userRole) {
+    logger.info('📖 users 테이블에서 역할 조회 중...', { userId: user.id });
+    const { data: userRecord, error } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (error) {
+      logger.error('❌ 사용자 역할 조회 실패', { error: error.message });
+      return null;
+    }
+
+    userRole = userRecord?.role;
+  }
+
+  return userRole as string | null;
+};
 
 export const registerCourseRoutes = (app: Hono<AppEnv>) => {
   // ✅ GET /api/courses - 학습자가 수강신청할 수 있는 활성 코스 목록 조회
@@ -38,10 +74,10 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
     try {
       const logger = c.get('logger');
       const user = getUser(c);
+      const supabase = c.get('supabase');
 
       logger.info('📚 GET /api/courses/my 요청', {
         userId: user?.id,
-        userRole: user?.role,
         hasAuth: !!user,
       });
 
@@ -49,28 +85,22 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
         logger.warn('❌ 사용자 인증 안 됨');
         return respond(
           c,
-          failure(
-            401,
-            courseErrorCodes.NOT_INSTRUCTOR,
-            'User not authenticated'
-          )
+          failure(401, courseErrorCodes.NOT_INSTRUCTOR, 'User not authenticated')
         );
       }
 
-      // 강사 역할 확인
-      if (user.role !== 'instructor') {
-        logger.warn('❌ 강사가 아님', { userRole: user.role });
+      // ✅ Helper 함수로 사용자 역할 조회
+      const userRole = await getUserRole(user, supabase, logger);
+
+      if (userRole !== 'instructor') {
+        logger.warn('❌ 강사가 아님', { userRole, userId: user.id });
         return respond(
           c,
-          failure(
-            403,
-            courseErrorCodes.NOT_INSTRUCTOR,
-            'Only instructors can manage courses'
-          )
+          failure(403, courseErrorCodes.NOT_INSTRUCTOR, 'Only instructors can manage courses')
         );
       }
 
-      const supabase = c.get('supabase');
+      logger.info('✅ 강사 확인됨, 코스 조회 중...', { userId: user.id });
       const result = await getInstructorCoursesService(supabase, user.id);
       logger.info('✅ 강사 코스 조회 완료', { count: result.ok ? (result.value as any).courses.length : 0 });
       return respond(c, result);
@@ -88,6 +118,8 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
   app.post('/api/courses', async (c) => {
     try {
       const user = getUser(c);
+      const supabase = c.get('supabase');
+      const logger = c.get('logger');
 
       if (!user) {
         return respond(
@@ -96,14 +128,13 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
         );
       }
 
-      if (user.role !== 'instructor') {
+      // ✅ Helper 함수로 사용자 역할 조회
+      const userRole = await getUserRole(user, supabase, logger);
+
+      if (userRole !== 'instructor') {
         return respond(
           c,
-          failure(
-            403,
-            courseErrorCodes.NOT_INSTRUCTOR,
-            'Only instructors can create courses'
-          )
+          failure(403, courseErrorCodes.NOT_INSTRUCTOR, 'Only instructors can create courses')
         );
       }
 
@@ -156,6 +187,8 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
     try {
       const courseId = c.req.param('id');
       const user = getUser(c);
+      const supabase = c.get('supabase');
+      const logger = c.get('logger');
 
       if (!user) {
         return respond(
@@ -164,14 +197,13 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
         );
       }
 
-      if (user.role !== 'instructor') {
+      // ✅ Helper 함수로 사용자 역할 조회
+      const userRole = await getUserRole(user, supabase, logger);
+
+      if (userRole !== 'instructor') {
         return respond(
           c,
-          failure(
-            403,
-            courseErrorCodes.NOT_INSTRUCTOR,
-            'Only instructors can edit courses'
-          )
+          failure(403, courseErrorCodes.NOT_INSTRUCTOR, 'Only instructors can edit courses')
         );
       }
 
@@ -208,6 +240,8 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
     try {
       const courseId = c.req.param('id');
       const user = getUser(c);
+      const supabase = c.get('supabase');
+      const logger = c.get('logger');
 
       if (!user) {
         return respond(
@@ -216,14 +250,13 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
         );
       }
 
-      if (user.role !== 'instructor') {
+      // ✅ Helper 함수로 사용자 역할 조회
+      const userRole = await getUserRole(user, supabase, logger);
+
+      if (userRole !== 'instructor') {
         return respond(
           c,
-          failure(
-            403,
-            courseErrorCodes.NOT_INSTRUCTOR,
-            'Only instructors can change course status'
-          )
+          failure(403, courseErrorCodes.NOT_INSTRUCTOR, 'Only instructors can change course status')
         );
       }
 
@@ -264,6 +297,8 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
     try {
       const courseId = c.req.param('id');
       const user = getUser(c);
+      const supabase = c.get('supabase');
+      const logger = c.get('logger');
 
       if (!user) {
         return respond(
@@ -272,18 +307,16 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
         );
       }
 
-      if (user.role !== 'instructor') {
+      // ✅ Helper 함수로 사용자 역할 조회
+      const userRole = await getUserRole(user, supabase, logger);
+
+      if (userRole !== 'instructor') {
         return respond(
           c,
-          failure(
-            403,
-            courseErrorCodes.NOT_INSTRUCTOR,
-            'Only instructors can delete courses'
-          )
+          failure(403, courseErrorCodes.NOT_INSTRUCTOR, 'Only instructors can delete courses')
         );
       }
 
-      const supabase = c.get('supabase');
       const result = await deleteCourseService(supabase, courseId, user.id);
       return respond(c, result);
     } catch (error) {
