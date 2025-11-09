@@ -73,7 +73,7 @@ export const registerEnrollmentRoutes = (app: Hono<AppEnv>) => {
       logger.info('✅ 수강신청 성공', {
         userId: user.id,
         courseId: validation.data.courseId,
-        enrollmentId: result.value.id,
+        enrollmentId: result.data.id,
       });
 
       return respond(c, result);
@@ -188,7 +188,7 @@ export const registerEnrollmentRoutes = (app: Hono<AppEnv>) => {
 
       logger.info('✅ 수강정보 조회 성공', {
         userId: user.id,
-        count: result.value.enrollments.length,
+        count: result.data.enrollments.length,
       });
 
       return respond(c, result);

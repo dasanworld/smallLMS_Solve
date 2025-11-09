@@ -102,7 +102,7 @@ export const getReportsService = async (
 
     if (error) {
       logger.error('Failed to fetch reports', error.message);
-      return failure(500, additionalOperatorErrorCodes.REPORTS_FETCH_ERROR, error.message);
+      return failure(500, operatorErrorCodes.REPORTS_FETCH_ERROR, error.message);
     }
 
     // Transform data to match interface
@@ -131,7 +131,7 @@ export const getReportsService = async (
     });
   } catch (error) {
     logger.error('Error fetching reports', error);
-    return failure(500, additionalOperatorErrorCodes.REPORTS_FETCH_ERROR, error instanceof Error ? error.message : 'Unknown error');
+    return failure(500, operatorErrorCodes.REPORTS_FETCH_ERROR, error instanceof Error ? error.message : 'Unknown error');
   }
 };
 
@@ -151,7 +151,7 @@ export const getReportByIdService = async (
 
     if (error) {
       logger.error('Failed to fetch report by ID', error.message);
-      return failure(404, additionalOperatorErrorCodes.REPORT_NOT_FOUND, 'Report not found');
+      return failure(404, operatorErrorCodes.REPORT_NOT_FOUND, 'Report not found');
     }
 
     // Transform data to match interface
@@ -171,7 +171,7 @@ export const getReportByIdService = async (
     return success(report);
   } catch (error) {
     logger.error('Error fetching report by ID', error);
-    return failure(500, additionalOperatorErrorCodes.REPORT_FETCH_ERROR, error instanceof Error ? error.message : 'Unknown error');
+    return failure(500, operatorErrorCodes.REPORT_FETCH_ERROR, error instanceof Error ? error.message : 'Unknown error');
   }
 };
 
@@ -195,15 +195,15 @@ export const updateReportStatusService = async (
       .from(REPORTS_TABLE)
       .select('status, resolved_at')
       .eq('id', reportId)
-      .single();
+      .single() as { data: { status: ReportStatus; resolved_at: string | null } | null; error: any };
 
     if (fetchError) {
       logger.error('Failed to fetch current report for status update', fetchError.message);
-      return failure(404, additionalOperatorErrorCodes.REPORT_NOT_FOUND, 'Report not found');
+      return failure(404, operatorErrorCodes.REPORT_NOT_FOUND, 'Report not found');
     }
 
     // Validate status transition
-    const currentStatus = currentReport.status as ReportStatus;
+    const currentStatus = currentReport!.status as ReportStatus;
     if (!isValidStatusTransition(currentStatus, newStatus)) {
       logger.info('Invalid report status transition attempted', {
         reportId,
@@ -222,8 +222,9 @@ export const updateReportStatusService = async (
     if (newStatus === 'resolved') {
       updateData.resolved_at = new Date().toISOString();
       updateData.resolved_by = operatorId;
-    } else if (currentReport.status === 'resolved' && newStatus !== 'resolved') {
-      // If changing from resolved to another status, clear resolved fields
+    }
+    // If changing from resolved to another status, clear resolved fields
+    if (newStatus !== 'resolved' && currentReport!.resolved_at) {
       updateData.resolved_at = null;
       updateData.resolved_by = null;
     }
@@ -237,7 +238,7 @@ export const updateReportStatusService = async (
 
     if (updateError) {
       logger.error('Failed to update report status', updateError.message);
-      return failure(500, additionalOperatorErrorCodes.REPORT_STATUS_UPDATE_ERROR, updateError.message);
+      return failure(500, operatorErrorCodes.REPORT_STATUS_UPDATE_ERROR, updateError.message);
     }
 
     // Log the action
@@ -269,7 +270,7 @@ export const updateReportStatusService = async (
     return success(report);
   } catch (error) {
     logger.error('Error updating report status', error);
-    return failure(500, additionalOperatorErrorCodes.REPORT_STATUS_UPDATE_ERROR, error instanceof Error ? error.message : 'Unknown error');
+    return failure(500, operatorErrorCodes.REPORT_STATUS_UPDATE_ERROR, error instanceof Error ? error.message : 'Unknown error');
   }
 };
 
@@ -310,7 +311,7 @@ export const takeReportActionService = async (
 
     if (fetchError) {
       logger.error('Failed to fetch report for action', fetchError.message);
-      return failure(404, additionalOperatorErrorCodes.REPORT_NOT_FOUND, 'Report not found');
+      return failure(404, operatorErrorCodes.REPORT_NOT_FOUND, 'Report not found');
     }
 
     // Perform the action based on type
@@ -353,7 +354,7 @@ export const takeReportActionService = async (
 
     if (updateError) {
       logger.error('Failed to take report action', updateError.message);
-      return failure(500, additionalOperatorErrorCodes.REPORT_ACTION_ERROR, updateError.message);
+      return failure(500, operatorErrorCodes.REPORT_ACTION_ERROR, updateError.message);
     }
 
     // Log the action
@@ -387,7 +388,7 @@ export const takeReportActionService = async (
     return success(report);
   } catch (error) {
     logger.error('Error taking report action', error);
-    return failure(500, additionalOperatorErrorCodes.REPORT_ACTION_ERROR, error instanceof Error ? error.message : 'Unknown error');
+    return failure(500, operatorErrorCodes.REPORT_ACTION_ERROR, error instanceof Error ? error.message : 'Unknown error');
   }
 };
 
@@ -423,7 +424,7 @@ export const getMetadataService = async (
 
     if (error) {
       logger.error(`Failed to fetch ${type}`, error.message);
-      return failure(500, additionalOperatorErrorCodes.METADATA_FETCH_ERROR, error.message);
+      return failure(500, operatorErrorCodes.METADATA_FETCH_ERROR, error.message);
     }
 
     if (type === 'categories') {
@@ -448,7 +449,7 @@ export const getMetadataService = async (
     }
   } catch (error) {
     logger.error(`Error fetching ${type}`, error);
-    return failure(500, additionalOperatorErrorCodes.METADATA_FETCH_ERROR, error instanceof Error ? error.message : 'Unknown error');
+    return failure(500, operatorErrorCodes.METADATA_FETCH_ERROR, error instanceof Error ? error.message : 'Unknown error');
   }
 };
 
@@ -480,12 +481,12 @@ export const createMetadataService = async (
 
     if (checkError) {
       logger.error(`Failed to check existing ${type}`, checkError.message);
-      return failure(500, additionalOperatorErrorCodes.METADATA_CHECK_ERROR, checkError.message);
+      return failure(500, operatorErrorCodes.METADATA_CHECK_ERROR, checkError.message);
     }
 
     if (existing && existing.length > 0) {
       logger.info(`${type} with name already exists`, { name });
-      return failure(409, additionalOperatorErrorCodes.METADATA_DUPLICATE, `${type === 'categories' ? 'Category' : 'Difficulty'} with this name already exists`);
+      return failure(409, operatorErrorCodes.METADATA_DUPLICATE, `${type === 'categories' ? 'Category' : 'Difficulty'} with this name already exists`);
     }
 
     // Insert the new metadata
@@ -508,7 +509,7 @@ export const createMetadataService = async (
 
     if (result.error) {
       logger.error(`Failed to create ${type}`, result.error.message);
-      return failure(500, additionalOperatorErrorCodes.METADATA_CREATION_ERROR, result.error.message);
+      return failure(500, operatorErrorCodes.METADATA_CREATION_ERROR, result.error.message);
     }
 
     // Log the action
@@ -542,7 +543,7 @@ export const createMetadataService = async (
     }
   } catch (error) {
     logger.error(`Error creating ${type}`, error);
-    return failure(500, additionalOperatorErrorCodes.METADATA_CREATION_ERROR, error instanceof Error ? error.message : 'Unknown error');
+    return failure(500, operatorErrorCodes.METADATA_CREATION_ERROR, error instanceof Error ? error.message : 'Unknown error');
   }
 };
 
@@ -575,7 +576,7 @@ export const updateMetadataService = async (
 
     if (fetchError) {
       logger.error(`Failed to fetch ${type} for update`, fetchError.message);
-      return failure(404, additionalOperatorErrorCodes.METADATA_NOT_FOUND, `${type === 'categories' ? 'Category' : 'Difficulty'} not found`);
+      return failure(404, operatorErrorCodes.METADATA_NOT_FOUND, `${type === 'categories' ? 'Category' : 'Difficulty'} not found`);
     }
 
     // Check if name already exists for a different record (case-insensitive)
@@ -591,12 +592,12 @@ export const updateMetadataService = async (
 
       if (checkError) {
         logger.error(`Failed to check existing ${type} name`, checkError.message);
-        return failure(500, additionalOperatorErrorCodes.METADATA_CHECK_ERROR, checkError.message);
+        return failure(500, operatorErrorCodes.METADATA_CHECK_ERROR, checkError.message);
       }
 
       if (existingName && existingName.length > 0) {
         logger.info(`${type} with name already exists`, { name });
-        return failure(409, additionalOperatorErrorCodes.METADATA_DUPLICATE, `${type === 'categories' ? 'Category' : 'Difficulty'} with this name already exists`);
+        return failure(409, operatorErrorCodes.METADATA_DUPLICATE, `${type === 'categories' ? 'Category' : 'Difficulty'} with this name already exists`);
       }
     }
 
@@ -619,7 +620,7 @@ export const updateMetadataService = async (
 
     if (result.error) {
       logger.error(`Failed to update ${type}`, result.error.message);
-      return failure(500, additionalOperatorErrorCodes.METADATA_UPDATE_ERROR, result.error.message);
+      return failure(500, operatorErrorCodes.METADATA_UPDATE_ERROR, result.error.message);
     }
 
     // Log the action
@@ -660,7 +661,7 @@ export const updateMetadataService = async (
     }
   } catch (error) {
     logger.error(`Error updating ${type}`, error);
-    return failure(500, additionalOperatorErrorCodes.METADATA_UPDATE_ERROR, error instanceof Error ? error.message : 'Unknown error');
+    return failure(500, operatorErrorCodes.METADATA_UPDATE_ERROR, error instanceof Error ? error.message : 'Unknown error');
   }
 };
 
@@ -690,7 +691,7 @@ export const deactivateMetadataService = async (
 
     if (fetchError) {
       logger.error(`Failed to fetch ${type} for deactivation`, fetchError.message);
-      return failure(404, additionalOperatorErrorCodes.METADATA_NOT_FOUND, `${type === 'categories' ? 'Category' : 'Difficulty'} not found`);
+      return failure(404, operatorErrorCodes.METADATA_NOT_FOUND, `${type === 'categories' ? 'Category' : 'Difficulty'} not found`);
     }
 
     // Check if metadata is already inactive
@@ -715,7 +716,7 @@ export const deactivateMetadataService = async (
 
     if (result.error) {
       logger.error(`Failed to deactivate ${type}`, result.error.message);
-      return failure(500, additionalOperatorErrorCodes.METADATA_DEACTIVATION_ERROR, result.error.message);
+      return failure(500, operatorErrorCodes.METADATA_DEACTIVATION_ERROR, result.error.message);
     }
 
     // Log the action
@@ -749,7 +750,7 @@ export const deactivateMetadataService = async (
     }
   } catch (error) {
     logger.error(`Error deactivating ${type}`, error);
-    return failure(500, additionalOperatorErrorCodes.METADATA_DEACTIVATION_ERROR, error instanceof Error ? error.message : 'Unknown error');
+    return failure(500, operatorErrorCodes.METADATA_DEACTIVATION_ERROR, error instanceof Error ? error.message : 'Unknown error');
   }
 };
 
@@ -841,24 +842,3 @@ export const logAdminActionService = async (
 };
 
 import { operatorErrorCodes } from './error';
-
-// Additional error codes not in the main error file
-export const additionalOperatorErrorCodes = {
-  REPORTS_FETCH_ERROR: 'REPORTS_FETCH_ERROR',
-  REPORT_FETCH_ERROR: 'REPORT_FETCH_ERROR',
-  REPORT_STATUS_UPDATE_ERROR: 'REPORT_STATUS_UPDATE_ERROR',
-  REPORT_ACTION_ERROR: 'REPORT_ACTION_ERROR',
-  METADATA_FETCH_ERROR: 'METADATA_FETCH_ERROR',
-  METADATA_CREATION_ERROR: 'METADATA_CREATION_ERROR',
-  METADATA_UPDATE_ERROR: 'METADATA_UPDATE_ERROR',
-  METADATA_DEACTIVATION_ERROR: 'METADATA_DEACTIVATION_ERROR',
-  METADATA_CHECK_ERROR: 'METADATA_CHECK_ERROR',
-  METADATA_DUPLICATE: 'METADATA_DUPLICATE',
-  METADATA_NOT_FOUND: 'METADATA_NOT_FOUND',
-} as const;
-
-// Combine all error codes
-export const allOperatorErrorCodes = {
-  ...operatorErrorCodes,
-  ...additionalOperatorErrorCodes,
-} as const;

@@ -16,7 +16,7 @@ import {
   useCancelEnrollmentMutation, 
   useIsEnrolled 
 } from '@/features/enrollment/hooks/useEnrollmentMutations';
-import type { Course } from '@/features/course/backend/schema';
+import type { CourseDetailResponse } from '@/features/course/backend/schema';
 
 /**
  * 코스 상세 페이지
@@ -40,7 +40,7 @@ export default function CourseDetailPage() {
     queryFn: async () => {
       try {
         console.log('📚 코스 상세 정보 조회:', courseId);
-        const response = await apiClient.get<{ data: Course }>(`/api/courses/${courseId}`);
+        const response = await apiClient.get<{ data: CourseDetailResponse }>(`/api/courses/${courseId}`);
         console.log('✅ 코스 정보 조회 완료:', response.data);
         return response.data.data;
       } catch (err) {
@@ -146,7 +146,7 @@ export default function CourseDetailPage() {
   }
 
   // 공개되지 않은 코스
-  if (course.status !== 'published' && course.status !== 'active') {
+  if (course.status !== 'published') {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8">
         <Alert variant="destructive">
@@ -182,13 +182,13 @@ export default function CourseDetailPage() {
           {course.category && (
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-slate-500" />
-              <span className="text-slate-600">{course.category}</span>
+              <span className="text-slate-600">{typeof course.category === 'string' ? course.category : course.category.name}</span>
             </div>
           )}
           {course.difficulty && (
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-slate-500" />
-              <span className="text-slate-600">{course.difficulty}</span>
+              <span className="text-slate-600">{typeof course.difficulty === 'string' ? course.difficulty : course.difficulty.name}</span>
             </div>
           )}
           {course.enrollment_count !== undefined && (
@@ -211,7 +211,11 @@ export default function CourseDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{course.category || '미분류'}</div>
+            <div className="text-2xl font-bold">
+              {course.category 
+                ? (typeof course.category === 'string' ? course.category : course.category.name)
+                : '미분류'}
+            </div>
           </CardContent>
         </Card>
 
@@ -222,7 +226,11 @@ export default function CourseDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{course.difficulty || '미지정'}</div>
+            <div className="text-2xl font-bold">
+              {course.difficulty 
+                ? (typeof course.difficulty === 'string' ? course.difficulty : course.difficulty.name)
+                : '미지정'}
+            </div>
           </CardContent>
         </Card>
 

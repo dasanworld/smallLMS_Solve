@@ -102,7 +102,7 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
 
       logger.info('✅ 강사 확인됨, 코스 조회 중...', { userId: user.id });
       const result = await getInstructorCoursesService(supabase, user.id);
-      logger.info('✅ 강사 코스 조회 완료', { count: result.ok ? (result.value as any).courses.length : 0 });
+      logger.info('✅ 강사 코스 조회 완료', { count: result.ok ? (result.data as any).courses.length : 0 });
       return respond(c, result);
     } catch (error) {
       const logger = c.get('logger');
@@ -150,7 +150,6 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
         );
       }
 
-      const supabase = c.get('supabase');
       const result = await createCourseService(supabase, user.id, validation.data);
       return respond(c, result);
     } catch (error) {
@@ -186,7 +185,7 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
       logger.info('✅ 코스 조회 완료', { courseId });
       
       // ✅ API 응답 형식 통일: { data: course }
-      return respond(c, success({ data: result.value }));
+      return respond(c, success({ data: result.data }));
     } catch (error) {
       const logger = c.get('logger');
       logger.error('❌ 코스 조회 에러', { error: String(error) });

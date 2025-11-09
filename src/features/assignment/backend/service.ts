@@ -3,9 +3,8 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Logger } from 'pino';
+import type { AppLogger } from '@/backend/hono/context';
 import { failure, success, type HandlerResult } from '@/backend/http/response';
-import type { Database } from '@/lib/supabase/types';
 import { assignmentErrorCodes, type AssignmentErrorCode } from './error';
 import type {
   CreateAssignmentRequest,
@@ -18,8 +17,8 @@ import type {
 } from './schema';
 
 type Dependencies = {
-  supabase: SupabaseClient<Database>;
-  logger: Logger;
+  supabase: SupabaseClient;
+  logger: AppLogger;
 };
 
 // ============ Assignment 서비스 ============
@@ -48,7 +47,7 @@ export const createAssignmentService = async (
 
     if (courseError || !course) {
       logger.warn('Unauthorized course access', { userId, courseId: data.courseId });
-      return failure(assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 403);
+      return failure(403, assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 'Unauthorized course access');
     }
 
     // 과제 생성
@@ -76,17 +75,17 @@ export const createAssignmentService = async (
 
       // 가중치 초과 에러 처리
       if (createError.message?.includes('ASSIGNMENT_WEIGHT_EXCEEDED')) {
-        return failure(assignmentErrorCodes.ASSIGNMENT_WEIGHT_EXCEEDED, 400);
+        return failure(400, assignmentErrorCodes.ASSIGNMENT_WEIGHT_EXCEEDED, 'Assignment weight exceeded');
       }
 
-      return failure(assignmentErrorCodes.DATABASE_ERROR, 500);
+      return failure(500, assignmentErrorCodes.DATABASE_ERROR, 'Failed to create assignment');
     }
 
     const response = mapAssignmentToResponse(assignment);
     return success(response, 201);
   } catch (error: any) {
     logger.error('Assignment creation service error', { error });
-    return failure(assignmentErrorCodes.INTERNAL_SERVER_ERROR, 500);
+    return failure(500, assignmentErrorCodes.INTERNAL_SERVER_ERROR, 'Internal server error');
   }
 };
 
@@ -104,18 +103,24 @@ export const updateAssignmentService = async (
     // 기존 과제 확인 및 권한 검증
     const { data: assignment, error: fetchError } = await supabase
       .from('assignments')
-      .select('id, course_id, courses(owner_id)')
+      .select('id, course_id')
       .eq('id', data.assignmentId)
       .single();
 
     if (fetchError || !assignment) {
-      return failure(assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 404);
+      return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found');
     }
 
-    const course = assignment.courses as { owner_id: string };
-    if (course.owner_id !== userId) {
+    // 코스 소유권 확인
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('owner_id')
+      .eq('id', assignment.course_id)
+      .single();
+
+    if (courseError || !course || course.owner_id !== userId) {
       logger.warn('Unauthorized assignment update', { userId, assignmentId: data.assignmentId });
-      return failure(assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 403);
+      return failure(403, assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 'Unauthorized assignment update');
     }
 
     // 과제 수정
@@ -141,17 +146,17 @@ export const updateAssignmentService = async (
       });
 
       if (updateError.message?.includes('ASSIGNMENT_WEIGHT_EXCEEDED')) {
-        return failure(assignmentErrorCodes.ASSIGNMENT_WEIGHT_EXCEEDED, 400);
+        return failure(400, assignmentErrorCodes.ASSIGNMENT_WEIGHT_EXCEEDED, 'Assignment weight exceeded');
       }
 
-      return failure(assignmentErrorCodes.DATABASE_ERROR, 500);
+      return failure(500, assignmentErrorCodes.DATABASE_ERROR, 'Failed to update assignment');
     }
 
     const response = mapAssignmentToResponse(updated);
     return success(response, 200);
   } catch (error: any) {
     logger.error('Assignment update service error', { error });
-    return failure(assignmentErrorCodes.INTERNAL_SERVER_ERROR, 500);
+    return failure(500, assignmentErrorCodes.INTERNAL_SERVER_ERROR, 'Internal server error');
   }
 };
 
@@ -169,18 +174,24 @@ export const deleteAssignmentService = async (
     // 기존 과제 확인 및 권한 검증
     const { data: assignment, error: fetchError } = await supabase
       .from('assignments')
-      .select('id, course_id, courses(owner_id)')
+      .select('id, course_id')
       .eq('id', assignmentId)
       .single();
 
     if (fetchError || !assignment) {
-      return failure(assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 404);
+      return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found');
     }
 
-    const course = assignment.courses as { owner_id: string };
-    if (course.owner_id !== userId) {
+    // 코스 소유권 확인
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('owner_id')
+      .eq('id', assignment.course_id)
+      .single();
+
+    if (courseError || !course || course.owner_id !== userId) {
       logger.warn('Unauthorized assignment deletion', { userId, assignmentId });
-      return failure(assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 403);
+      return failure(403, assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 'Unauthorized assignment deletion');
     }
 
     // 소프트 삭제
@@ -191,13 +202,13 @@ export const deleteAssignmentService = async (
 
     if (deleteError) {
       logger.error('Failed to delete assignment', { error: deleteError, assignmentId });
-      return failure(assignmentErrorCodes.DATABASE_ERROR, 500);
+      return failure(500, assignmentErrorCodes.DATABASE_ERROR, 'Failed to delete assignment');
     }
 
-    return success(undefined, 204);
+    return success(undefined, 200);
   } catch (error: any) {
     logger.error('Assignment deletion service error', { error });
-    return failure(assignmentErrorCodes.INTERNAL_SERVER_ERROR, 500);
+    return failure(500, assignmentErrorCodes.INTERNAL_SERVER_ERROR, 'Internal server error');
   }
 };
 
@@ -218,24 +229,30 @@ export const updateAssignmentStatusService = async (
     // 기존 과제 확인 및 권한 검증
     const { data: assignment, error: fetchError } = await supabase
       .from('assignments')
-      .select('id, status, due_date, course_id, courses(owner_id)')
+      .select('id, status, due_date, course_id')
       .eq('id', assignmentId)
       .single();
 
     if (fetchError || !assignment) {
-      return failure(assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 404);
+      return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found');
     }
 
-    const course = assignment.courses as { owner_id: string };
-    if (course.owner_id !== userId) {
+    // 코스 소유권 확인
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('owner_id')
+      .eq('id', assignment.course_id)
+      .single();
+
+    if (courseError || !course || course.owner_id !== userId) {
       logger.warn('Unauthorized status change', { userId, assignmentId });
-      return failure(assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 403);
+      return failure(403, assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 'Unauthorized status change');
     }
 
     // 상태 전환 검증
     const isValidTransition = isValidStatusTransition(assignment.status, newStatus);
     if (!isValidTransition) {
-      return failure(assignmentErrorCodes.INVALID_STATUS_TRANSITION, 400);
+      return failure(400, assignmentErrorCodes.INVALID_STATUS_TRANSITION, 'Invalid status transition');
     }
 
     // 업데이트 데이터 준비
@@ -262,17 +279,17 @@ export const updateAssignmentStatusService = async (
       });
 
       if (updateError.message?.includes('ASSIGNMENT_PAST_DEADLINE')) {
-        return failure(assignmentErrorCodes.ASSIGNMENT_PAST_DEADLINE, 400);
+        return failure(400, assignmentErrorCodes.ASSIGNMENT_PAST_DEADLINE, 'Assignment past deadline');
       }
 
-      return failure(assignmentErrorCodes.DATABASE_ERROR, 500);
+      return failure(500, assignmentErrorCodes.DATABASE_ERROR, 'Failed to update assignment status');
     }
 
     const response = mapAssignmentToResponse(updated);
     return success(response, 200);
   } catch (error: any) {
     logger.error('Assignment status update service error', { error });
-    return failure(assignmentErrorCodes.INTERNAL_SERVER_ERROR, 500);
+    return failure(500, assignmentErrorCodes.INTERNAL_SERVER_ERROR, 'Internal server error');
   }
 };
 
@@ -297,7 +314,7 @@ export const getCourseAssignmentsService = async (
       .single();
 
     if (!course) {
-      return failure(assignmentErrorCodes.COURSE_NOT_FOUND, 404);
+      return failure(404, assignmentErrorCodes.COURSE_NOT_FOUND, 'Course not found');
     }
 
     // 전체 과제 수 조회
@@ -318,7 +335,7 @@ export const getCourseAssignmentsService = async (
 
     if (error) {
       logger.error('Failed to fetch assignments', { error, courseId });
-      return failure(assignmentErrorCodes.DATABASE_ERROR, 500);
+      return failure(500, assignmentErrorCodes.DATABASE_ERROR, 'Failed to fetch assignments');
     }
 
     const response: AssignmentListResponse = {
@@ -331,7 +348,7 @@ export const getCourseAssignmentsService = async (
     return success(response, 200);
   } catch (error: any) {
     logger.error('Get course assignments service error', { error });
-    return failure(assignmentErrorCodes.INTERNAL_SERVER_ERROR, 500);
+    return failure(500, assignmentErrorCodes.INTERNAL_SERVER_ERROR, 'Internal server error');
   }
 };
 
@@ -358,18 +375,24 @@ export const getAssignmentSubmissionsService = async (
     // 과제 소유권 확인
     const { data: assignment, error: fetchError } = await supabase
       .from('assignments')
-      .select('id, course_id, courses(owner_id)')
+      .select('id, course_id')
       .eq('id', assignmentId)
       .single();
 
     if (fetchError || !assignment) {
-      return failure(assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 404);
+      return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found');
     }
 
-    const course = assignment.courses as { owner_id: string };
-    if (course.owner_id !== userId) {
+    // 코스 소유권 확인
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('owner_id')
+      .eq('id', assignment.course_id)
+      .single();
+
+    if (courseError || !course || course.owner_id !== userId) {
       logger.warn('Unauthorized submission access', { userId, assignmentId });
-      return failure(assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 403);
+      return failure(403, assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 'Unauthorized submission access');
     }
 
     // 전체 제출물 수
@@ -388,7 +411,7 @@ export const getAssignmentSubmissionsService = async (
 
     if (error) {
       logger.error('Failed to fetch submissions', { error, assignmentId });
-      return failure(assignmentErrorCodes.DATABASE_ERROR, 500);
+      return failure(500, assignmentErrorCodes.DATABASE_ERROR, 'Failed to fetch submissions');
     }
 
     return success({
@@ -399,7 +422,7 @@ export const getAssignmentSubmissionsService = async (
     }, 200);
   } catch (error: any) {
     logger.error('Get submissions service error', { error });
-    return failure(assignmentErrorCodes.INTERNAL_SERVER_ERROR, 500);
+    return failure(500, assignmentErrorCodes.INTERNAL_SERVER_ERROR, 'Internal server error');
   }
 };
 
@@ -417,27 +440,40 @@ export const gradeSubmissionService = async (
     // 제출물 정보 확인
     const { data: submission, error: fetchError } = await supabase
       .from('submissions')
-      .select('id, assignment_id, assignments(course_id, courses(owner_id))')
+      .select('id, assignment_id')
       .eq('id', data.submissionId)
       .single();
 
     if (fetchError || !submission) {
-      return failure(assignmentErrorCodes.SUBMISSION_NOT_FOUND, 404);
+      return failure(404, assignmentErrorCodes.SUBMISSION_NOT_FOUND, 'Submission not found');
     }
 
-    const assignment = submission.assignments as {
-      course_id: string;
-      courses: { owner_id: string };
-    };
+    // 과제 정보 조회
+    const { data: assignment, error: assignmentError } = await supabase
+      .from('assignments')
+      .select('course_id')
+      .eq('id', submission.assignment_id)
+      .single();
 
-    if (assignment.courses.owner_id !== userId) {
+    if (assignmentError || !assignment) {
+      return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found');
+    }
+
+    // 코스 소유권 확인
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('owner_id')
+      .eq('id', assignment.course_id)
+      .single();
+
+    if (courseError || !course || course.owner_id !== userId) {
       logger.warn('Unauthorized grading', { userId, submissionId: data.submissionId });
-      return failure(assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 403);
+      return failure(403, assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 'Unauthorized grading');
     }
 
     // 점수 범위 검증
     if (data.score < 0 || data.score > 100) {
-      return failure(assignmentErrorCodes.INVALID_SCORE, 400);
+      return failure(400, assignmentErrorCodes.INVALID_SCORE, 'Invalid score range');
     }
 
     // 채점 정보 업데이트
@@ -455,14 +491,14 @@ export const gradeSubmissionService = async (
 
     if (gradeError) {
       logger.error('Failed to grade submission', { error: gradeError, submissionId: data.submissionId });
-      return failure(assignmentErrorCodes.DATABASE_ERROR, 500);
+      return failure(500, assignmentErrorCodes.DATABASE_ERROR, 'Failed to grade submission');
     }
 
     const response = mapSubmissionToResponse(graded);
     return success(response, 200);
   } catch (error: any) {
     logger.error('Grade submission service error', { error });
-    return failure(assignmentErrorCodes.INTERNAL_SERVER_ERROR, 500);
+    return failure(500, assignmentErrorCodes.INTERNAL_SERVER_ERROR, 'Internal server error');
   }
 };
 
@@ -480,18 +516,24 @@ export const getSubmissionStatsService = async (
     // 과제 소유권 확인
     const { data: assignment, error: fetchError } = await supabase
       .from('assignments')
-      .select('id, course_id, courses(owner_id)')
+      .select('id, course_id')
       .eq('id', assignmentId)
       .single();
 
     if (fetchError || !assignment) {
-      return failure(assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 404);
+      return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found');
     }
 
-    const course = assignment.courses as { owner_id: string };
-    if (course.owner_id !== userId) {
+    // 코스 소유권 확인
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('owner_id')
+      .eq('id', assignment.course_id)
+      .single();
+
+    if (courseError || !course || course.owner_id !== userId) {
       logger.warn('Unauthorized stats access', { userId, assignmentId });
-      return failure(assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 403);
+      return failure(403, assignmentErrorCodes.INSUFFICIENT_PERMISSIONS, 'Unauthorized stats access');
     }
 
     // 통계 계산
@@ -502,14 +544,14 @@ export const getSubmissionStatsService = async (
 
     if (error) {
       logger.error('Failed to fetch submissions for stats', { error, assignmentId });
-      return failure(assignmentErrorCodes.DATABASE_ERROR, 500);
+      return failure(500, assignmentErrorCodes.DATABASE_ERROR, 'Failed to fetch submissions for stats');
     }
 
     const stats = computeSubmissionStats(assignmentId, submissions || []);
     return success(stats, 200);
   } catch (error: any) {
     logger.error('Get submission stats service error', { error });
-    return failure(assignmentErrorCodes.INTERNAL_SERVER_ERROR, 500);
+    return failure(500, assignmentErrorCodes.INTERNAL_SERVER_ERROR, 'Internal server error');
   }
 };
 

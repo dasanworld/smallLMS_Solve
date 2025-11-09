@@ -185,9 +185,6 @@ function CourseCatalogCard({ course }: CourseCatalogCardProps) {
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
             <CardTitle className="line-clamp-2">{course.title}</CardTitle>
-            <CardDescription className="line-clamp-1 mt-1">
-              강사: {course.instructor_name || '미지정'}
-            </CardDescription>
           </div>
           <Badge className={config.color} variant="outline">
             {config.label}
@@ -203,14 +200,9 @@ function CourseCatalogCard({ course }: CourseCatalogCardProps) {
 
         {/* 강의 정보 */}
         <div className="space-y-2 text-xs text-slate-500">
-          {course.category && (
+          {course.enrollment_count !== undefined && (
             <div>
-              <span className="font-medium">카테고리:</span> {course.category}
-            </div>
-          )}
-          {course.difficulty && (
-            <div>
-              <span className="font-medium">난이도:</span> {course.difficulty}
+              <span className="font-medium">수강생:</span> {course.enrollment_count}명
             </div>
           )}
         </div>
@@ -228,10 +220,10 @@ function CourseCatalogCard({ course }: CourseCatalogCardProps) {
           </Link>
           <Button 
             className="flex-1" 
-            variant={course.status === 'active' ? 'default' : 'outline'}
-            disabled={course.status !== 'active'}
+            variant={course.status === 'published' ? 'default' : 'outline'}
+            disabled={course.status !== 'published'}
           >
-            {course.status === 'active' ? '수강신청' : '수강신청 불가'}
+            {course.status === 'published' ? '수강신청' : '수강신청 불가'}
           </Button>
         </div>
       </CardContent>

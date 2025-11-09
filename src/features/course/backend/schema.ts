@@ -74,10 +74,11 @@ export const InstructorCoursesResponseSchema = z.object({
 
 export type InstructorCoursesResponse = z.infer<typeof InstructorCoursesResponseSchema>;
 
-// 코스 상세 조회 응답 (카테고리, 난이도 정보 포함)
+// 코스 상세 조회 응답 (카테고리, 난이도, 강사 정보 포함)
 export const CourseDetailResponseSchema = CourseSchema.extend({
   category: CategorySchema.nullable(),
   difficulty: DifficultySchema.nullable(),
+  instructor_name: z.string().nullable(),
 });
 
 export type CourseDetailResponse = z.infer<typeof CourseDetailResponseSchema>;
