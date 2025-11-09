@@ -9,18 +9,56 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Plus, FileText, Clock } from 'lucide-react';
+import { AlertCircle, Plus, FileText, Clock, Check } from 'lucide-react';
 import { AssignmentList } from '@/features/assignment/components/AssignmentList';
 import type { AssignmentResponse } from '@/features/assignment/lib/dto';
+import type { Course } from '@/features/course/backend/schema';
 
 export default function CourseAssignmentsPage() {
   const params = useParams();
   const courseId = params.courseId as string;
 
+  // 강사의 모든 코스 조회
+  const {
+    data: courses = [],
+    isLoading: coursesLoading,
+  } = useQuery({
+    queryKey: ['instructor-courses-list'],
+    queryFn: async () => {
+      try {
+        console.log('📚 강사 코스 목록 조회 중...');
+        const response = await apiClient.get<{ courses: Course[] }>('/api/courses');
+        console.log('✅ 강사 코스 목록 조회 완료:', response.data.courses.length);
+        return response.data.courses;
+      } catch (err) {
+        const message = extractApiErrorMessage(err, 'Failed to fetch courses.');
+        console.error('❌ 코스 목록 조회 실패:', message);
+        return [];
+      }
+    },
+  });
+
+  // 현재 코스 정보 조회
+  const {
+    data: currentCourse,
+    isLoading: courseLoading,
+  } = useQuery({
+    queryKey: ['current-course', courseId],
+    queryFn: async () => {
+      try {
+        const course = courses.find(c => c.id === courseId);
+        return course || null;
+      } catch (err) {
+        return null;
+      }
+    },
+    enabled: courses.length > 0 && !!courseId,
+  });
+
   // 과제 목록 조회
   const { 
     data: assignments = [], 
-    isLoading, 
+    isLoading: assignmentsLoading, 
     error,
     isError
   } = useQuery({
@@ -41,6 +79,8 @@ export default function CourseAssignmentsPage() {
     },
     enabled: !!courseId,
   });
+
+  const isLoading = coursesLoading || assignmentsLoading;
 
   if (isLoading) {
     return (
@@ -81,10 +121,13 @@ export default function CourseAssignmentsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="space-y-6">
+        {/* 헤더 */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">과제 관리</h1>
-            <p className="text-slate-500 mt-1">코스의 과제를 생성하고 관리하세요</p>
+            <p className="text-slate-500 mt-1">
+              {currentCourse ? `${currentCourse.title} - 과제를 생성하고 관리하세요` : '코스의 과제를 생성하고 관리하세요'}
+            </p>
           </div>
           <Link href={`/courses/${courseId}/assignments/new`}>
             <Button className="gap-2">
@@ -93,6 +136,34 @@ export default function CourseAssignmentsPage() {
             </Button>
           </Link>
         </div>
+
+        {/* 코스 목록 네비게이션 */}
+        {courses.length > 1 && (
+          <Card className="bg-slate-50">
+            <CardContent className="pt-4">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-slate-700">다른 코스의 과제 관리:</p>
+                <div className="flex flex-wrap gap-2">
+                  {courses.map((course) => (
+                    <Link
+                      key={course.id}
+                      href={`/courses/${course.id}/assignments`}
+                    >
+                      <Button
+                        variant={course.id === courseId ? 'default' : 'outline'}
+                        size="sm"
+                        className={course.id === courseId ? 'gap-2' : 'gap-1'}
+                      >
+                        {course.id === courseId && <Check className="h-4 w-4" />}
+                        {course.title}
+                      </Button>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {assignments.length === 0 ? (
           <Card>
