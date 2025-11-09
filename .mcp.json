@@ -1,0 +1,23 @@
+{   
+    "mcpServers": {
+        "context7:": {
+            "type": "sse",
+            "url": "http://mcp.contest7.com/sse"
+        },
+        "sequential-thinking": {
+
+            "command": "npx",
+            "args": [
+                "-y",
+                "@sequential-thinking/server-sequential-thinking"
+            ]
+        },
+        "playwright": {
+            "type": "stdio",
+            "command": "npx",
+            "args": ["@playwright/mcp@latest", "run-server"],
+            "env": {             
+            }
+        }
+    }
+}
