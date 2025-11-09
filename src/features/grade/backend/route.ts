@@ -18,9 +18,9 @@ import {
   gradeErrorCodes,
   type GradeServiceError
 } from '@/features/grade/backend/error';
-import type { AppContext } from '@/backend/hono/context';
+import type { AppEnv } from '@/backend/hono/context';
 
-export const registerGradeRoutes = (app: Hono<AppContext>) => {
+export const registerGradeRoutes = (app: Hono<AppEnv>) => {
   // GET /api/grades - Get learner's grades
   app.get('/api/grades', authenticate, zValidator('query', GetGradesRequestSchema), async (c) => {
     const deps = c.get('dependencies');

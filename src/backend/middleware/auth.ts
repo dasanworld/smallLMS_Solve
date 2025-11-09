@@ -1,13 +1,10 @@
 import { createMiddleware } from 'hono/factory';
 import { getSupabase } from '@/backend/hono/context';
 import type { AppEnv } from '@/backend/hono/context';
-import { 
+import {
   failure,
-  respond 
+  respond
 } from '@/backend/http/response';
-import { 
-  AUTHENTICATION_ERROR 
-} from '@/features/auth/backend/error';
 
 /**
  * Authentication middleware for Hono routes
@@ -23,7 +20,7 @@ export const authenticate = createMiddleware<AppEnv>(async (c, next) => {
       c,
       failure(
         401,
-        AUTHENTICATION_ERROR.UNAUTHORIZED,
+        'UNAUTHORIZED',
         'Authorization header missing or invalid.',
       ),
     );
@@ -40,7 +37,7 @@ export const authenticate = createMiddleware<AppEnv>(async (c, next) => {
       c,
       failure(
         401,
-        AUTHENTICATION_ERROR.UNAUTHORIZED,
+        'UNAUTHORIZED',
         'Invalid or expired authentication token.',
       ),
     );
@@ -55,14 +52,14 @@ export const authenticate = createMiddleware<AppEnv>(async (c, next) => {
 /**
  * Type guard to check if user is authenticated
  */
-export const isAuthenticated = (c: Parameters<Parameters<typeof createMiddleware>[0]>[0]) => {
+export const isAuthenticated = (c: any) => {
   return c.get('user') !== undefined;
 };
 
 /**
  * Get authenticated user from context
  */
-export const getAuthenticatedUser = (c: Parameters<Parameters<typeof createMiddleware>[0]>[0]) => {
+export const getAuthenticatedUser = (c: any) => {
   return c.get('user');
 };
 
@@ -73,13 +70,13 @@ export const getAuthenticatedUser = (c: Parameters<Parameters<typeof createMiddl
 export const requireRole = (roles: string | string[]) => {
   return createMiddleware<AppEnv>(async (c, next) => {
     const user = getAuthenticatedUser(c);
-    
+
     if (!user) {
       return respond(
         c,
         failure(
           401,
-          AUTHENTICATION_ERROR.UNAUTHORIZED,
+          'UNAUTHORIZED',
           'User must be authenticated to access this resource.',
         ),
       );
@@ -88,7 +85,7 @@ export const requireRole = (roles: string | string[]) => {
     // Get user role from Supabase user metadata or a separate role table
     // This assumes roles are stored in user's app_metadata or user_profiles table
     let userRole = user.app_metadata?.role || user.user_metadata?.role;
-    
+
     // If role is not in user metadata, fetch from profiles table
     if (!userRole) {
       const supabase = getSupabase(c);

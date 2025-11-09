@@ -4,11 +4,9 @@ import { withAppContext } from '@/backend/middleware/context';
 import { withSupabase } from '@/backend/middleware/supabase';
 import { registerExampleRoutes } from '@/features/example/backend/route';
 import { registerAuthRoutes } from '@/features/auth/backend/route';
-import { registerCourseRoutes } from '@/features/course/backend/route';
 import { registerDashboardRoutes } from '@/features/dashboard/backend/route';
 import { registerInstructorDashboardRoutes } from '@/features/dashboard/backend/instructor-route';
-import { registerAssignmentDetailRoutes } from '@/features/assignment/detail/backend/route';
-import { registerSubmissionRoutes } from '@/features/assignment/submission/backend/route';
+
 import { registerGradeRoutes } from '@/features/grade/backend/route';
 import { registerOperatorRoutes } from '@/features/operator/backend/route';
 import type { AppEnv } from '@/backend/hono/context';
@@ -28,11 +26,9 @@ export const createHonoApp = () => {
 
   registerExampleRoutes(app);
   registerAuthRoutes(app);
-  registerCourseRoutes(app);
   registerDashboardRoutes(app);
   registerInstructorDashboardRoutes(app);
-  registerAssignmentDetailRoutes(app);
-  registerSubmissionRoutes(app);
+  
   registerGradeRoutes(app);
   registerOperatorRoutes(app);
 
