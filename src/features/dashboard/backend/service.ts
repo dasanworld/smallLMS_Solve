@@ -228,7 +228,6 @@ export const getLearnerDashboardService = async (
     }
 
     // Get all assignments with submission status for enrolled courses
-    const allAssignmentsStatus = [];
     for (const assignment of assignments || []) {
       const submission = submissions?.find(
         sub => sub.assignment_id === assignment.id
