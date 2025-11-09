@@ -21,20 +21,36 @@ export const useCreateAssignmentMutation = () => {
 
   return useMutation({
     mutationFn: async (data: CreateAssignmentRequest) => {
-      console.log('📝 Creating assignment:', data);
-      const response = await apiClient.post<{ data: AssignmentResponse }>(
-        `/api/courses/${data.courseId}/assignments`,
-        {
-          title: data.title,
-          description: data.description,
-          dueDate: data.dueDate,
-          pointsWeight: data.pointsWeight,
-          allowLate: data.allowLate,
-          allowResubmission: data.allowResubmission,
-        }
-      );
-      console.log('✅ Assignment created:', response.data.data);
-      return response.data.data;
+      console.log('📝 Creating assignment with data:', data);
+      
+      const payload = {
+        title: data.title,
+        description: data.description,
+        dueDate: data.dueDate,
+        pointsWeight: data.pointsWeight,
+        allowLate: data.allowLate,
+        allowResubmission: data.allowResubmission,
+      };
+      
+      console.log('📤 API Request payload:', payload);
+      console.log('📍 API Endpoint:', `/api/courses/${data.courseId}/assignments`);
+      
+      try {
+        const response = await apiClient.post<{ data: AssignmentResponse }>(
+          `/api/courses/${data.courseId}/assignments`,
+          payload
+        );
+        console.log('✅ Assignment created:', response.data.data);
+        return response.data.data;
+      } catch (error: any) {
+        console.error('❌ API call failed:', {
+          error,
+          status: error.status,
+          response: error.response,
+          message: error.message,
+        });
+        throw error;
+      }
     },
     onSuccess: (_, variables) => {
       console.log('🔄 Invalidating cache for course:', variables.courseId);
@@ -44,12 +60,16 @@ export const useCreateAssignmentMutation = () => {
       });
     },
     onError: (error: any) => {
-      console.error('❌ Assignment creation error:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
+      console.error('❌ Assignment creation error - Full error object:', error);
+      console.error('❌ Assignment creation error - Details:', {
+        isAxiosError: error.isAxiosError,
+        status: error.status || error.response?.status,
+        statusText: error.statusText || error.response?.statusText,
+        data: error.data || error.response?.data,
+        config: error.config,
         message: error.message,
-        error: error.toString(),
+        toString: error.toString(),
+        keys: Object.keys(error),
       });
     },
   });
