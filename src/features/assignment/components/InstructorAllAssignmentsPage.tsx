@@ -32,26 +32,38 @@ const CourseAssignmentsLoader: React.FC<CourseAssignmentsLoaderProps> = ({
   const { data, isLoading, error } = useCourseAssignmentsQuery(courseId);
 
   useEffect(() => {
-    console.log(`[CourseAssignmentsLoader] Course ${courseId}:`, {
+    console.log(`[CourseAssignmentsLoader] Query state for course ${courseId}:`, {
       isLoading,
       hasData: !!data,
-      assignments: data?.assignments?.length || 0,
+      dataType: typeof data,
+      dataKeys: data ? Object.keys(data) : 'N/A',
+      assignmentsType: data?.assignments ? typeof data.assignments : 'N/A',
+      assignmentsLength: data?.assignments?.length || 0,
       error: error?.message || 'none',
     });
   }, [courseId, data, isLoading, error]);
 
   useEffect(() => {
-    if (data?.assignments && data.assignments.length > 0) {
-      console.log(`[CourseAssignmentsLoader] Loading ${data.assignments.length} assignments for course ${courseId}`);
+    console.log(`[CourseAssignmentsLoader] Checking data for course ${courseId}:`, {
+      dataExists: !!data,
+      assignmentsExists: !!data?.assignments,
+      assignmentsIsArray: Array.isArray(data?.assignments),
+      assignmentsLength: data?.assignments?.length || 0,
+    });
+
+    if (data?.assignments && Array.isArray(data.assignments) && data.assignments.length > 0) {
+      console.log(`[CourseAssignmentsLoader] Loading ${data.assignments.length} assignments for course ${courseId}`, data.assignments);
       const assignmentsWithCourse = data.assignments.map((assignment) => ({
         ...assignment,
         courseName,
         courseId,
       }));
       onDataLoad(assignmentsWithCourse);
-    } else if (data?.assignments && data.assignments.length === 0) {
+    } else if (data?.assignments && Array.isArray(data.assignments) && data.assignments.length === 0) {
       console.log(`[CourseAssignmentsLoader] No assignments for course ${courseId}`);
       onDataLoad([]);
+    } else {
+      console.log(`[CourseAssignmentsLoader] Data not ready or invalid for course ${courseId}`);
     }
   }, [data, courseName, courseId, onDataLoad]);
 

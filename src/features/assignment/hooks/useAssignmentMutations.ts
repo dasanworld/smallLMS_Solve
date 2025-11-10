@@ -22,7 +22,16 @@ export const useCourseAssignmentsQuery = (courseId: string) => {
         const response = await apiClient.get<AssignmentListResponse>(
           `/api/courses/${courseId}/assignments`
         );
-        console.log(`[useCourseAssignmentsQuery] Success for course ${courseId}:`, response.data);
+        console.log(`[useCourseAssignmentsQuery] Raw response for course ${courseId}:`, response);
+        console.log(`[useCourseAssignmentsQuery] Response.data for course ${courseId}:`, response.data);
+
+        // 응답 데이터 구조 확인
+        if (response.data) {
+          console.log(`[useCourseAssignmentsQuery] Data type:`, typeof response.data);
+          console.log(`[useCourseAssignmentsQuery] Data keys:`, Object.keys(response.data));
+          console.log(`[useCourseAssignmentsQuery] Assignments:`, response.data.assignments);
+        }
+
         return response.data;
       } catch (error) {
         console.error(`[useCourseAssignmentsQuery] Error for course ${courseId}:`, error);
