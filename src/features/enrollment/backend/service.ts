@@ -1,6 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { CreateEnrollmentRequest } from './schema';
 import { enrollmentErrorCodes } from './error';
+import { success, failure, type HandlerResult } from '@/backend/http/response';
+
+type EnrollmentErrorCode = typeof enrollmentErrorCodes[keyof typeof enrollmentErrorCodes];
 
 /**
  * 사용자 수강신청 목록 조회
@@ -8,7 +11,7 @@ import { enrollmentErrorCodes } from './error';
 export const getUserEnrollmentsService = async (
   supabase: SupabaseClient,
   userId: string
-) => {
+): Promise<HandlerResult<{ enrollments: any[] }, EnrollmentErrorCode>> => {
   try {
     const { data, error } = await supabase
       .from('enrollments')
@@ -18,25 +21,14 @@ export const getUserEnrollmentsService = async (
       .order('enrolled_at', { ascending: false });
 
     if (error) {
-      return {
-        status: 500,
-        code: enrollmentErrorCodes.ENROLLMENT_FETCH_ERROR,
-        message: error.message,
-      };
+      return failure(500, enrollmentErrorCodes.ENROLLMENT_FETCH_ERROR, error.message);
     }
 
-    return {
-      status: 200,
-      data: {
-        enrollments: data || [],
-      },
-    };
+    return success({
+      enrollments: data || [],
+    });
   } catch (error) {
-    return {
-      status: 500,
-      code: enrollmentErrorCodes.ENROLLMENT_FETCH_ERROR,
-      message: String(error),
-    };
+    return failure(500, enrollmentErrorCodes.ENROLLMENT_FETCH_ERROR, String(error));
   }
 };
 
@@ -47,7 +39,7 @@ export const createEnrollmentService = async (
   supabase: SupabaseClient,
   userId: string,
   courseId: string
-) => {
+): Promise<HandlerResult<any, EnrollmentErrorCode>> => {
   try {
     // 이미 등록되어 있는지 확인
     const { data: existingEnrollment } = await supabase
@@ -59,11 +51,7 @@ export const createEnrollmentService = async (
       .single();
 
     if (existingEnrollment) {
-      return {
-        status: 409,
-        code: enrollmentErrorCodes.ALREADY_ENROLLED,
-        message: 'Already enrolled in this course',
-      };
+      return failure(409, enrollmentErrorCodes.ALREADY_ENROLLED, 'Already enrolled in this course');
     }
 
     // 새로운 수강신청 생성
@@ -80,23 +68,12 @@ export const createEnrollmentService = async (
       .single();
 
     if (error) {
-      return {
-        status: 500,
-        code: enrollmentErrorCodes.ENROLLMENT_CREATION_ERROR,
-        message: error.message,
-      };
+      return failure(500, enrollmentErrorCodes.ENROLLMENT_CREATION_ERROR, error.message);
     }
 
-    return {
-      status: 201,
-      data,
-    };
+    return success(data, 201);
   } catch (error) {
-    return {
-      status: 500,
-      code: enrollmentErrorCodes.ENROLLMENT_CREATION_ERROR,
-      message: String(error),
-    };
+    return failure(500, enrollmentErrorCodes.ENROLLMENT_CREATION_ERROR, String(error));
   }
 };
 
@@ -107,7 +84,7 @@ export const deleteEnrollmentService = async (
   supabase: SupabaseClient,
   enrollmentId: string,
   userId: string
-) => {
+): Promise<HandlerResult<any, EnrollmentErrorCode>> => {
   try {
     const { data, error } = await supabase
       .from('enrollments')
@@ -118,22 +95,11 @@ export const deleteEnrollmentService = async (
       .single();
 
     if (error || !data) {
-      return {
-        status: 404,
-        code: enrollmentErrorCodes.ENROLLMENT_NOT_FOUND,
-        message: 'Enrollment not found or unauthorized',
-      };
+      return failure(404, enrollmentErrorCodes.ENROLLMENT_NOT_FOUND, 'Enrollment not found or unauthorized');
     }
 
-    return {
-      status: 200,
-      data,
-    };
+    return success(data);
   } catch (error) {
-    return {
-      status: 500,
-      code: enrollmentErrorCodes.ENROLLMENT_DELETE_ERROR,
-      message: String(error),
-    };
+    return failure(500, enrollmentErrorCodes.ENROLLMENT_DELETE_ERROR, String(error));
   }
 };

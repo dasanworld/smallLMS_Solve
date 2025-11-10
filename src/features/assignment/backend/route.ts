@@ -279,7 +279,7 @@ export const registerAssignmentRoutes = (app: Hono<AppEnv>) => {
   // PATCH /api/submissions/:submissionId/grade - 과제 채점 (강사용)
   app.patch('/api/submissions/:submissionId/grade', async (c) => {
     try {
-      const submissionId = c.req.param('submissionId');
+      const paramSubmissionId = c.req.param('submissionId');
       const user = getUser(c);
 
       if (!user) {
@@ -316,8 +316,12 @@ export const registerAssignmentRoutes = (app: Hono<AppEnv>) => {
       const result = await gradeSubmissionService(
         supabase,
         user.id,
-        submissionId,
-        validation.data
+        validation.data.submissionId,
+        {
+          score: validation.data.score,
+          feedback: validation.data.feedback,
+          status: validation.data.status,
+        }
       );
       return respond(c, result);
     } catch (error) {

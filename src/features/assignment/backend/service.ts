@@ -6,6 +6,9 @@ import type {
   GradeSubmissionRequest,
 } from './schema';
 import { assignmentErrorCodes } from './error';
+import { success, failure, type HandlerResult } from '@/backend/http/response';
+
+type AssignmentErrorCode = typeof assignmentErrorCodes[keyof typeof assignmentErrorCodes];
 
 /**
  * Get assignments for a course
@@ -13,7 +16,7 @@ import { assignmentErrorCodes } from './error';
 export const getCourseAssignmentsService = async (
   supabase: SupabaseClient,
   courseId: string
-) => {
+): Promise<HandlerResult<{ assignments: any[]; total: number }, AssignmentErrorCode>> => {
   try {
     const { data, error } = await supabase
       .from('assignments')
@@ -23,26 +26,15 @@ export const getCourseAssignmentsService = async (
       .order('created_at', { ascending: false });
 
     if (error) {
-      return {
-        status: 500,
-        code: assignmentErrorCodes.ASSIGNMENT_NOT_FOUND,
-        message: error.message,
-      };
+      return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, error.message);
     }
 
-    return {
-      status: 200,
-      data: {
-        assignments: data || [],
-        total: data?.length || 0,
-      },
-    };
+    return success({
+      assignments: data || [],
+      total: data?.length || 0,
+    });
   } catch (error) {
-    return {
-      status: 500,
-      code: assignmentErrorCodes.ASSIGNMENT_NOT_FOUND,
-      message: String(error),
-    };
+    return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, String(error));
   }
 };
 
@@ -52,7 +44,7 @@ export const getCourseAssignmentsService = async (
 export const getAssignmentByIdService = async (
   supabase: SupabaseClient,
   assignmentId: string
-) => {
+): Promise<HandlerResult<any, AssignmentErrorCode>> => {
   try {
     const { data, error } = await supabase
       .from('assignments')
@@ -62,23 +54,12 @@ export const getAssignmentByIdService = async (
       .single();
 
     if (error || !data) {
-      return {
-        status: 404,
-        code: assignmentErrorCodes.ASSIGNMENT_NOT_FOUND,
-        message: 'Assignment not found',
-      };
+      return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found');
     }
 
-    return {
-      status: 200,
-      data,
-    };
+    return success(data);
   } catch (error) {
-    return {
-      status: 500,
-      code: assignmentErrorCodes.ASSIGNMENT_NOT_FOUND,
-      message: String(error),
-    };
+    return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, String(error));
   }
 };
 
@@ -90,7 +71,7 @@ export const createAssignmentService = async (
   courseId: string,
   instructorId: string,
   data: CreateAssignmentRequest
-) => {
+): Promise<HandlerResult<any, AssignmentErrorCode>> => {
   try {
     const { data: assignment, error } = await supabase
       .from('assignments')
@@ -110,23 +91,12 @@ export const createAssignmentService = async (
       .single();
 
     if (error) {
-      return {
-        status: 500,
-        code: assignmentErrorCodes.ASSIGNMENT_CREATION_ERROR,
-        message: error.message,
-      };
+      return failure(500, assignmentErrorCodes.ASSIGNMENT_CREATION_ERROR, error.message);
     }
 
-    return {
-      status: 201,
-      data: assignment,
-    };
+    return success(assignment, 201);
   } catch (error) {
-    return {
-      status: 500,
-      code: assignmentErrorCodes.ASSIGNMENT_CREATION_ERROR,
-      message: String(error),
-    };
+    return failure(500, assignmentErrorCodes.ASSIGNMENT_CREATION_ERROR, String(error));
   }
 };
 
@@ -138,7 +108,7 @@ export const updateAssignmentService = async (
   assignmentId: string,
   instructorId: string,
   data: UpdateAssignmentRequest
-) => {
+): Promise<HandlerResult<any, AssignmentErrorCode>> => {
   try {
     const updateData: Record<string, any> = {};
 
@@ -158,23 +128,12 @@ export const updateAssignmentService = async (
       .single();
 
     if (error || !assignment) {
-      return {
-        status: 404,
-        code: assignmentErrorCodes.ASSIGNMENT_NOT_FOUND,
-        message: 'Assignment not found or unauthorized',
-      };
+      return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found or unauthorized');
     }
 
-    return {
-      status: 200,
-      data: assignment,
-    };
+    return success(assignment);
   } catch (error) {
-    return {
-      status: 500,
-      code: assignmentErrorCodes.ASSIGNMENT_UPDATE_ERROR,
-      message: String(error),
-    };
+    return failure(500, assignmentErrorCodes.ASSIGNMENT_UPDATE_ERROR, String(error));
   }
 };
 
@@ -187,7 +146,7 @@ export const submitAssignmentService = async (
   assignmentId: string,
   learnerId: string,
   data: SubmitAssignmentRequest
-) => {
+): Promise<HandlerResult<any, AssignmentErrorCode>> => {
   try {
     // Check if submission already exists
     const { data: existingSubmission } = await supabase
@@ -212,17 +171,10 @@ export const submitAssignmentService = async (
         .single();
 
       if (error) {
-        return {
-          status: 500,
-          code: assignmentErrorCodes.SUBMISSION_UPDATE_ERROR,
-          message: error.message,
-        };
+        return failure(500, assignmentErrorCodes.SUBMISSION_UPDATE_ERROR, error.message);
       }
 
-      return {
-        status: 200,
-        data: submission,
-      };
+      return success(submission);
     }
 
     // Create new submission
@@ -242,23 +194,12 @@ export const submitAssignmentService = async (
       .single();
 
     if (error) {
-      return {
-        status: 500,
-        code: assignmentErrorCodes.SUBMISSION_CREATE_ERROR,
-        message: error.message,
-      };
+      return failure(500, assignmentErrorCodes.SUBMISSION_CREATE_ERROR, error.message);
     }
 
-    return {
-      status: 201,
-      data: submission,
-    };
+    return success(submission, 201);
   } catch (error) {
-    return {
-      status: 500,
-      code: assignmentErrorCodes.SUBMISSION_CREATE_ERROR,
-      message: String(error),
-    };
+    return failure(500, assignmentErrorCodes.SUBMISSION_CREATE_ERROR, String(error));
   }
 };
 
@@ -270,7 +211,7 @@ export const gradeSubmissionService = async (
   instructorId: string,
   submissionId: string,
   data: GradeSubmissionRequest
-) => {
+): Promise<HandlerResult<any, AssignmentErrorCode>> => {
   try {
     const { data: submission, error } = await supabase
       .from('submissions')
@@ -286,23 +227,12 @@ export const gradeSubmissionService = async (
       .single();
 
     if (error || !submission) {
-      return {
-        status: 404,
-        code: assignmentErrorCodes.SUBMISSION_NOT_FOUND,
-        message: 'Submission not found',
-      };
+      return failure(404, assignmentErrorCodes.SUBMISSION_NOT_FOUND, 'Submission not found');
     }
 
-    return {
-      status: 200,
-      data: submission,
-    };
+    return success(submission);
   } catch (error) {
-    return {
-      status: 500,
-      code: assignmentErrorCodes.SUBMISSION_UPDATE_ERROR,
-      message: String(error),
-    };
+    return failure(500, assignmentErrorCodes.SUBMISSION_UPDATE_ERROR, String(error));
   }
 };
 
@@ -314,7 +244,7 @@ export const getUserSubmissionService = async (
   courseId: string,
   assignmentId: string,
   learnerId: string
-) => {
+): Promise<HandlerResult<any, AssignmentErrorCode>> => {
   try {
     const { data, error } = await supabase
       .from('submissions')
@@ -325,23 +255,12 @@ export const getUserSubmissionService = async (
       .single();
 
     if (error || !data) {
-      return {
-        status: 404,
-        code: assignmentErrorCodes.SUBMISSION_NOT_FOUND,
-        message: 'Submission not found',
-      };
+      return failure(404, assignmentErrorCodes.SUBMISSION_NOT_FOUND, 'Submission not found');
     }
 
-    return {
-      status: 200,
-      data,
-    };
+    return success(data);
   } catch (error) {
-    return {
-      status: 500,
-      code: assignmentErrorCodes.SUBMISSION_NOT_FOUND,
-      message: String(error),
-    };
+    return failure(500, assignmentErrorCodes.SUBMISSION_NOT_FOUND, String(error));
   }
 };
 
@@ -352,7 +271,7 @@ export const deleteAssignmentService = async (
   supabase: SupabaseClient,
   assignmentId: string,
   instructorId: string
-) => {
+): Promise<HandlerResult<any, AssignmentErrorCode>> => {
   try {
     const { data, error } = await supabase
       .from('assignments')
@@ -366,22 +285,11 @@ export const deleteAssignmentService = async (
       .single();
 
     if (error || !data) {
-      return {
-        status: 404,
-        code: assignmentErrorCodes.ASSIGNMENT_NOT_FOUND,
-        message: 'Assignment not found or unauthorized',
-      };
+      return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found or unauthorized');
     }
 
-    return {
-      status: 200,
-      data,
-    };
+    return success(data);
   } catch (error) {
-    return {
-      status: 500,
-      code: assignmentErrorCodes.ASSIGNMENT_DELETE_ERROR,
-      message: String(error),
-    };
+    return failure(500, assignmentErrorCodes.ASSIGNMENT_DELETE_ERROR, String(error));
   }
 };

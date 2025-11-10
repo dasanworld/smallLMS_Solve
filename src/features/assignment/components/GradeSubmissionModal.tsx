@@ -52,7 +52,7 @@ export const GradeSubmissionModal = ({
     },
   });
 
-  const onSubmit = async (data: GradeSubmissionRequest) => {
+  const onSubmit = async (data: Omit<GradeSubmissionRequest, 'submissionId'>) => {
     if (!submission) return;
 
     setIsSubmitting(true);

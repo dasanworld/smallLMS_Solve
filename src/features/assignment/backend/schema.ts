@@ -30,6 +30,7 @@ export const SubmitAssignmentRequestSchema = z.object({
 });
 
 export const GradeSubmissionRequestSchema = z.object({
+  submissionId: z.string(),
   score: z.number().min(0).max(100),
   feedback: z.string().min(1).max(1000),
   status: z.enum(['submitted', 'graded', 'resubmission_required']).optional(),

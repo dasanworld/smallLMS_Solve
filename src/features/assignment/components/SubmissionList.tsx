@@ -60,7 +60,7 @@ export const SubmissionList = ({
     );
   }
 
-  if (!data?.data || data.data.length === 0) {
+  if (!data?.submissions || data.submissions.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
         제출물이 없습니다
@@ -70,20 +70,17 @@ export const SubmissionList = ({
 
   return (
     <div className="space-y-3">
-      {data.data.map((submission) => (
+      {data.submissions.map((submission) => (
         <Card key={submission.id} className="p-4">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <h4 className="font-semibold">학습자 {submission.userId.slice(0, 8)}</h4>
+                <h4 className="font-semibold">학습자 {submission.learnerId.slice(0, 8)}</h4>
                 <Badge className={statusColors[submission.status]}>
                   {submission.status === 'submitted' && '미채점'}
                   {submission.status === 'graded' && '채점완료'}
                   {submission.status === 'resubmission_required' && '재제출요청'}
                 </Badge>
-                {submission.isLate && (
-                  <Badge className="bg-red-100 text-red-800">지각</Badge>
-                )}
               </div>
 
               <p className="text-sm text-gray-600 mb-2 line-clamp-2">{submission.content}</p>

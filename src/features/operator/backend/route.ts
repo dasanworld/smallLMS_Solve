@@ -149,7 +149,7 @@ export const registerOperatorRoutes = (app: Hono<AppEnv>) => {
     const result = await getReportsService(deps, filters);
 
     if (!result.ok) {
-      logger.error('Reports request failed', result.message);
+      logger.error('Reports request failed', (result as any).error?.message || 'Unknown error');
       return respond(c, result);
     }
 
@@ -346,7 +346,7 @@ export const registerOperatorRoutes = (app: Hono<AppEnv>) => {
     });
 
     if (!result.ok) {
-      logger.error('Failed to fetch categories', result.error);
+      logger.error('Failed to fetch categories', (result as any).error);
       return respond(c, result);
     }
 
@@ -382,7 +382,7 @@ export const registerOperatorRoutes = (app: Hono<AppEnv>) => {
     });
 
     if (!result.ok) {
-      logger.error('Failed to create category', result.error);
+      logger.error('Failed to create category', (result as any).error);
       return respond(c, result);
     }
 
@@ -438,7 +438,7 @@ export const registerOperatorRoutes = (app: Hono<AppEnv>) => {
     });
 
     if (!result.ok) {
-      logger.error('Failed to update category', result.error);
+      logger.error('Failed to update category', (result as any).error);
       return respond(c, result);
     }
 
@@ -477,7 +477,7 @@ export const registerOperatorRoutes = (app: Hono<AppEnv>) => {
     });
 
     if (!result.ok) {
-      logger.error('Failed to deactivate category', result.error);
+      logger.error('Failed to deactivate category', (result as any).error);
       return respond(c, result);
     }
 
@@ -508,7 +508,7 @@ export const registerOperatorRoutes = (app: Hono<AppEnv>) => {
     });
 
     if (!result.ok) {
-      logger.error('Failed to fetch difficulties', result.error);
+      logger.error('Failed to fetch difficulties', (result as any).error);
       return respond(c, result);
     }
 
@@ -545,7 +545,7 @@ export const registerOperatorRoutes = (app: Hono<AppEnv>) => {
     });
 
     if (!result.ok) {
-      logger.error('Failed to create difficulty', result.error);
+      logger.error('Failed to create difficulty', (result as any).error);
       return respond(c, result);
     }
 
@@ -602,7 +602,7 @@ export const registerOperatorRoutes = (app: Hono<AppEnv>) => {
     });
 
     if (!result.ok) {
-      logger.error('Failed to update difficulty', result.error);
+      logger.error('Failed to update difficulty', (result as any).error);
       return respond(c, result);
     }
 
@@ -641,7 +641,7 @@ export const registerOperatorRoutes = (app: Hono<AppEnv>) => {
     });
 
     if (!result.ok) {
-      logger.error('Failed to deactivate difficulty', result.error);
+      logger.error('Failed to deactivate difficulty', (result as any).error);
       return respond(c, result);
     }
 
