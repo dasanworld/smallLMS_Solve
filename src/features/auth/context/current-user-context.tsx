@@ -38,15 +38,19 @@ export const CurrentUserProvider = ({
       const result = await supabase.auth.getUser();
 
       const nextSnapshot = match(result)
-        .with({ data: { user: P.nonNullable } }, ({ data }) => ({
-          status: "authenticated" as const,
-          user: {
-            id: data.user.id,
-            email: data.user.email,
-            appMetadata: data.user.app_metadata ?? {},
-            userMetadata: data.user.user_metadata ?? {},
-          },
-        }))
+        .with({ data: { user: P.nonNullable } }, ({ data }) => {
+          const userMetadata = data.user.user_metadata ?? {};
+          return {
+            status: "authenticated" as const,
+            user: {
+              id: data.user.id,
+              email: data.user.email,
+              role: (userMetadata.role as string | undefined),
+              appMetadata: data.user.app_metadata ?? {},
+              userMetadata,
+            },
+          };
+        })
         .otherwise(() => ({ status: "unauthenticated" as const, user: null }));
 
       setSnapshot(nextSnapshot);

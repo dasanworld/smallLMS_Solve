@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,6 +24,10 @@ export const CoursesPage = () => {
   const [selectedCourseForStatus, setSelectedCourseForStatus] = useState<Course | null>(null);
 
   const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useInstructorCoursesQuery();
+
+  useEffect(() => {
+    console.log('[CoursesPage] Rendered with courses:', { courses, isLoading: coursesLoading, error: coursesError });
+  }, [courses, coursesLoading, coursesError]);
   const createMutation = useCreateCourseMutation();
   const updateMutation = useUpdateCourseMutation(editingCourse?.id || '');
   const statusMutation = useUpdateCourseStatusMutation(selectedCourseForStatus?.id || '');
