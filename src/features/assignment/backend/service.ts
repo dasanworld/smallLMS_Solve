@@ -4,6 +4,7 @@ import type {
   UpdateAssignmentRequest,
   SubmitAssignmentRequest,
   GradeSubmissionRequest,
+  AssignmentResponse,
 } from './schema';
 import { assignmentErrorCodes } from './error';
 import { success, failure, type HandlerResult } from '@/backend/http/response';
@@ -11,12 +12,29 @@ import { success, failure, type HandlerResult } from '@/backend/http/response';
 type AssignmentErrorCode = typeof assignmentErrorCodes[keyof typeof assignmentErrorCodes];
 
 /**
+ * 데이터베이스 필드(snake_case)를 API 응답 필드(camelCase)로 변환
+ */
+const convertAssignmentToResponse = (data: any): AssignmentResponse => ({
+  id: data.id,
+  courseId: data.course_id,
+  title: data.title,
+  description: data.description,
+  dueDate: data.due_date,
+  pointsWeight: data.points_weight,
+  instructions: data.instructions,
+  status: data.status,
+  createdAt: data.created_at,
+  updatedAt: data.updated_at,
+  instructorId: data.instructor_id,
+});
+
+/**
  * Get assignments for a course
  */
 export const getCourseAssignmentsService = async (
   supabase: SupabaseClient,
   courseId: string
-): Promise<HandlerResult<{ assignments: any[]; total: number }, AssignmentErrorCode>> => {
+): Promise<HandlerResult<{ assignments: AssignmentResponse[]; total: number }, AssignmentErrorCode>> => {
   try {
     const { data, error } = await supabase
       .from('assignments')
@@ -29,9 +47,11 @@ export const getCourseAssignmentsService = async (
       return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, error.message);
     }
 
+    const assignments = (data || []).map(convertAssignmentToResponse);
+
     return success({
-      assignments: data || [],
-      total: data?.length || 0,
+      assignments,
+      total: assignments.length,
     });
   } catch (error) {
     return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, String(error));
@@ -44,7 +64,7 @@ export const getCourseAssignmentsService = async (
 export const getAssignmentByIdService = async (
   supabase: SupabaseClient,
   assignmentId: string
-): Promise<HandlerResult<any, AssignmentErrorCode>> => {
+): Promise<HandlerResult<AssignmentResponse, AssignmentErrorCode>> => {
   try {
     const { data, error } = await supabase
       .from('assignments')
@@ -57,7 +77,7 @@ export const getAssignmentByIdService = async (
       return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found');
     }
 
-    return success(data);
+    return success(convertAssignmentToResponse(data));
   } catch (error) {
     return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, String(error));
   }
@@ -71,7 +91,7 @@ export const createAssignmentService = async (
   courseId: string,
   instructorId: string,
   data: CreateAssignmentRequest
-): Promise<HandlerResult<any, AssignmentErrorCode>> => {
+): Promise<HandlerResult<AssignmentResponse, AssignmentErrorCode>> => {
   try {
     const { data: assignment, error } = await supabase
       .from('assignments')
@@ -94,7 +114,7 @@ export const createAssignmentService = async (
       return failure(500, assignmentErrorCodes.ASSIGNMENT_CREATION_ERROR, error.message);
     }
 
-    return success(assignment, 201);
+    return success(convertAssignmentToResponse(assignment), 201);
   } catch (error) {
     return failure(500, assignmentErrorCodes.ASSIGNMENT_CREATION_ERROR, String(error));
   }
@@ -108,7 +128,7 @@ export const updateAssignmentService = async (
   assignmentId: string,
   instructorId: string,
   data: UpdateAssignmentRequest
-): Promise<HandlerResult<any, AssignmentErrorCode>> => {
+): Promise<HandlerResult<AssignmentResponse, AssignmentErrorCode>> => {
   try {
     const updateData: Record<string, any> = {};
 
@@ -131,7 +151,7 @@ export const updateAssignmentService = async (
       return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found or unauthorized');
     }
 
-    return success(assignment);
+    return success(convertAssignmentToResponse(assignment));
   } catch (error) {
     return failure(500, assignmentErrorCodes.ASSIGNMENT_UPDATE_ERROR, String(error));
   }
