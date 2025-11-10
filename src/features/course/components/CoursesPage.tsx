@@ -84,6 +84,12 @@ export const CoursesPage = () => {
             <p className="text-sm text-red-800">
               {coursesError instanceof Error ? coursesError.message : '코스 목록을 불러올 수 없습니다'}
             </p>
+            <details className="mt-2 text-xs text-red-700">
+              <summary className="cursor-pointer underline">상세 정보</summary>
+              <pre className="mt-2 max-h-48 overflow-auto bg-red-100 p-2 rounded text-xs whitespace-pre-wrap break-words">
+                {JSON.stringify(coursesError, null, 2)}
+              </pre>
+            </details>
           </div>
         </div>
       )}

@@ -16,7 +16,8 @@ import type { AppEnv } from '@/backend/hono/context';
 let singletonApp: Hono<AppEnv> | null = null;
 
 export const createHonoApp = () => {
-  if (singletonApp) {
+  // In development, recreate the app each time to ensure HMR updates are reflected
+  if (process.env.NODE_ENV === 'production' && singletonApp) {
     return singletonApp;
   }
 
@@ -38,7 +39,9 @@ export const createHonoApp = () => {
   registerAssignmentRoutes(app);
   registerOperatorRoutes(app);
 
-  singletonApp = app;
+  if (process.env.NODE_ENV === 'production') {
+    singletonApp = app;
+  }
 
   return app;
 };

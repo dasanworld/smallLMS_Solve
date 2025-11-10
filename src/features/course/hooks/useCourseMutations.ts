@@ -18,8 +18,15 @@ export const useInstructorCoursesQuery = () => {
   return useQuery({
     queryKey: useCourseQueryKeys.my,
     queryFn: async () => {
-      const response = await apiClient.get<{ courses: Course[] }>('/api/courses/my');
-      return response.data.courses;
+      try {
+        console.log('[useInstructorCoursesQuery] Fetching courses...');
+        const response = await apiClient.get<{ courses: Course[] }>('/api/courses/my');
+        console.log('[useInstructorCoursesQuery] Success:', response.data);
+        return response.data.courses;
+      } catch (error) {
+        console.error('[useInstructorCoursesQuery] Failed:', error);
+        throw error;
+      }
     },
   });
 };

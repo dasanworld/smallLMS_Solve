@@ -11,17 +11,40 @@ const apiClient = axios.create({
 // Add an interceptor to include the auth token if available
 apiClient.interceptors.request.use(
   async (config) => {
-    // Get the current session token from Supabase
-    const supabase = getSupabaseBrowserClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session?.access_token) {
-      config.headers.Authorization = `Bearer ${session.access_token}`;
+    try {
+      // Get the current session token from Supabase
+      const supabase = getSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.access_token) {
+        config.headers.Authorization = `Bearer ${session.access_token}`;
+        console.log(`[API] Request to ${config.url} with auth token`);
+      } else {
+        console.warn(`[API] Request to ${config.url} without auth token`);
+      }
+    } catch (err) {
+      console.error('[API] Error getting session:', err);
     }
-    
+
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for debugging
+apiClient.interceptors.response.use(
+  (response) => {
+    console.log(`[API] Response from ${response.config.url}:`, response.status);
+    return response;
+  },
+  (error) => {
+    if (error.response) {
+      console.error(`[API] Error from ${error.config.url}:`, error.response.status, error.response.data);
+    } else {
+      console.error('[API] Error:', error.message);
+    }
     return Promise.reject(error);
   }
 );
