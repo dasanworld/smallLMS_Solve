@@ -39,7 +39,9 @@ export default function DashboardPage({ params }: DashboardPageProps) {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // 강사인 경우 강사 대시보드로 자동 리다이렉트
+  // 리다이렉트 정책 (docs/REDIRECT_POLICY.md 참고):
+  // 학습자 대시보드는 learner 역할만 접근 가능
+  // instructor 역할이 접근하면 강사 대시보드로 자동 리다이렉트
   useEffect(() => {
     if (userProfile && userProfile.role === 'instructor') {
       router.replace('/instructor-dashboard');

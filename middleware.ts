@@ -51,6 +51,10 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // 리다이렉트 정책 (docs/REDIRECT_POLICY.md 참고):
+  // 1. 비로그인 사용자가 보호된 경로 접근 → /login?redirectedFrom=[originalPath]
+  // 2. 비로그인 사용자가 공개 경로 접근 → 그대로 진행
+  // 3. 로그인 사용자 → 페이지 단계의 역할 검증으로 진행 (pages에서 처리)
   const decision = match({ user, pathname: request.nextUrl.pathname })
     .when(
       ({ user: currentUser, pathname }) =>

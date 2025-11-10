@@ -342,3 +342,4 @@ idx_assignments_course_weight   -- 가중치 검증을 위한 인덱스
 
 **다음 단계**: 팀 리뷰 → QA → 배포
 
+

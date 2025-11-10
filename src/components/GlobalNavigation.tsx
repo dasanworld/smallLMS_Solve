@@ -61,6 +61,7 @@ export function GlobalNavigation() {
 
   // 강사(instructor)만 네비게이션이 렌더링되므로 항상 true
   const isInstructor = true;
+  const isOperator = false;
 
   const getRoleLabel = () => {
     return '강사';

@@ -12,7 +12,9 @@ import { redirect } from 'next/navigation';
 export default function ExploreCourses() {
   const { user, isLoading } = useCurrentUser();
 
-  // 강사는 이 페이지에 접근할 수 없음
+  // 리다이렉트 정책 (docs/REDIRECT_POLICY.md 참고):
+  // 학습자 코스 탐색은 learner 역할만 접근 가능
+  // instructor 역할이 접근하면 학습자 대시보드로 자동 리다이렉트
   if (!isLoading && user && (user as any).role === 'instructor') {
     redirect('/dashboard');
   }
@@ -31,4 +33,5 @@ export default function ExploreCourses() {
     </div>
   );
 }
+
 

@@ -20,6 +20,10 @@ export default function LoginPage({ params }: LoginPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // 리다이렉트 정책 (docs/REDIRECT_POLICY.md 참고):
+  // 로그인 성공 후:
+  // 1. redirectedFrom 파라미터가 있으면 → 원래 경로로 복귀
+  // 2. redirectedFrom 파라미터가 없으면 → / (홈)으로 이동
   useEffect(() => {
     if (isAuthenticated) {
       const redirectedFrom = searchParams.get("redirectedFrom") ?? "/";

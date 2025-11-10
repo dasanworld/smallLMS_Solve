@@ -152,6 +152,10 @@ export const signupUserService = async (
   }
 
   // 6. Determine redirect path based on role
+  // 리다이렉트 정책 (docs/REDIRECT_POLICY.md 참고):
+  // 회원가입 완료 후:
+  // - learner → /dashboard (학습자 대시보드)
+  // - instructor → /instructor-dashboard (강사 대시보드)
   const redirectTo = role === 'learner' ? '/dashboard' : '/instructor-dashboard';
 
   logger.info('User signup completed successfully', { userId, email, role });

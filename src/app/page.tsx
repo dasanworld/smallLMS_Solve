@@ -116,7 +116,10 @@ export default function Home() {
     }
 
     if (isAuthenticated && user && userProfile) {
-      // 역할에 따라 대시보드 경로 결정
+      // 리다이렉트 정책 (docs/REDIRECT_POLICY.md 참고):
+      // 홈 페이지는 모든 사용자가 접근 가능한 공개 경로
+      // 로그인 사용자에게 역할별 대시보드 링크 제공
+      // (자동 리다이렉트 아님, 사용자가 선택하여 이동)
       const dashboardPath = userProfile.role === 'instructor'
         ? '/instructor-dashboard'
         : '/dashboard';
