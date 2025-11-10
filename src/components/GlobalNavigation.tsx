@@ -128,10 +128,10 @@ export function GlobalNavigation() {
 
             {/* 메뉴 4 - 과제관리 */}
             <Link
-              href="/courses"
+              href="/assignments"
               className={cn(
                 'flex items-center gap-1.5 text-sm font-medium transition-colors',
-                pathname === '/courses' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
+                pathname === '/assignments' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
               )}
             >
               <Award className="h-4 w-4" />
@@ -221,7 +221,7 @@ export function GlobalNavigation() {
 
                   {/* 과제관리 */}
                   <DropdownMenuItem asChild>
-                    <Link href="/courses" className="flex items-center gap-2">
+                    <Link href="/assignments" className="flex items-center gap-2">
                       <Award className="h-4 w-4" />
                       과제관리
                     </Link>
