@@ -316,7 +316,7 @@ export const takeReportActionService = async (
 
     // Perform the action based on type
     let newStatus: ReportStatus | undefined;
-    let additionalUpdates: Record<string, any> = {};
+    const additionalUpdates: Record<string, any> = {};
 
     switch (action) {
       case 'resolve':
@@ -490,7 +490,7 @@ export const createMetadataService = async (
     }
 
     // Insert the new metadata
-    let insertData: any = {
+    const insertData: any = {
       name,
       is_active: true, // New metadata is always active
       description: description || null,
@@ -602,7 +602,7 @@ export const updateMetadataService = async (
     }
 
     // Prepare update data
-    let updateData: any = {
+    const updateData: any = {
       updated_at: new Date().toISOString()
     };
 

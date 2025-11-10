@@ -82,7 +82,7 @@ export const CourseCard = ({
           <Edit2 className="mr-2 h-4 w-4" />
           수정
         </Button>
-        <Link href={`/courses/${course.id}/assignments`} className="flex-1 min-w-[80px]">
+        <Link href={`/(protected)/courses/${course.id}/assignments`} className="flex-1 min-w-[80px]">
           <Button
             variant="outline"
             size="sm"

@@ -287,7 +287,7 @@ export const gradeSubmissionService = async (
     }
 
     // Prepare update data based on action
-    let updateData: any = {
+    const updateData: any = {
       feedback: feedback || null,
     };
 

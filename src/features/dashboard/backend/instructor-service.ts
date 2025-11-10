@@ -61,7 +61,7 @@ export const getInstructorDashboardService = async (
   // Get pending grading submissions (ungraded submissions for instructor's assignments)
   const assignmentIds = assignments.map(assignment => assignment.id);
   let pendingGradingCount = 0;
-  let recentSubmissions: any[] = [];
+  const recentSubmissions: any[] = [];
 
   if (assignmentIds.length > 0) {
     // Get count of ungraded submissions
