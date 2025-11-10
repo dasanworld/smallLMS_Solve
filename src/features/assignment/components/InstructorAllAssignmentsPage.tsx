@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import type { AssignmentResponse } from '../backend/schema';
+import { AssignmentModalDialog } from './AssignmentModalDialog';
 
 interface AssignmentWithCourse extends AssignmentResponse {
   courseName: string;
@@ -67,7 +68,7 @@ const CourseAssignmentsLoader: React.FC<CourseAssignmentsLoaderProps> = ({
       console.log(`[CourseAssignmentsLoader] No assignments for course ${courseId}`);
       onDataLoad(courseId, []);
     }
-  }, [data, courseName, courseId, onDataLoad, onError, isLoading]);
+  }, [data, courseName, courseId, onDataLoad, onError, isLoading, error]);
 
   return null;
 };
@@ -78,6 +79,9 @@ export const InstructorAllAssignmentsPage = () => {
   const [courseAssignmentsMap, setCourseAssignmentsMap] = useState<Record<string, AssignmentWithCourse[]>>({});
   const [loadedCourseIds, setLoadedCourseIds] = useState<Set<string>>(new Set());
   const [courseErrors, setCourseErrors] = useState<Record<string, Error>>({});
+  const [selectedAssignment, setSelectedAssignment] = useState<AssignmentResponse | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<{ id: string; name: string } | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     console.log('[InstructorAllAssignmentsPage] Courses loaded:', {
@@ -141,6 +145,22 @@ export const InstructorAllAssignmentsPage = () => {
 
     setAllAssignments(newAllAssignments);
   }, [courseAssignmentsMap]);
+
+  // 과제 카드 클릭 핸들러
+  const handleAssignmentCardClick = useCallback((assignment: AssignmentWithCourse) => {
+    setSelectedAssignment(assignment);
+    setSelectedCourse({ id: assignment.courseId, name: assignment.courseName });
+    setIsModalOpen(true);
+  }, []);
+
+  // 모달 닫기 핸들러
+  const handleModalOpenChange = useCallback((open: boolean) => {
+    setIsModalOpen(open);
+    if (!open) {
+      setSelectedAssignment(null);
+      setSelectedCourse(null);
+    }
+  }, []);
 
   // 마감일 순으로 정렬
   const sortedAssignments = [...allAssignments].sort(
@@ -261,9 +281,10 @@ export const InstructorAllAssignmentsPage = () => {
 
               <div className="space-y-3">
                 {upcomingAssignments.map((assignment) => (
-                  <Link
+                  <button
                     key={assignment.id}
-                    href={`/courses/${assignment.courseId}/assignments`}
+                    onClick={() => handleAssignmentCardClick(assignment)}
+                    className="w-full text-left"
                   >
                     <Card className="cursor-pointer transition-shadow hover:shadow-md">
                       <CardContent className="pt-6">
@@ -291,7 +312,7 @@ export const InstructorAllAssignmentsPage = () => {
                         </div>
                       </CardContent>
                     </Card>
-                  </Link>
+                  </button>
                 ))}
               </div>
             </div>
@@ -309,9 +330,10 @@ export const InstructorAllAssignmentsPage = () => {
 
               <div className="space-y-3">
                 {pastAssignments.map((assignment) => (
-                  <Link
+                  <button
                     key={assignment.id}
-                    href={`/courses/${assignment.courseId}/assignments`}
+                    onClick={() => handleAssignmentCardClick(assignment)}
+                    className="w-full text-left"
                   >
                     <Card className="cursor-pointer opacity-75 transition-opacity hover:opacity-100">
                       <CardContent className="pt-6">
@@ -336,12 +358,27 @@ export const InstructorAllAssignmentsPage = () => {
                         </div>
                       </CardContent>
                     </Card>
-                  </Link>
+                  </button>
                 ))}
               </div>
             </div>
           )}
         </div>
+      )}
+
+      {/* 과제 상세 정보 모달 */}
+      {selectedAssignment && selectedCourse && (
+        <AssignmentModalDialog
+          isOpen={isModalOpen}
+          onOpenChange={handleModalOpenChange}
+          assignment={selectedAssignment}
+          courseId={selectedCourse.id}
+          courseName={selectedCourse.name}
+          onSuccess={() => {
+            // 모달 닫고 목록 새로고침
+            handleModalOpenChange(false);
+          }}
+        />
       )}
     </div>
   );
