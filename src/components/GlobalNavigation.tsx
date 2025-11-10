@@ -54,21 +54,19 @@ export function GlobalNavigation() {
     return null;
   }
 
-  // 강사(instructor)에만 네비게이션 표시
-  if (profile.role !== 'instructor') {
-    return null;
-  }
-
-  // 강사(instructor)만 네비게이션이 렌더링되므로 항상 true
-  const isInstructor = true;
-  const isOperator = false;
+  const isInstructor = profile.role === 'instructor';
+  const isOperator = profile.role === 'operator';
 
   const getRoleLabel = () => {
-    return '강사';
+    if (isInstructor) return '강사';
+    if (isOperator) return '운영자';
+    return '학습자';
   };
 
   const getRoleColor = () => {
-    return 'bg-blue-100 text-blue-800';
+    if (isInstructor) return 'bg-blue-100 text-blue-800';
+    if (isOperator) return 'bg-purple-100 text-purple-800';
+    return 'bg-green-100 text-green-800';
   };
 
   const handleLogout = async () => {

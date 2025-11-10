@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { LOGIN_PATH } from "@/constants/auth";
+import { GlobalNavigation } from "@/components/GlobalNavigation";
 
 const buildRedirectUrl = (pathname: string) => {
   const redirectUrl = new URL(LOGIN_PATH, window.location.origin);
@@ -30,5 +31,10 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <GlobalNavigation />
+      {children}
+    </>
+  );
 }
