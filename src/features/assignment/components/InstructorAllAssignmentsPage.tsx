@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useInstructorCoursesQuery } from '@/features/course/hooks/useCourseMutations';
 import { useCourseAssignmentsQuery } from '../hooks/useAssignmentMutations';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Loader2, Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -17,41 +17,60 @@ interface AssignmentWithCourse extends AssignmentResponse {
   courseId: string;
 }
 
+interface CourseAssignmentsLoaderProps {
+  courseId: string;
+  courseName: string;
+  onDataLoad: (assignments: AssignmentWithCourse[]) => void;
+}
+
+// Hook 호출을 분리한 서브 컴포넌트
+const CourseAssignmentsLoader: React.FC<CourseAssignmentsLoaderProps> = ({
+  courseId,
+  courseName,
+  onDataLoad,
+}) => {
+  const { data } = useCourseAssignmentsQuery(courseId);
+
+  useEffect(() => {
+    if (data?.assignments) {
+      const assignmentsWithCourse = data.assignments.map((assignment) => ({
+        ...assignment,
+        courseName,
+        courseId,
+      }));
+      onDataLoad(assignmentsWithCourse);
+    }
+  }, [data, courseName, courseId, onDataLoad]);
+
+  return null;
+};
+
 export const InstructorAllAssignmentsPage = () => {
   const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useInstructorCoursesQuery();
   const [allAssignments, setAllAssignments] = useState<AssignmentWithCourse[]>([]);
-  const [isLoadingAssignments, setIsLoadingAssignments] = useState(false);
+  const [courseAssignmentsMap, setCourseAssignmentsMap] = useState<Record<string, AssignmentWithCourse[]>>({});
 
-  // 각 코스의 과제 조회
-  const assignmentQueries = courses.map((course) => ({
-    courseId: course.id,
-    courseName: course.title,
-    ...useCourseAssignmentsQuery(course.id),
-  }));
+  // 개별 코스의 과제 데이터 로드
+  const handleCourseDataLoad = useCallback((assignments: AssignmentWithCourse[]) => {
+    const courseId = assignments[0]?.courseId;
+    if (courseId) {
+      setCourseAssignmentsMap((prev) => ({
+        ...prev,
+        [courseId]: assignments,
+      }));
+    }
+  }, []);
 
   // 모든 과제 데이터 수집
   useEffect(() => {
     const newAllAssignments: AssignmentWithCourse[] = [];
-    let isLoading = false;
 
-    assignmentQueries.forEach((query) => {
-      if (query.isLoading) {
-        isLoading = true;
-      }
-      if (query.data?.assignments) {
-        newAllAssignments.push(
-          ...query.data.assignments.map((assignment) => ({
-            ...assignment,
-            courseName: query.courseName,
-            courseId: query.courseId,
-          }))
-        );
-      }
+    Object.values(courseAssignmentsMap).forEach((assignments) => {
+      newAllAssignments.push(...assignments);
     });
 
     setAllAssignments(newAllAssignments);
-    setIsLoadingAssignments(isLoading || coursesLoading);
-  }, [assignmentQueries, coursesLoading]);
+  }, [courseAssignmentsMap]);
 
   // 마감일 순으로 정렬
   const sortedAssignments = [...allAssignments].sort(
@@ -65,6 +84,8 @@ export const InstructorAllAssignmentsPage = () => {
   const pastAssignments = sortedAssignments.filter(
     (a) => new Date(a.dueDate) <= new Date()
   );
+
+  const isLoadingAssignments = coursesLoading || Object.keys(courseAssignmentsMap).length < courses.length;
 
   if (coursesError) {
     return (
@@ -84,6 +105,16 @@ export const InstructorAllAssignmentsPage = () => {
 
   return (
     <div className="space-y-6">
+      {/* 각 코스에 대해 Hook을 분리된 컴포넌트에서 호출 */}
+      {courses.map((course) => (
+        <CourseAssignmentsLoader
+          key={course.id}
+          courseId={course.id}
+          courseName={course.title}
+          onDataLoad={handleCourseDataLoad}
+        />
+      ))}
+
       <div>
         <h1 className="text-3xl font-bold tracking-tight">과제관리</h1>
         <p className="mt-2 text-gray-600">
