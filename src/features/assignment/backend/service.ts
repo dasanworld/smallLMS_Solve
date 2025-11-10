@@ -21,11 +21,13 @@ const convertAssignmentToResponse = (data: any): AssignmentResponse => ({
   description: data.description,
   dueDate: data.due_date,
   pointsWeight: data.points_weight,
-  instructions: data.instructions,
   status: data.status,
+  allowLate: data.allow_late || false,
+  allowResubmission: data.allow_resubmission || false,
   createdAt: data.created_at,
   updatedAt: data.updated_at,
-  instructorId: data.instructor_id,
+  publishedAt: data.published_at || null,
+  closedAt: data.closed_at || null,
 });
 
 /**

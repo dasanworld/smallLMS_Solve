@@ -48,11 +48,13 @@ export const AssignmentResponseSchema = z.object({
   description: z.string(),
   dueDate: z.string(),
   pointsWeight: z.number(),
-  instructions: z.string().nullable(),
-  status: z.enum(['open', 'closed', 'draft']),
+  status: z.enum(['draft', 'published', 'closed']),
+  allowLate: z.boolean(),
+  allowResubmission: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  instructorId: z.string(),
+  publishedAt: z.string().nullable(),
+  closedAt: z.string().nullable(),
 });
 
 export const AssignmentListResponseSchema = z.object({
