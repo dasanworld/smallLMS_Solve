@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Course } from '../backend/schema';
-import { Edit2, Trash2, Eye } from 'lucide-react';
+import { Edit2, Trash2, Eye, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 
 interface CourseCardProps {
@@ -71,32 +71,43 @@ export const CourseCard = ({
         </div>
       </CardContent>
 
-      <CardFooter className="gap-2 border-t bg-gray-50 p-3">
+      <CardFooter className="gap-2 border-t bg-gray-50 p-3 flex-wrap">
         <Button
           variant="outline"
           size="sm"
-          className="flex-1"
+          className="flex-1 min-w-[80px]"
           onClick={() => onEdit?.(course)}
           disabled={isLoading}
         >
           <Edit2 className="mr-2 h-4 w-4" />
           수정
         </Button>
+        <Link href={`/courses/${course.id}/assignments`} className="flex-1 min-w-[80px]">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            disabled={isLoading}
+          >
+            <ClipboardList className="mr-2 h-4 w-4" />
+            과제
+          </Button>
+        </Link>
         <Button
           variant="outline"
           size="sm"
-          className="flex-1"
+          className="flex-1 min-w-[80px]"
           onClick={() => onStatusChange?.(course)}
           disabled={isLoading}
         >
           <Eye className="mr-2 h-4 w-4" />
-          상태변경
+          상태
         </Button>
         {course.enrollment_count === 0 && course.status === 'draft' && (
           <Button
             variant="destructive"
             size="sm"
-            className="flex-1"
+            className="flex-1 min-w-[80px]"
             onClick={() => onDelete?.(course.id)}
             disabled={isLoading}
           >
