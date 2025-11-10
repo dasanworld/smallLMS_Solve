@@ -36,7 +36,12 @@ apiClient.interceptors.request.use(
 // Add response interceptor for debugging
 apiClient.interceptors.response.use(
   (response) => {
-    console.log(`[API] Response from ${response.config.url}:`, response.status);
+    console.log(`[API] Response from ${response.config.url}:`, {
+      status: response.status,
+      dataType: typeof response.data,
+      dataKeys: response.data ? Object.keys(response.data) : 'N/A',
+      data: response.data,
+    });
     return response;
   },
   (error) => {

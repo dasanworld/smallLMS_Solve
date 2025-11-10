@@ -50,6 +50,9 @@ Use `NEXT_PUBLIC_SUPABASE_URL` as fallback when `SUPABASE_URL` is not available.
 Follow React Query patterns for server state management.
 Use proper cache keys that include relevant parameters.
 Handle loading and error states appropriately in UI components.
+Call all hooks at the top level of component body before any conditional logic or early returns.
+Never call hooks inside loops, conditions, or nested functions; maintain consistent hook call order across renders.
+Ensure hooks are called in the same order on every render to prevent state misalignment and "rules of hooks" violations.
 
 ## Foreign Key Constraints
 Be aware of Supabase auth.users foreign key relationships.

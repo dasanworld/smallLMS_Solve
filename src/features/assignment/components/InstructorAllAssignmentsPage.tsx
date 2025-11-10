@@ -86,13 +86,27 @@ export const InstructorAllAssignmentsPage = () => {
 
   // 개별 코스의 과제 데이터 로드
   const handleCourseDataLoad = useCallback((assignments: AssignmentWithCourse[]) => {
+    console.log(`[InstructorAllAssignmentsPage] handleCourseDataLoad called:`, {
+      assignmentsLength: assignments.length,
+      assignmentsArray: Array.isArray(assignments),
+      firstAssignment: assignments[0],
+    });
+
     const courseId = assignments[0]?.courseId;
-    console.log(`[InstructorAllAssignmentsPage] handleCourseDataLoad called for course ${courseId} with ${assignments.length} assignments`);
+    console.log(`[InstructorAllAssignmentsPage] Extracted courseId: ${courseId}`);
+
     if (courseId) {
-      setCourseAssignmentsMap((prev) => ({
-        ...prev,
-        [courseId]: assignments,
-      }));
+      console.log(`[InstructorAllAssignmentsPage] Setting assignments for course ${courseId}`);
+      setCourseAssignmentsMap((prev) => {
+        const updated = {
+          ...prev,
+          [courseId]: assignments,
+        };
+        console.log(`[InstructorAllAssignmentsPage] Updated courseAssignmentsMap:`, Object.keys(updated));
+        return updated;
+      });
+    } else {
+      console.log(`[InstructorAllAssignmentsPage] No courseId found, not updating map`);
     }
   }, []);
 
