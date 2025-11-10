@@ -17,10 +17,17 @@ export const useCourseAssignmentsQuery = (courseId: string) => {
   return useQuery({
     queryKey: assignmentQueryKeys.list(courseId),
     queryFn: async () => {
-      const response = await apiClient.get<AssignmentListResponse>(
-        `/api/courses/${courseId}/assignments`
-      );
-      return response.data;
+      console.log(`[useCourseAssignmentsQuery] Fetching assignments for course: ${courseId}`);
+      try {
+        const response = await apiClient.get<AssignmentListResponse>(
+          `/api/courses/${courseId}/assignments`
+        );
+        console.log(`[useCourseAssignmentsQuery] Success for course ${courseId}:`, response.data);
+        return response.data;
+      } catch (error) {
+        console.error(`[useCourseAssignmentsQuery] Error for course ${courseId}:`, error);
+        throw error;
+      }
     },
     enabled: !!courseId,
   });

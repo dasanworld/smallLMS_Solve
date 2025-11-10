@@ -29,16 +29,29 @@ const CourseAssignmentsLoader: React.FC<CourseAssignmentsLoaderProps> = ({
   courseName,
   onDataLoad,
 }) => {
-  const { data } = useCourseAssignmentsQuery(courseId);
+  const { data, isLoading, error } = useCourseAssignmentsQuery(courseId);
 
   useEffect(() => {
-    if (data?.assignments) {
+    console.log(`[CourseAssignmentsLoader] Course ${courseId}:`, {
+      isLoading,
+      hasData: !!data,
+      assignments: data?.assignments?.length || 0,
+      error: error?.message || 'none',
+    });
+  }, [courseId, data, isLoading, error]);
+
+  useEffect(() => {
+    if (data?.assignments && data.assignments.length > 0) {
+      console.log(`[CourseAssignmentsLoader] Loading ${data.assignments.length} assignments for course ${courseId}`);
       const assignmentsWithCourse = data.assignments.map((assignment) => ({
         ...assignment,
         courseName,
         courseId,
       }));
       onDataLoad(assignmentsWithCourse);
+    } else if (data?.assignments && data.assignments.length === 0) {
+      console.log(`[CourseAssignmentsLoader] No assignments for course ${courseId}`);
+      onDataLoad([]);
     }
   }, [data, courseName, courseId, onDataLoad]);
 
@@ -50,9 +63,19 @@ export const InstructorAllAssignmentsPage = () => {
   const [allAssignments, setAllAssignments] = useState<AssignmentWithCourse[]>([]);
   const [courseAssignmentsMap, setCourseAssignmentsMap] = useState<Record<string, AssignmentWithCourse[]>>({});
 
+  useEffect(() => {
+    console.log('[InstructorAllAssignmentsPage] Courses loaded:', {
+      count: courses.length,
+      isLoading: coursesLoading,
+      courseIds: courses.map(c => c.id),
+      error: coursesError?.message || 'none',
+    });
+  }, [courses, coursesLoading, coursesError]);
+
   // 개별 코스의 과제 데이터 로드
   const handleCourseDataLoad = useCallback((assignments: AssignmentWithCourse[]) => {
     const courseId = assignments[0]?.courseId;
+    console.log(`[InstructorAllAssignmentsPage] handleCourseDataLoad called for course ${courseId} with ${assignments.length} assignments`);
     if (courseId) {
       setCourseAssignmentsMap((prev) => ({
         ...prev,
@@ -67,6 +90,11 @@ export const InstructorAllAssignmentsPage = () => {
 
     Object.values(courseAssignmentsMap).forEach((assignments) => {
       newAllAssignments.push(...assignments);
+    });
+
+    console.log('[InstructorAllAssignmentsPage] All assignments updated:', {
+      total: newAllAssignments.length,
+      courseAssignmentsMap: Object.keys(courseAssignmentsMap),
     });
 
     setAllAssignments(newAllAssignments);
