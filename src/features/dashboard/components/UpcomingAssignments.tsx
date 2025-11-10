@@ -44,7 +44,7 @@ export const UpcomingAssignments = ({ assignments }: UpcomingAssignmentsProps) =
             return (
               <Link
                 key={assignment.id}
-                href={`/(protected)/courses/${assignment.courseId}/assignments/${assignment.id}`}
+                href={`/courses/${assignment.courseId}/assignments/${assignment.id}`}
                 className="flex items-center border-b pb-3 last:border-b-0 last:pb-0 hover:bg-gray-50 p-2 rounded -mx-2 -mb-3"
               >
                 <div className="flex-shrink-0 mr-4">

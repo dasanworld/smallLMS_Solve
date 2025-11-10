@@ -79,7 +79,7 @@ export default function AssignmentSubmissionsPage() {
   return (
     <div className="container mx-auto py-10">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/(protected)/courses/${courseId}`} passHref>
+        <Link href={`/courses/${courseId}`} passHref>
           <Button variant="outline" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Course
