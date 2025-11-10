@@ -53,6 +53,7 @@ Handle loading and error states appropriately in UI components.
 Call all hooks at the top level of component body before any conditional logic or early returns.
 Never call hooks inside loops, conditions, or nested functions; maintain consistent hook call order across renders.
 Ensure hooks are called in the same order on every render to prevent state misalignment and "rules of hooks" violations.
+Track completion state explicitly when handling async multiple items (e.g., Set<string> for loaded IDs) instead of relying only on object existence; always account for empty/error cases to prevent infinite loading states.
 
 ## Foreign Key Constraints
 Be aware of Supabase auth.users foreign key relationships.
