@@ -86,11 +86,10 @@ export const getInstructorDashboardService = async (
         user_id,
         status,
         submitted_at,
-        is_late,
-        created_at
+        is_late
       `)
       .in('assignment_id', assignmentIds)
-      .order('created_at', { ascending: false })
+      .order('submitted_at', { ascending: false })
       .limit(10);
 
     if (submissionsError) {
@@ -165,7 +164,7 @@ export const getInstructorDashboardService = async (
         courseId: assignment?.course_id,
         courseTitle: course?.title || 'Unknown Course',
         studentName: student?.name || student?.email || `Student ${submission.user_id.substring(0, 8)}`,
-        submittedAt: submission.submitted_at || submission.created_at,
+        submittedAt: submission.submitted_at,
         status: submission.status,
         isLate: submission.is_late || false,
       });
