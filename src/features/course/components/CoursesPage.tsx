@@ -72,7 +72,7 @@ export const CoursesPage = () => {
   const isLoading = coursesLoading || createMutation.isPending || updateMutation.isPending || statusMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">코스 관리</h1>
         <p className="mt-2 text-gray-600">
@@ -98,8 +98,8 @@ export const CoursesPage = () => {
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'list' | 'create')}>
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'list' | 'create')} className="w-full">
+        <TabsList className="w-full grid grid-cols-2">
           <TabsTrigger value="list">내 코스 ({courses.length})</TabsTrigger>
           <TabsTrigger value="create">
             <Plus className="mr-2 h-4 w-4" />
@@ -107,7 +107,7 @@ export const CoursesPage = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="list" className="space-y-4">
+        <TabsContent value="list" className="space-y-4 w-full">
           {coursesLoading ? (
             <Card>
               <CardContent className="flex items-center justify-center py-12">

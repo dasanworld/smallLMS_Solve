@@ -12,6 +12,7 @@ import {
 /**
  * 강사의 코스 목록 조회
  * 소프트 삭제된 코스는 제외
+ * 각 코스별 실제 등록 학생 수를 계산하여 반환
  */
 export const getInstructorCoursesService = async (
   supabase: SupabaseClient,
@@ -27,6 +28,30 @@ export const getInstructorCoursesService = async (
 
     if (error) {
       return failure(500, courseErrorCodes.COURSE_CREATION_ERROR, error.message);
+    }
+
+    // 각 코스별 실제 활성 등록 학생 수 조회
+    if (data && data.length > 0) {
+      const coursesWithEnrollment = await Promise.all(
+        data.map(async (course) => {
+          const { count, error: countError } = await supabase
+            .from('enrollments')
+            .select('*', { count: 'exact', head: true })
+            .eq('course_id', course.id)
+            .eq('status', 'active');
+
+          if (countError) {
+            return course;
+          }
+
+          return {
+            ...course,
+            enrollment_count: count || 0,
+          };
+        })
+      );
+
+      return success({ courses: coursesWithEnrollment || [] });
     }
 
     return success({ courses: data || [] });

@@ -72,9 +72,9 @@ export const InstructorAssignmentPage = ({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">과제 관리</h1>
+        <h1 className="text-3xl font-bold tracking-tight">개별 과제 관리</h1>
         <p className="mt-2 text-gray-600">
-          <span className="font-semibold">{courseName}</span> 코스의 과제를 생성하고 관리합니다
+          <span className="font-semibold text-blue-600">{courseName}</span> 코스의 과제를 생성하고 관리합니다
         </p>
       </div>
 
