@@ -20,7 +20,8 @@ interface AssignmentWithCourse extends AssignmentResponse {
 interface CourseAssignmentsLoaderProps {
   courseId: string;
   courseName: string;
-  onDataLoad: (assignments: AssignmentWithCourse[]) => void;
+  onDataLoad: (courseId: string, assignments: AssignmentWithCourse[]) => void;
+  onError: (courseId: string, error: Error) => void;
 }
 
 // Hook 호출을 분리한 서브 컴포넌트
@@ -28,6 +29,7 @@ const CourseAssignmentsLoader: React.FC<CourseAssignmentsLoaderProps> = ({
   courseId,
   courseName,
   onDataLoad,
+  onError,
 }) => {
   const { data, isLoading, error } = useCourseAssignmentsQuery(courseId);
 
@@ -44,28 +46,28 @@ const CourseAssignmentsLoader: React.FC<CourseAssignmentsLoaderProps> = ({
   }, [courseId, data, isLoading, error]);
 
   useEffect(() => {
-    console.log(`[CourseAssignmentsLoader] Checking data for course ${courseId}:`, {
-      dataExists: !!data,
-      assignmentsExists: !!data?.assignments,
-      assignmentsIsArray: Array.isArray(data?.assignments),
-      assignmentsLength: data?.assignments?.length || 0,
-    });
+    // 에러 처리
+    if (error && !isLoading) {
+      console.log(`[CourseAssignmentsLoader] Error loading assignments for course ${courseId}:`, error);
+      onError(courseId, error);
+      return;
+    }
 
-    if (data?.assignments && Array.isArray(data.assignments) && data.assignments.length > 0) {
-      console.log(`[CourseAssignmentsLoader] Loading ${data.assignments.length} assignments for course ${courseId}`, data.assignments);
+    // 데이터가 준비되었을 때만 처리
+    if (!isLoading && data?.assignments && Array.isArray(data.assignments)) {
+      console.log(`[CourseAssignmentsLoader] Loading ${data.assignments.length} assignments for course ${courseId}`);
       const assignmentsWithCourse = data.assignments.map((assignment) => ({
         ...assignment,
         courseName,
         courseId,
       }));
-      onDataLoad(assignmentsWithCourse);
-    } else if (data?.assignments && Array.isArray(data.assignments) && data.assignments.length === 0) {
+      onDataLoad(courseId, assignmentsWithCourse);
+    } else if (!isLoading && data) {
+      // 데이터는 있지만 assignments가 없거나 배열이 아닌 경우 (빈 과제 목록)
       console.log(`[CourseAssignmentsLoader] No assignments for course ${courseId}`);
-      onDataLoad([]);
-    } else {
-      console.log(`[CourseAssignmentsLoader] Data not ready or invalid for course ${courseId}`);
+      onDataLoad(courseId, []);
     }
-  }, [data, courseName, courseId, onDataLoad]);
+  }, [data, courseName, courseId, onDataLoad, onError, isLoading]);
 
   return null;
 };
@@ -74,6 +76,8 @@ export const InstructorAllAssignmentsPage = () => {
   const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useInstructorCoursesQuery();
   const [allAssignments, setAllAssignments] = useState<AssignmentWithCourse[]>([]);
   const [courseAssignmentsMap, setCourseAssignmentsMap] = useState<Record<string, AssignmentWithCourse[]>>({});
+  const [loadedCourseIds, setLoadedCourseIds] = useState<Set<string>>(new Set());
+  const [courseErrors, setCourseErrors] = useState<Record<string, Error>>({});
 
   useEffect(() => {
     console.log('[InstructorAllAssignmentsPage] Courses loaded:', {
@@ -85,29 +89,41 @@ export const InstructorAllAssignmentsPage = () => {
   }, [courses, coursesLoading, coursesError]);
 
   // 개별 코스의 과제 데이터 로드
-  const handleCourseDataLoad = useCallback((assignments: AssignmentWithCourse[]) => {
-    console.log(`[InstructorAllAssignmentsPage] handleCourseDataLoad called:`, {
+  const handleCourseDataLoad = useCallback((courseId: string, assignments: AssignmentWithCourse[]) => {
+    console.log(`[InstructorAllAssignmentsPage] handleCourseDataLoad called for course ${courseId}:`, {
       assignmentsLength: assignments.length,
       assignmentsArray: Array.isArray(assignments),
-      firstAssignment: assignments[0],
     });
 
-    const courseId = assignments[0]?.courseId;
-    console.log(`[InstructorAllAssignmentsPage] Extracted courseId: ${courseId}`);
+    setCourseAssignmentsMap((prev) => {
+      const updated = {
+        ...prev,
+        [courseId]: assignments,
+      };
+      console.log(`[InstructorAllAssignmentsPage] Updated courseAssignmentsMap:`, Object.keys(updated));
+      return updated;
+    });
 
-    if (courseId) {
-      console.log(`[InstructorAllAssignmentsPage] Setting assignments for course ${courseId}`);
-      setCourseAssignmentsMap((prev) => {
-        const updated = {
-          ...prev,
-          [courseId]: assignments,
-        };
-        console.log(`[InstructorAllAssignmentsPage] Updated courseAssignmentsMap:`, Object.keys(updated));
-        return updated;
-      });
-    } else {
-      console.log(`[InstructorAllAssignmentsPage] No courseId found, not updating map`);
-    }
+    setLoadedCourseIds((prev) => new Set([...prev, courseId]));
+
+    // 에러 상태 초기화
+    setCourseErrors((prev) => {
+      const updated = { ...prev };
+      delete updated[courseId];
+      return updated;
+    });
+  }, []);
+
+  // 코스 데이터 로드 실패 처리
+  const handleCourseDataError = useCallback((courseId: string, error: Error) => {
+    console.log(`[InstructorAllAssignmentsPage] handleCourseDataError called for course ${courseId}:`, error.message);
+
+    setCourseErrors((prev) => ({
+      ...prev,
+      [courseId]: error,
+    }));
+
+    setLoadedCourseIds((prev) => new Set([...prev, courseId]));
   }, []);
 
   // 모든 과제 데이터 수집
@@ -139,7 +155,11 @@ export const InstructorAllAssignmentsPage = () => {
     (a) => new Date(a.dueDate) <= new Date()
   );
 
-  const isLoadingAssignments = coursesLoading || Object.keys(courseAssignmentsMap).length < courses.length;
+  // 모든 코스가 로드되었는지 확인 (에러가 있어도 로드 완료로 간주)
+  const isLoadingAssignments = coursesLoading || loadedCourseIds.size < courses.length;
+
+  // 로드 완료 후 과제가 모두 로드되지 않은 경우만 에러 표시
+  const hasLoadErrors = Object.keys(courseErrors).length > 0;
 
   if (coursesError) {
     return (
@@ -166,6 +186,7 @@ export const InstructorAllAssignmentsPage = () => {
           courseId={course.id}
           courseName={course.title}
           onDataLoad={handleCourseDataLoad}
+          onError={handleCourseDataError}
         />
       ))}
 
@@ -175,6 +196,21 @@ export const InstructorAllAssignmentsPage = () => {
           모든 코스의 과제를 한 곳에서 관리합니다
         </p>
       </div>
+
+      {/* 일부 코스에서 과제 로드 실패한 경우 경고 표시 */}
+      {hasLoadErrors && !isLoadingAssignments && (
+        <Card>
+          <CardContent className="flex gap-3 py-4">
+            <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-yellow-900">일부 과제를 불러올 수 없습니다</h3>
+              <p className="text-sm text-yellow-800 mt-1">
+                {Object.keys(courseErrors).length}개 코스의 과제 목록을 불러오지 못했습니다. 페이지를 새로고침해주세요.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {isLoadingAssignments ? (
         <Card>

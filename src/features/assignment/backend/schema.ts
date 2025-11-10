@@ -51,6 +51,7 @@ export const AssignmentResponseSchema = z.object({
   status: z.enum(['draft', 'published', 'closed']),
   allowLate: z.boolean(),
   allowResubmission: z.boolean(),
+  instructions: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   publishedAt: z.string().nullable(),

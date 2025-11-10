@@ -24,10 +24,29 @@ const convertAssignmentToResponse = (data: any): AssignmentResponse => ({
   status: data.status,
   allowLate: data.allow_late || false,
   allowResubmission: data.allow_resubmission || false,
+  instructions: data.instructions || null,
   createdAt: data.created_at,
   updatedAt: data.updated_at,
   publishedAt: data.published_at || null,
   closedAt: data.closed_at || null,
+});
+
+/**
+ * 제출물 데이터베이스 필드(snake_case)를 API 응답 필드(camelCase)로 변환
+ */
+const convertSubmissionToResponse = (data: any) => ({
+  id: data.id,
+  assignmentId: data.assignment_id,
+  courseId: data.course_id,
+  learnerId: data.learner_id,
+  content: data.content || null,
+  link: data.link || null,
+  score: data.score || null,
+  feedback: data.feedback || null,
+  status: data.status,
+  submittedAt: data.submitted_at,
+  gradedAt: data.graded_at || null,
+  updatedAt: data.updated_at,
 });
 
 /**
@@ -50,18 +69,7 @@ export const getCourseAssignmentsService = async (
       return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, error.message);
     }
 
-    console.log('[getCourseAssignmentsService] Raw data from DB:', {
-      courseId,
-      count: data?.length || 0,
-      firstAssignment: data?.[0],
-    });
-
     const assignments = (data || []).map(convertAssignmentToResponse);
-
-    console.log('[getCourseAssignmentsService] Converted assignments:', {
-      count: assignments.length,
-      firstAssignment: assignments[0],
-    });
 
     return success({
       assignments,
@@ -209,7 +217,7 @@ export const submitAssignmentService = async (
         return failure(500, assignmentErrorCodes.SUBMISSION_UPDATE_ERROR, error.message);
       }
 
-      return success(submission);
+      return success(convertSubmissionToResponse(submission));
     }
 
     // Create new submission
@@ -232,7 +240,7 @@ export const submitAssignmentService = async (
       return failure(500, assignmentErrorCodes.SUBMISSION_CREATE_ERROR, error.message);
     }
 
-    return success(submission, 201);
+    return success(convertSubmissionToResponse(submission), 201);
   } catch (error) {
     return failure(500, assignmentErrorCodes.SUBMISSION_CREATE_ERROR, String(error));
   }
@@ -265,7 +273,7 @@ export const gradeSubmissionService = async (
       return failure(404, assignmentErrorCodes.SUBMISSION_NOT_FOUND, 'Submission not found');
     }
 
-    return success(submission);
+    return success(convertSubmissionToResponse(submission));
   } catch (error) {
     return failure(500, assignmentErrorCodes.SUBMISSION_UPDATE_ERROR, String(error));
   }
@@ -293,7 +301,7 @@ export const getUserSubmissionService = async (
       return failure(404, assignmentErrorCodes.SUBMISSION_NOT_FOUND, 'Submission not found');
     }
 
-    return success(data);
+    return success(convertSubmissionToResponse(data));
   } catch (error) {
     return failure(500, assignmentErrorCodes.SUBMISSION_NOT_FOUND, String(error));
   }
@@ -306,7 +314,7 @@ export const deleteAssignmentService = async (
   supabase: SupabaseClient,
   assignmentId: string,
   instructorId: string
-): Promise<HandlerResult<any, AssignmentErrorCode>> => {
+): Promise<HandlerResult<AssignmentResponse, AssignmentErrorCode>> => {
   try {
     const { data, error } = await supabase
       .from('assignments')
@@ -323,7 +331,7 @@ export const deleteAssignmentService = async (
       return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found or unauthorized');
     }
 
-    return success(data);
+    return success(convertAssignmentToResponse(data));
   } catch (error) {
     return failure(500, assignmentErrorCodes.ASSIGNMENT_DELETE_ERROR, String(error));
   }
