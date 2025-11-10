@@ -44,16 +44,29 @@ export const getCourseAssignmentsService = async (
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('[getCourseAssignmentsService] Supabase error:', error);
       return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, error.message);
     }
 
+    console.log('[getCourseAssignmentsService] Raw data from DB:', {
+      courseId,
+      count: data?.length || 0,
+      firstAssignment: data?.[0],
+    });
+
     const assignments = (data || []).map(convertAssignmentToResponse);
+
+    console.log('[getCourseAssignmentsService] Converted assignments:', {
+      count: assignments.length,
+      firstAssignment: assignments[0],
+    });
 
     return success({
       assignments,
       total: assignments.length,
     });
   } catch (error) {
+    console.error('[getCourseAssignmentsService] Unexpected error:', error);
     return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, String(error));
   }
 };
