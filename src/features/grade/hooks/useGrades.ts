@@ -1,23 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
 import { GradeResponse, GetGradesRequest } from '../lib/dto';
+import { apiClient } from '@/lib/remote/api-client';
 
 const fetchGrades = async (params: GetGradesRequest = {}): Promise<GradeResponse> => {
   const { limit, offset, courseId } = params;
-  
+
   const queryParams = new URLSearchParams();
-  
+
   if (limit !== undefined) queryParams.append('limit', limit.toString());
   if (offset !== undefined) queryParams.append('offset', offset.toString());
   if (courseId) queryParams.append('courseId', courseId);
-  
-  const response = await fetch(`/api/grades?${queryParams.toString()}`);
-  
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Failed to fetch grades: ${response.status}`);
-  }
-  
-  const data = await response.json();
+
+  const { data } = await apiClient.get<{ data: GradeResponse }>(
+    `/api/grades?${queryParams.toString()}`
+  );
+
   return data.data;
 };
 

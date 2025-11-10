@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, Plus, Loader2, Edit2, Trash2 } from 'lucide-react';
+import { AlertCircle, Plus, Loader2, Edit2, Trash2, ChevronRight } from 'lucide-react';
 import { AssignmentForm } from './AssignmentForm';
 import {
   useCourseAssignmentsQuery,
@@ -26,6 +27,7 @@ export const InstructorAssignmentPage = ({
   courseId,
   courseName,
 }: InstructorAssignmentPageProps) => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'list' | 'create'>('list');
   const [editingAssignment, setEditingAssignment] = useState<AssignmentResponse | null>(null);
 
@@ -180,6 +182,17 @@ export const InstructorAssignmentPage = ({
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         삭제
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => router.push(
+                          `/courses/${courseId}/assignments/${assignment.id}/submissions`
+                        )}
+                        disabled={isLoading}
+                      >
+                        제출물 보기
+                        <ChevronRight className="ml-2 h-4 w-4" />
                       </Button>
                     </div>
                   </CardContent>

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { SubmissionGradingData } from "@/features/grade/types";
 import Link from "next/link";
+import { apiClient } from "@/lib/remote/api-client";
 
 export default function AssignmentSubmissionsPage() {
   const { assignmentId, courseId } = useParams();
@@ -20,17 +21,13 @@ export default function AssignmentSubmissionsPage() {
 
     const fetchSubmissions = async () => {
       try {
-        const response = await fetch(`/api/assignments/${assignmentId}/submissions`);
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error?.message || "Failed to fetch submissions");
-        }
-
-        const data = await response.json();
+        const { data } = await apiClient.get<SubmissionGradingData[]>(
+          `/api/assignments/${assignmentId}/submissions`
+        );
         setSubmissions(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
+        const message = err instanceof Error ? err.message : "오류가 발생했습니다";
+        setError(message);
       } finally {
         setIsLoading(false);
       }
@@ -40,7 +37,7 @@ export default function AssignmentSubmissionsPage() {
   }, [assignmentId]);
 
   if (!assignmentId || !courseId) {
-    return <div>Assignment ID and Course ID are required</div>;
+    return <div>과제 ID와 코스 ID가 필요합니다</div>;
   }
 
   if (isLoading) {
@@ -62,14 +59,14 @@ export default function AssignmentSubmissionsPage() {
     return (
       <div className="container mx-auto py-10">
         <div className="p-4 bg-destructive/10 border border-destructive text-destructive p-4 rounded-md">
-          <p>Error: {error}</p>
+          <p>에러: {error}</p>
           <Button
             variant="outline"
             size="sm"
             className="mt-2"
             onClick={() => window.history.back()}
           >
-            Go Back
+            뒤로 가기
           </Button>
         </div>
       </div>
@@ -82,13 +79,13 @@ export default function AssignmentSubmissionsPage() {
         <Link href={`/courses/${courseId}`} passHref>
           <Button variant="outline" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Course
+            코스로 돌아가기
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">Assignment Submissions</h1>
+          <h1 className="text-2xl font-bold">제출물 목록</h1>
           <p className="text-muted-foreground">
-            Course ID: {courseId} | Assignment ID: {assignmentId}
+            코스 ID: {courseId} | 과제 ID: {assignmentId}
           </p>
         </div>
       </div>

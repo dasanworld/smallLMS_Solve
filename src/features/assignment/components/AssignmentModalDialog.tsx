@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Loader2, Trash2 } from 'lucide-react';
+import { AlertCircle, Loader2, Trash2, ChevronRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import type { AssignmentResponse } from '../backend/schema';
@@ -34,6 +35,7 @@ export const AssignmentModalDialog = ({
   courseName,
   onSuccess,
 }: AssignmentModalDialogProps) => {
+  const router = useRouter();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -133,6 +135,18 @@ export const AssignmentModalDialog = ({
             </div>
 
             <div className="flex gap-2 pt-4 border-t">
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  onOpenChange(false);
+                  router.push(`/courses/${courseId}/assignments/${assignment.id}/submissions`);
+                }}
+              >
+                제출물 보기
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
               <Button
                 type="button"
                 variant="outline"

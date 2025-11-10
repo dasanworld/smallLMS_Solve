@@ -18,11 +18,11 @@ export function SubmissionsList({ submissions, assignmentId, courseId }: Submiss
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Submissions for Assignment</CardTitle>
+        <CardTitle>과제 제출물</CardTitle>
       </CardHeader>
       <CardContent>
         {submissions.length === 0 ? (
-          <p className="text-muted-foreground text-center py-4">No submissions yet</p>
+          <p className="text-muted-foreground text-center py-4">제출된 과제가 없습니다</p>
         ) : (
           <div className="space-y-3">
             {submissions.map((submission) => (
@@ -39,7 +39,7 @@ export function SubmissionsList({ submissions, assignmentId, courseId }: Submiss
                     </Badge>
                     {submission.is_late && (
                       <Badge variant="outline" className="border-orange-500 text-orange-700">
-                        LATE
+                        늦음
                       </Badge>
                     )}
                   </div>
@@ -52,7 +52,7 @@ export function SubmissionsList({ submissions, assignmentId, courseId }: Submiss
                     
                     {submission.score !== null && (
                       <span className="font-medium">
-                        Score: <span className="text-foreground">{submission.score}%</span>
+                        점수: <span className="text-foreground">{submission.score}%</span>
                       </span>
                     )}
                   </div>
@@ -72,7 +72,7 @@ export function SubmissionsList({ submissions, assignmentId, courseId }: Submiss
                   
                   <Link href={`/submissions/${submission.id}/grade`} passHref>
                     <Button variant="outline" size="sm">
-                      Grade
+                      점수 입력
                     </Button>
                   </Link>
                 </div>

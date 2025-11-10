@@ -281,11 +281,6 @@ export const gradeSubmissionService = async (
       return failure(403, gradeErrorCodes.INSUFFICIENT_PERMISSIONS, 'Insufficient permissions to grade this submission');
     }
 
-    // Check if submission is already graded
-    if (submission.status === 'graded') {
-      return failure(400, gradeErrorCodes.SUBMISSION_ALREADY_GRADED, 'Submission is already graded');
-    }
-
     // Prepare update data based on action
     const updateData: any = {
       feedback: feedback || null,

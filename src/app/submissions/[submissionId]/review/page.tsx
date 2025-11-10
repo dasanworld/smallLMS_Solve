@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { GlobalNavigation } from '@/components/GlobalNavigation';
 import { SubmissionDetails } from '@/features/grade/components/submission-details';
 import { GradeSubmissionForm } from '@/features/grade/components/grade-submission-form';
 import { Button } from '@/components/ui/button';
@@ -129,7 +130,9 @@ export default function ReviewSubmissionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <>
+      <GlobalNavigation />
+      <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6">
         <Button
           variant="outline"
@@ -265,6 +268,7 @@ export default function ReviewSubmissionPage() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

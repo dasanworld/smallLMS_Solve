@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
+import { GlobalNavigation } from '@/components/GlobalNavigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,9 +39,34 @@ interface Submission {
 
 export default function SubmissionsListPage() {
   const router = useRouter();
-  const { user } = useCurrentUser();
+  const { user, isLoading: userLoading } = useCurrentUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // 사용자 프로필 조회 (역할 확인)
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['userProfile', user?.id],
+    queryFn: async () => {
+      try {
+        const response = await apiClient.get('/api/auth/profile');
+        return response.data;
+      } catch (err) {
+        console.error('프로필 조회 실패:', err);
+        throw err;
+      }
+    },
+    enabled: !!user?.id,
+    retry: 1,
+  });
+
+  // 권한 검증: 강사가 아니면 리다이렉트
+  useEffect(() => {
+    if (!userLoading && !profileLoading && profile) {
+      if (profile.role !== 'instructor') {
+        router.push('/');
+      }
+    }
+  }, [profile, userLoading, profileLoading, router]);
 
   // 제출물 목록 조회
   const { data: submissions, isLoading, error } = useQuery({
@@ -54,7 +80,7 @@ export default function SubmissionsListPage() {
         return [];
       }
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && profile?.role === 'instructor',
   });
 
   // 필터링된 제출물
@@ -90,8 +116,15 @@ export default function SubmissionsListPage() {
     return configs[status] || configs.submitted;
   };
 
+  // 권한 검증 중 또는 권한 없음 - 아무것도 표시하지 않음
+  if (userLoading || profileLoading || !profile || profile.role !== 'instructor') {
+    return null;
+  }
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <>
+      <GlobalNavigation />
+      <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">제출물 평가</h1>
         <p className="text-slate-500">학생들의 제출물을 검토하고 평가합니다</p>
@@ -227,6 +260,7 @@ export default function SubmissionsListPage() {
           })}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

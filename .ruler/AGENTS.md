@@ -211,4 +211,5 @@ Apply these principles judiciously, considering project and team needs.
 
 `example` page, table is just example.
 
+- git commit는 수동으로 한다.
 

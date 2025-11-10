@@ -162,3 +162,11 @@ Use conditional rendering: `typeof field === 'string' ? field : field.name`.
 Use `as const` for immutable literals in error code definitions.
 Apply `as any` only when TypeScript inference fails; document reason.
 Prefer explicit types over excessive type assertions.
+
+## Assignment Management Pages
+Assignment management split into: `/assignments` (dashboard) and `/courses/[courseId]/assignments` (course-specific).
+When modifying student routes, ensure these assignment pages remain linked and functional.
+
+## Instructor Pages Styling
+All instructor role pages use consistent heading style: `text-3xl font-bold tracking-tight` for h1 and `mt-2 text-gray-600` for subtitle.
+When referencing course/assignment names in instructor pages, use `text-blue-600` for emphasis (e.g., course name in assignment page headers).

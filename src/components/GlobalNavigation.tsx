@@ -138,16 +138,21 @@ export function GlobalNavigation() {
               과제관리
             </Link>
 
-            {/* 메뉴 5 - 채점관리 */}
-            <Link
-              href="#"
-              className="flex items-center gap-1.5 text-sm font-medium text-gray-400 cursor-not-allowed"
-              onClick={(e) => e.preventDefault()}
-              title="준비 중"
-            >
-              <BarChart3 className="h-4 w-4" />
-              채점관리
-            </Link>
+            {/* 메뉴 5 - 채점관리 (강사만 표시) */}
+            {isInstructor && (
+              <Link
+                href="/submissions/list"
+                className={cn(
+                  'flex items-center gap-1.5 text-sm font-medium transition-colors',
+                  pathname === '/submissions/list'
+                    ? 'text-blue-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                )}
+              >
+                <BarChart3 className="h-4 w-4" />
+                채점관리
+              </Link>
+            )}
           </div>
 
           {/* 사용자 메뉴 */}
@@ -227,11 +232,15 @@ export function GlobalNavigation() {
                     </Link>
                   </DropdownMenuItem>
 
-                  {/* 채점관리 */}
-                  <DropdownMenuItem disabled className="text-gray-400 cursor-not-allowed">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    채점관리
-                  </DropdownMenuItem>
+                  {/* 채점관리 (강사만 표시) */}
+                  {isInstructor && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/submissions/list" className="flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4" />
+                        채점관리
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

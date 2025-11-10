@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import { SubmissionGradingData } from "@/features/grade/types";
+import { apiClient } from "@/lib/remote/api-client";
 
 export default function GradeSubmissionPage() {
   const { submissionId } = useParams();
@@ -36,17 +37,12 @@ export default function GradeSubmissionPage() {
 
     const fetchSubmission = async () => {
       try {
-        const response = await fetch(`/api/submissions/${submissionIdString}`);
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error?.message || "Failed to fetch submission");
-        }
-
-        const data = await response.json();
+        const { data } = await apiClient.get<SubmissionGradingData>(
+          `/api/submissions/${submissionIdString}`
+        );
         setSubmission(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
+        setError(err instanceof Error ? err.message : "오류가 발생했습니다");
       } finally {
         setIsLoading(false);
       }
@@ -60,23 +56,12 @@ export default function GradeSubmissionPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/submissions/${submissionIdString}/grade`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || "Failed to grade submission");
-      }
+      await apiClient.put(`/api/submissions/${submissionIdString}/grade`, data);
 
       // Show success alert before redirecting
       setShowGradeAlert(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : "오류가 발생했습니다");
     } finally {
       setIsSubmitting(false);
     }
@@ -92,7 +77,7 @@ export default function GradeSubmissionPage() {
   };
 
   if (!submissionIdString) {
-    return <div>Submission ID is required</div>;
+    return <div>제출물 ID가 필요합니다</div>;
   }
 
   if (isLoading) {
@@ -110,14 +95,14 @@ export default function GradeSubmissionPage() {
     return (
       <div className="container mx-auto py-10">
         <div className="p-4 bg-destructive/10 border border-destructive text-destructive p-4 rounded-md">
-          <p>Error: {error}</p>
+          <p>에러: {error}</p>
           <Button
             variant="outline"
             size="sm"
             className="mt-2"
             onClick={() => router.back()}
           >
-            Go Back
+            뒤로 가기
           </Button>
         </div>
       </div>
@@ -125,15 +110,15 @@ export default function GradeSubmissionPage() {
   }
 
   if (!submission) {
-    return <div>Submission not found</div>;
+    return <div>제출물을 찾을 수 없습니다</div>;
   }
 
   return (
     <div className="container mx-auto py-10">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Grade Submission</h1>
+        <h1 className="text-2xl font-bold">점수 입력</h1>
         <p className="text-muted-foreground">
-          Assignment: {submission.assignment_title} | Course: {submission.course_title}
+          과제: {submission.assignment_title} | 코스: {submission.course_title}
         </p>
       </div>
 
@@ -145,7 +130,7 @@ export default function GradeSubmissionPage() {
         <div>
           <Card>
             <CardHeader>
-              <CardTitle>Grade Submission</CardTitle>
+              <CardTitle>점수 입력</CardTitle>
             </CardHeader>
             <CardContent>
               {error && (
@@ -167,7 +152,7 @@ export default function GradeSubmissionPage() {
                   variant="outline"
                   onClick={() => router.back()}
                 >
-                  Cancel
+                  취소
                 </Button>
               </div>
             </CardContent>
@@ -179,17 +164,17 @@ export default function GradeSubmissionPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {submission.status === 'resubmission_required' ? 'Resubmission Requested' : 'Grade Submitted'}
+              {submission.status === 'resubmission_required' ? '재제출 요청됨' : '점수 제출됨'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {submission.status === 'resubmission_required' 
-                ? "The student has been notified to resubmit their assignment." 
-                : `The submission has been successfully graded with a score of ${submission.score}%. The student will be notified of the grade.`}
+              {submission.status === 'resubmission_required'
+                ? "학생에게 과제 재제출 알림이 전송되었습니다."
+                : `제출물이 ${submission.score}%의 점수로 성공적으로 평가되었습니다. 학생에게 점수 안내가 전송됩니다.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={handleAlertClose}>
-              Continue
+              계속
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
