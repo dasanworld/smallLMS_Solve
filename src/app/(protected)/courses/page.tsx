@@ -14,7 +14,13 @@ export default function CoursesPage() {
   const { user, isLoading } = useCurrentUser();
 
   useEffect(() => {
-    console.log('[CoursesPage] User info:', { user, isLoading, role: (user as any)?.role });
+    console.log('[CoursesPage] User info:', {
+      user,
+      isLoading,
+      role: user?.role,
+      userMetadata: user?.userMetadata,
+      appMetadata: user?.appMetadata,
+    });
   }, [user, isLoading]);
 
   if (isLoading) {

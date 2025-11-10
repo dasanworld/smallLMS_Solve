@@ -38,14 +38,21 @@ export const CurrentUserProvider = ({
       const result = await supabase.auth.getUser();
 
       const nextSnapshot = match(result)
-        .with({ data: { user: P.nonNullable } }, ({ data }) => {
+        .with({ data: { user: P.nonNullable } }, async ({ data }) => {
+          // Fetch user profile from database to get role
+          const { data: profile } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+
           const userMetadata = data.user.user_metadata ?? {};
           return {
             status: "authenticated" as const,
             user: {
               id: data.user.id,
               email: data.user.email,
-              role: (userMetadata.role as string | undefined),
+              role: profile?.role,
               appMetadata: data.user.app_metadata ?? {},
               userMetadata,
             },
@@ -53,8 +60,10 @@ export const CurrentUserProvider = ({
         })
         .otherwise(() => ({ status: "unauthenticated" as const, user: null }));
 
-      setSnapshot(nextSnapshot);
-      queryClient.setQueryData(["currentUser"], nextSnapshot);
+      // Handle async result
+      const resolvedSnapshot = await Promise.resolve(nextSnapshot);
+      setSnapshot(resolvedSnapshot);
+      queryClient.setQueryData(["currentUser"], resolvedSnapshot);
     } catch (error) {
       const fallbackSnapshot: CurrentUserSnapshot = {
         status: "unauthenticated",
