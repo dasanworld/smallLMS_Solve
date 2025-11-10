@@ -22,7 +22,7 @@ export const getCourseAssignmentsService = async (
       .from('assignments')
       .select('*')
       .eq('course_id', courseId)
-      .eq('deleted_at', null)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -50,7 +50,7 @@ export const getAssignmentByIdService = async (
       .from('assignments')
       .select('*')
       .eq('id', assignmentId)
-      .eq('deleted_at', null)
+      .is('deleted_at', null)
       .single();
 
     if (error || !data) {
