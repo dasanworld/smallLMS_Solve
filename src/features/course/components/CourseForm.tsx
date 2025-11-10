@@ -137,7 +137,6 @@ export const CourseForm = ({ onSubmit, isLoading, initialData, isEditing = false
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">카테고리 없음</SelectItem>
                         {metadata?.categories.map((category) => (
                           <SelectItem key={category.id} value={String(category.id)}>
                             {category.name}
@@ -167,7 +166,6 @@ export const CourseForm = ({ onSubmit, isLoading, initialData, isEditing = false
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">난이도 없음</SelectItem>
                         {metadata?.difficulties.map((difficulty) => (
                           <SelectItem key={difficulty.id} value={String(difficulty.id)}>
                             {difficulty.name}

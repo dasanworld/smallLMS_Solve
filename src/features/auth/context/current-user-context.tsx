@@ -52,7 +52,7 @@ export const CurrentUserProvider = ({
             user: {
               id: data.user.id,
               email: data.user.email,
-              role: profile?.role,
+              role: (profile as any)?.role || null,
               appMetadata: data.user.app_metadata ?? {},
               userMetadata,
             },

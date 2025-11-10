@@ -27,7 +27,7 @@ export const loadCurrentUser = async (): Promise<CurrentUserSnapshot> => {
 
     return {
       status: "authenticated",
-      user: mapUser(user, profile?.role),
+      user: mapUser(user, (profile as any)?.role),
     };
   }
 
