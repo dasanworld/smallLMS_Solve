@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
+import { useCurrentUserContext } from '@/features/auth/context/current-user-context';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +22,7 @@ import type { UserProfileResponse } from '@/features/auth/backend/profile-servic
 
 export function GlobalNavigation() {
   const { user, isLoading } = useCurrentUser();
+  const { refresh } = useCurrentUserContext();
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -70,8 +73,28 @@ export function GlobalNavigation() {
   };
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
+    try {
+      // Sign out from Supabase on client side
+      const supabase = getSupabaseBrowserClient();
+      await supabase.auth.signOut();
+
+      // Call logout API to sign out from Supabase on server side
+      try {
+        await apiClient.post('/api/auth/logout');
+      } catch (apiError) {
+        // Session might already be cleared, ignore error
+      }
+
+      // Refresh current user context to clear auth state
+      await refresh();
+
+      // Navigate to login page
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Still redirect to login even if logout fails
+      router.push('/login');
+    }
   };
 
   return (

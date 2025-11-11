@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -72,14 +71,12 @@ export const AssignmentModalDialog = ({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{assignment.title}</DialogTitle>
-          <DialogDescription>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-sm text-gray-600">{courseName}</span>
-              <Badge variant="outline" className="text-xs">
-                {statusLabel[assignment.status]}
-              </Badge>
-            </div>
-          </DialogDescription>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-sm text-gray-600">{courseName}</span>
+            <Badge variant="outline" className="text-xs">
+              {statusLabel[assignment.status]}
+            </Badge>
+          </div>
         </DialogHeader>
 
         <Card>

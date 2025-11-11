@@ -38,7 +38,7 @@ const convertSubmissionToResponse = (data: any) => ({
   id: data.id,
   assignmentId: data.assignment_id,
   courseId: data.course_id,
-  learnerId: data.learner_id,
+  learnerId: data.user_id,
   content: data.content || null,
   link: data.link || null,
   score: data.score || null,
@@ -116,6 +116,14 @@ export const createAssignmentService = async (
   data: CreateAssignmentRequest
 ): Promise<HandlerResult<AssignmentResponse, AssignmentErrorCode>> => {
   try {
+    console.log('[createAssignmentService] Creating assignment:', {
+      courseId,
+      instructorId,
+      title: data.title,
+      dueDate: data.dueDate,
+      pointsWeight: data.pointsWeight,
+    });
+
     const { data: assignment, error } = await supabase
       .from('assignments')
       .insert([
@@ -134,11 +142,14 @@ export const createAssignmentService = async (
       .single();
 
     if (error) {
+      console.error('[createAssignmentService] Supabase error:', error);
       return failure(500, assignmentErrorCodes.ASSIGNMENT_CREATION_ERROR, error.message);
     }
 
+    console.log('[createAssignmentService] Assignment created successfully:', assignment.id);
     return success(convertAssignmentToResponse(assignment), 201);
   } catch (error) {
+    console.error('[createAssignmentService] Exception:', error);
     return failure(500, assignmentErrorCodes.ASSIGNMENT_CREATION_ERROR, String(error));
   }
 };
@@ -196,7 +207,7 @@ export const submitAssignmentService = async (
       .from('submissions')
       .select('id')
       .eq('assignment_id', assignmentId)
-      .eq('learner_id', learnerId)
+      .eq('user_id', learnerId)
       .single();
 
     if (existingSubmission) {
@@ -227,7 +238,7 @@ export const submitAssignmentService = async (
         {
           assignment_id: assignmentId,
           course_id: courseId,
-          learner_id: learnerId,
+          user_id: learnerId,
           content: data.content || null,
           link: data.link || null,
           status: 'submitted',
@@ -294,7 +305,7 @@ export const getUserSubmissionService = async (
       .select('*')
       .eq('course_id', courseId)
       .eq('assignment_id', assignmentId)
-      .eq('learner_id', learnerId)
+      .eq('user_id', learnerId)
       .single();
 
     if (error || !data) {

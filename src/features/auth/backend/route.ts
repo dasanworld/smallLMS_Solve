@@ -1,6 +1,7 @@
 import type { Hono } from 'hono';
 import {
   failure,
+  success,
   respond,
   type ErrorResult,
 } from '@/backend/http/response';
@@ -112,5 +113,43 @@ export const registerAuthRoutes = (app: Hono<AppEnv>) => {
     }
 
     return respond(c, result);
+  });
+
+  // POST /api/auth/logout - Logout user (sign out from Supabase)
+  app.post('/api/auth/logout', async (c) => {
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+
+    try {
+      // Get the authorization token from the header
+      const authHeader = c.req.header('Authorization');
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        // Use the token to sign out the specific user session
+        const { error } = await supabase.auth.signOut({
+          scope: 'global'
+        });
+
+        if (error) {
+          logger.warn('Supabase signOut returned warning', error.message);
+        }
+      }
+
+      // Clear the auth cookie by setting it to expire
+      c.header('Set-Cookie', 'sb-auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 UTC;');
+
+      logger.info('User logged out successfully');
+      return respond(c, success({ message: 'Logged out successfully' }));
+    } catch (error) {
+      logger.error('Logout exception', String(error));
+      return respond(
+        c,
+        failure(
+          500,
+          'LOGOUT_ERROR',
+          'An error occurred during logout',
+        ),
+      );
+    }
   });
 };

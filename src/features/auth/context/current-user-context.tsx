@@ -58,7 +58,10 @@ export const CurrentUserProvider = ({
             },
           };
         })
-        .otherwise(() => ({ status: "unauthenticated" as const, user: null }));
+        .otherwise(() => ({
+          status: "unauthenticated" as const,
+          user: null,
+        }));
 
       // Handle async result
       const resolvedSnapshot = await Promise.resolve(nextSnapshot);

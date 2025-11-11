@@ -174,3 +174,7 @@ When referencing course/assignment names in instructor pages, use `text-blue-600
 ## Database Schema Migration Completeness
 Include all DB columns used in service code within migrations. Missing columns cause 500 errors.
 Review service layer insert/update queries before writing migrations to identify all required columns.
+
+## Authentication Logout Implementation
+Client-side Supabase `signOut()` must be called first to clear session before API logout. Server-side API cannot fully remove user sessions.
+Always call `supabase.auth.signOut()` on client, then refresh user context state, finally redirect to login.

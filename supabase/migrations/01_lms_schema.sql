@@ -187,12 +187,8 @@ CREATE INDEX idx_reports_target ON reports(target_type, target_id);
 CREATE INDEX idx_reports_status ON reports(status);
 CREATE INDEX idx_reports_resolved_by ON reports(resolved_by);
 
--- Optional: Trigger for enrollment_count update (recommended to implement based on business logic)
--- This is a placeholder for the trigger that updates enrollment_count in the courses table
--- when enrollments are added or removed
-
-/*
--- Example trigger for enrollment count (to be implemented based on specific business logic):
+-- Trigger for enrollment_count update
+-- Automatically updates enrollment_count in courses table when enrollments are added or removed
 CREATE OR REPLACE FUNCTION update_enrollment_count()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -213,4 +209,3 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trigger_enrollment_count
   AFTER INSERT OR UPDATE OF status ON enrollments
   FOR EACH ROW EXECUTE FUNCTION update_enrollment_count();
-*/
