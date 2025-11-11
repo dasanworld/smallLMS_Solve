@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useInstructorDashboardQuery } from '@/features/dashboard/hooks/useInstructorDashboardQuery';
 import { type InstructorDashboardResponse } from '@/features/dashboard/backend/instructor-schema';
 import { DashboardMetrics } from '@/features/dashboard/components/DashboardMetrics';
@@ -9,12 +10,13 @@ import { RecentSubmissionsList, type RecentSubmissionsListProps } from '@/featur
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Users, BookOpen, FileText, Clock, RefreshCw } from 'lucide-react';
+import { AlertCircle, Users, BookOpen, FileText, Clock, RefreshCw, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
 export default function InstructorDashboard() {
+  const router = useRouter();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { data, isLoading, error, refetch } = useInstructorDashboardQuery<InstructorDashboardResponse>();
 
@@ -123,7 +125,17 @@ export default function InstructorDashboard() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>내 코스</CardTitle>
-            <Badge variant="secondary">{courses.length}개 코스</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">{courses.length}개 코스</Badge>
+              <Button
+                onClick={() => router.push('/courses')}
+                size="sm"
+                className="gap-1"
+              >
+                <Plus className="h-4 w-4" />
+                코스 관리
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

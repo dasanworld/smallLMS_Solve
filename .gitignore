@@ -18,6 +18,7 @@
 #.ruler/supabase.md
 
 .prompt/ 
+prompt/
 docs/**/usecase-checker.md 
 USECASE_CHECKER_SUMMARY.md
 
