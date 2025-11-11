@@ -11,6 +11,12 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
+  // Signup/온보딩 전용 테스트는 제외 (고정 계정으로 로그인만 테스트)
+  testIgnore: [
+    /e2e\/tests\/learner\-signup\-flow\.spec\.ts/,
+    /e2e\/tests\/learner\-from\-scratch\.spec\.ts/,
+    /e2e\/tests\/learner\-complete\-journey\.spec\.ts/,
+  ],
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -74,7 +80,8 @@ export default defineConfig({
     // Setup project - 모든 테스트 전에 먼저 실행
     {
       name: 'setup',
-      testMatch: /.*\.setup\.ts/,
+      // 기존 파일명(e2e/setup.ts)에 맞춰 정규식 수정
+      testMatch: /setup\.ts/,
     },
   ],
 

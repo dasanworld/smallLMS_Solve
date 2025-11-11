@@ -2,11 +2,13 @@
   "instructor": {
     "email": "inst-demo@test.com",
     "password": "test123!",
-    "name": "Instructor Demo"
+    "name": "Demo Instructor",
+    "accessToken": null
   },
   "learner": {
     "email": "learn-demo@test.com",
     "password": "test123!",
-    "name": "Learner Demo"
+    "name": "Demo Learner",
+    "accessToken": null
   }
 }

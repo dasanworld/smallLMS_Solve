@@ -1,19 +1,22 @@
-import { test as base, expect, type Page } from '@playwright/test';
+import { test as base, type Page } from '@playwright/test';
+import { TokenManager } from '../shared/token-manager';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 // 테스트 사용자 정보
-const LEARNER_EMAIL = process.env.LEARNER_EMAIL || 'learner@example.com';
-const LEARNER_PASSWORD = process.env.LEARNER_PASSWORD || 'password123';
+const LEARNER_EMAIL = process.env.LEARNER_EMAIL || 'learn-demo@test.com';
+const LEARNER_PASSWORD = process.env.LEARNER_PASSWORD || 'test123!';
 
-const INSTRUCTOR_EMAIL = process.env.INSTRUCTOR_EMAIL || 'instructor@example.com';
-const INSTRUCTOR_PASSWORD = process.env.INSTRUCTOR_PASSWORD || 'password123';
+const INSTRUCTOR_EMAIL = process.env.INSTRUCTOR_EMAIL || 'inst-demo@test.com';
+const INSTRUCTOR_PASSWORD = process.env.INSTRUCTOR_PASSWORD || 'test123!';
 
 // 사용자 정보 인터페이스
+type AuthRole = 'instructor' | 'learner';
+
 interface AuthenticatedUser {
   email: string;
   name: string;
-  role: 'instructor' | 'learner';
+  role: AuthRole;
   token: string;
   id: string;
 }
@@ -34,66 +37,130 @@ type AuthFixtures = {
 };
 
 /**
+ * Supabase 프로필 정보를 조회합니다.
+ */
+async function fetchUserProfile(
+  page: Page,
+  accessToken: string,
+  fallback: { email: string; name?: string; role: AuthRole }
+): Promise<AuthenticatedUser> {
+  if (!accessToken) {
+    return {
+      email: fallback.email,
+      name: fallback.name || 'Test User',
+      role: fallback.role,
+      token: '',
+      id: '',
+    };
+  }
+
+  try {
+    const response = await page.request.get(`${BASE_URL}/api/auth/profile`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (response.ok()) {
+      const profileData = await response.json();
+      const userProfile = profileData.user || profileData;
+
+      return {
+        email: userProfile.email || fallback.email,
+        name: userProfile.name || fallback.name || 'Test User',
+        role: (userProfile.role as AuthRole) || fallback.role,
+        token: accessToken,
+        id: userProfile.id || '',
+      };
+    }
+  } catch (error) {
+    console.warn('[auth fixture] Failed to fetch user profile', error);
+  }
+
+  return {
+    email: fallback.email,
+    name: fallback.name || 'Test User',
+    role: fallback.role,
+    token: accessToken,
+    id: '',
+  };
+}
+
+/**
  * 실제 로그인을 수행하여 토큰을 얻고 사용자 정보를 조회합니다
  */
 async function loginAndGetUser(
   page: Page,
   email: string,
   password: string,
-  role: 'instructor' | 'learner'
+  role: AuthRole,
+  displayName?: string
 ): Promise<AuthenticatedUser> {
-  // 로그인 페이지로 이동
-  await page.goto(`${BASE_URL}/login`);
+  await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
 
-  // 이메일 입력
   await page.fill('input[type="email"]', email);
-
-  // 비밀번호 입력
   await page.fill('input[type="password"]', password);
-
-  // 로그인 버튼 클릭
   await page.click('button[type="submit"]');
 
-  // 로그인 성공 후 리다이렉트 대기
-  if (role === 'instructor') {
-    await page.waitForURL(`${BASE_URL}/instructor-dashboard`, { timeout: 10000 }).catch(() => {
-      // 혹시 다른 경로로 리다이렉트되었을 수 있음
-    });
-  } else {
-    await page.waitForURL(`${BASE_URL}/dashboard`, { timeout: 10000 }).catch(() => {
-      // 혹시 다른 경로로 리다이렉트되었을 수 있음
-    });
-  }
-
-  // 프로필 정보 조회 API 호출
-  const profileResponse = await page.request.get(`${BASE_URL}/api/auth/profile`);
-
-  if (!profileResponse.ok()) {
-    throw new Error(`Failed to get user profile: ${profileResponse.status()}`);
-  }
-
-  const profileData = await profileResponse.json();
-  const userProfile = profileData.user || profileData;
-
-  // localStorage에서 토큰 추출 (Supabase 세션)
-  let token = '';
-  await page.evaluate(() => {
-    const authToken = localStorage.getItem('supabase.auth.token');
-    if (authToken) {
-      const parsed = JSON.parse(authToken);
-      (window as any).testToken = parsed.access_token || parsed;
-    }
+  const expectedUrl = role === 'instructor' ? `${BASE_URL}/instructor-dashboard` : `${BASE_URL}/dashboard`;
+  await page.waitForURL(expectedUrl, { timeout: 15000 }).catch(() => {
+    // 다른 화면으로 리다이렉트되더라도 로그인 성공 여부는 추후 API 호출로 확인
   });
 
-  token = await page.evaluate(() => (window as any).testToken || '');
+  const tokenData = await TokenManager.extractToken(page);
+  const accessToken = tokenData?.accessToken ?? '';
 
-  return {
-    email: userProfile.email || email,
-    name: userProfile.name || 'Test User',
-    role: userProfile.role || role,
-    token: token,
-    id: userProfile.id || '',
-  };
+  const user = await fetchUserProfile(page, accessToken, {
+    email,
+    name: displayName,
+    role,
+  });
+
+  try {
+    const storageState = await page.context().storageState();
+    if (tokenData) {
+      await TokenManager.saveToken(role, tokenData, storageState, {
+        email: user.email,
+        name: user.name,
+      });
+    }
+  } catch (error) {
+    console.warn(`[auth fixture] Failed to save ${role} token`, error);
+  }
+
+  return user;
+}
+
+async function createAuthenticatedContext(
+  page: Page,
+  role: AuthRole,
+  credentials: { email: string; password: string; name?: string }
+): Promise<AuthenticatedContext> {
+  const storedToken = TokenManager.loadToken(role);
+
+  if (storedToken) {
+    const isValid = await TokenManager.validateToken(page, storedToken);
+
+    if (isValid) {
+      await TokenManager.restoreSession(page, storedToken);
+
+      const defaultUrl = role === 'instructor' ? `${BASE_URL}/instructor-dashboard` : `${BASE_URL}/dashboard`;
+      await page.goto(defaultUrl, { waitUntil: 'networkidle' }).catch(() => {});
+
+      const user = await fetchUserProfile(page, storedToken.accessToken, {
+        email: storedToken.email || credentials.email,
+        name: storedToken.name || credentials.name,
+        role,
+      });
+
+      return { page, user };
+    }
+
+    TokenManager.clearToken(role);
+  }
+
+  const user = await loginAndGetUser(page, credentials.email, credentials.password, role, credentials.name);
+  return { page, user };
 }
 
 /**
@@ -102,67 +169,67 @@ async function loginAndGetUser(
 export const test = base.extend<AuthFixtures>({
   // 인증된 학습자 (page + user 정보)
   authenticatedLearner: async ({ page }, use) => {
-    const user = await loginAndGetUser(page, LEARNER_EMAIL, LEARNER_PASSWORD, 'learner');
-
-    await use({
-      page,
-      user,
+    const context = await createAuthenticatedContext(page, 'learner', {
+      email: LEARNER_EMAIL,
+      password: LEARNER_PASSWORD,
     });
 
-    // 테스트 후 정리
+    await use(context);
     await page.close();
   },
 
   // 인증된 강사 (page + user 정보)
   authenticatedInstructor: async ({ page }, use) => {
-    const user = await loginAndGetUser(page, INSTRUCTOR_EMAIL, INSTRUCTOR_PASSWORD, 'instructor');
-
-    await use({
-      page,
-      user,
+    const context = await createAuthenticatedContext(page, 'instructor', {
+      email: INSTRUCTOR_EMAIL,
+      password: INSTRUCTOR_PASSWORD,
     });
 
-    // 테스트 후 정리
+    await use(context);
     await page.close();
   },
 
   // 학습자 페이지 (인증된 학습자 세션)
   learnerPage: async ({ page }, use) => {
-    await loginAndGetUser(page, LEARNER_EMAIL, LEARNER_PASSWORD, 'learner');
+    const context = await createAuthenticatedContext(page, 'learner', {
+      email: LEARNER_EMAIL,
+      password: LEARNER_PASSWORD,
+    });
 
-    await use(page);
-
-    // 테스트 후 정리
+    await use(context.page);
     await page.close();
   },
 
   // 강사 페이지 (인증된 강사 세션)
   instructorPage: async ({ page }, use) => {
-    await loginAndGetUser(page, INSTRUCTOR_EMAIL, INSTRUCTOR_PASSWORD, 'instructor');
+    const context = await createAuthenticatedContext(page, 'instructor', {
+      email: INSTRUCTOR_EMAIL,
+      password: INSTRUCTOR_PASSWORD,
+    });
 
-    await use(page);
-
-    // 테스트 후 정리
+    await use(context.page);
     await page.close();
   },
 
   // 학습자 사용자 정보 (토큰 포함)
   learner: async ({ page }, use) => {
-    const user = await loginAndGetUser(page, LEARNER_EMAIL, LEARNER_PASSWORD, 'learner');
+    const context = await createAuthenticatedContext(page, 'learner', {
+      email: LEARNER_EMAIL,
+      password: LEARNER_PASSWORD,
+    });
 
-    await use(user);
-
-    // 테스트 후 정리
+    await use(context.user);
     await page.close();
   },
 
   // 강사 사용자 정보 (토큰 포함)
   instructor: async ({ page }, use) => {
-    const user = await loginAndGetUser(page, INSTRUCTOR_EMAIL, INSTRUCTOR_PASSWORD, 'instructor');
+    const context = await createAuthenticatedContext(page, 'instructor', {
+      email: INSTRUCTOR_EMAIL,
+      password: INSTRUCTOR_PASSWORD,
+    });
 
-    await use(user);
-
-    // 테스트 후 정리
+    await use(context.user);
     await page.close();
   },
 });

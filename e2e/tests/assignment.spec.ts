@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { test as authTest } from '../fixtures/auth';
+import { Selectors } from '../shared/selectors';
 
 /**
  * 과제 관련 E2E 테스트
@@ -15,61 +16,55 @@ test.describe('Assignment Management', () => {
         const timestamp = Date.now();
 
         // 먼저 강좌 생성
-        await page.goto('/instructor-dashboard');
+        await page.goto('/instructor-dashboard', { waitUntil: 'domcontentloaded' });
 
-        const createCourseButton = page.locator('button:has-text("강좌 생성")');
-        if ((await createCourseButton.count()) > 0) {
-          await createCourseButton.click();
-          await page.fill('[name="title"]', `Course for Assignment ${timestamp}`);
-          await page.fill('textarea[name="description"]', 'Test course');
+        const managementButton = Selectors.course.managementButton(page);
+        if ((await managementButton.count()) > 0) {
+          await managementButton.click();
+          await page.waitForURL(/\/courses/, { timeout: 10000 }).catch(() => {});
+        } else {
+          await page.goto('/courses', { waitUntil: 'domcontentloaded' });
+        }
 
-          const categorySelect = page.locator('select[name="category"]');
-          if ((await categorySelect.count()) > 0) {
-            await categorySelect.selectOption({ index: 1 });
+        await page.waitForLoadState('networkidle').catch(() => {});
+        const createTab = Selectors.course.createTab(page);
+        if ((await createTab.count()) > 0) {
+          await createTab.click();
+        }
+
+        await page.fill('[name="title"]', `Course for Assignment ${timestamp}`);
+        await page.fill('textarea[name="description"]', 'Test course');
+        await page.getByRole('button', { name: /생성|저장|Create/i }).first().click();
+        await page.waitForTimeout(500);
+
+        // 강좌 상세로 이동 (URL에 course ID 포함)
+        const currentUrl = page.url();
+        const courseIdMatch = currentUrl.match(/courses\/([a-f0-9-]+)/);
+
+        if (courseIdMatch) {
+          await page.goto(`/courses/${courseIdMatch[1]}/assignments/new`, {
+            waitUntil: 'domcontentloaded',
+          });
+
+          // 과제 정보 입력
+          await page.fill('[name="title"]', `Assignment ${timestamp}`);
+          await page.fill('textarea[name="description"]', 'This is a test assignment');
+
+          // 마감일 설정
+          const dueDateInput = page.locator('[name="due_date"]');
+          if ((await dueDateInput.count()) > 0) {
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 7);
+            await dueDateInput.fill(futureDate.toISOString().split('T')[0]);
           }
 
-          const difficultySelect = page.locator('select[name="difficulty"]');
-          if ((await difficultySelect.count()) > 0) {
-            await difficultySelect.selectOption({ index: 1 });
-          }
+          // 배점 설정
+          await page.fill('[name="points_weight"]', '0.3');
 
-          await page.click('button:has-text("생성")');
-          await page.waitForTimeout(500);
+          // 생성 버튼 클릭
+          await page.getByRole('button', { name: /생성|저장|Create/i }).first().click();
 
-          // 강좌 상세로 이동 (URL에 course ID 포함)
-          const currentUrl = page.url();
-          const courseIdMatch = currentUrl.match(/courses\/([a-f0-9-]+)/);
-
-          if (courseIdMatch) {
-            // 과제 생성 페이지로 이동
-            await page.goto(`/courses/${courseIdMatch[1]}/assignments/new`);
-
-            // 과제 정보 입력
-            await page.fill('[name="title"]', `Assignment ${timestamp}`);
-            await page.fill(
-              'textarea[name="description"]',
-              'This is a test assignment'
-            );
-
-            // 마감일 설정
-            const dueDateInput = page.locator('[name="due_date"]');
-            if ((await dueDateInput.count()) > 0) {
-              const futureDate = new Date();
-              futureDate.setDate(futureDate.getDate() + 7);
-              await dueDateInput.fill(futureDate.toISOString().split('T')[0]);
-            }
-
-            // 배점 설정
-            await page.fill('[name="points_weight"]', '0.3');
-
-            // 생성 버튼 클릭
-            await page.click('button:has-text("생성")');
-
-            // 생성 성공 확인
-            await expect(
-              page.locator(`text=Assignment ${timestamp}`)
-            ).toBeVisible();
-          }
+          await expect(page.locator(`text=Assignment ${timestamp}`)).toBeVisible();
         }
       }
     );

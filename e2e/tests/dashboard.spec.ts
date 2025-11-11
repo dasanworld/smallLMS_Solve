@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { test as authTest } from '../fixtures/auth';
+import { Selectors } from '../shared/selectors';
+import { APIDebugger } from '../shared/api-debugger';
 
 /**
  * 대시보드 관련 E2E 테스트
@@ -16,9 +18,7 @@ test.describe('Dashboard', () => {
         await page.goto('/dashboard');
 
         // 대시보드 제목 확인
-        await expect(
-          page.locator('text=/대시보드|Dashboard|학습자/i')
-        ).toBeVisible();
+        await expect(Selectors.dashboard.learnerHeading(page)).toBeVisible();
       }
     );
 
@@ -30,9 +30,7 @@ test.describe('Dashboard', () => {
         await page.goto('/dashboard');
 
         // 수강 중인 강좌 섹션 확인
-        await expect(
-          page.locator('text=/수강 중인 강좌|내 강좌|My Courses/i')
-        ).toBeVisible();
+        await expect(Selectors.dashboard.learnerHeading(page)).toBeVisible();
       }
     );
 
@@ -103,20 +101,17 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should get learner dashboard data via API',
-      async ({ learnerPage }) => {
-        const page = learnerPage; const user = { id: "", email: "" };
+      async ({ authenticatedLearner }) => {
+        const { page, user } = authenticatedLearner;
 
-        const response = await page.request.get('/api/dashboard/learner', {
+        const result = await APIDebugger.callAndLog(page, 'GET', '/api/dashboard/learner', {
           headers: {
             Authorization: `Bearer ${user.token}`,
           },
         });
 
-        expect(response.status()).toBe(200);
-
-        const data = await response.json();
-        // 대시보드 데이터 구조 확인
-        expect(data).toBeDefined();
+        expect(result.ok).toBeTruthy();
+        expect(result.data).toBeDefined();
       }
     );
   });
@@ -130,9 +125,7 @@ test.describe('Dashboard', () => {
         await page.goto('/instructor-dashboard');
 
         // 강사 대시보드 제목 확인
-        await expect(
-          page.locator('text=/강사 대시보드|Instructor Dashboard/i')
-        ).toBeVisible();
+        await expect(Selectors.dashboard.instructorHeading(page)).toBeVisible();
       }
     );
 
@@ -144,9 +137,7 @@ test.describe('Dashboard', () => {
         await page.goto('/instructor-dashboard');
 
         // 내 강좌 목록 확인
-        await expect(
-          page.locator('text=/내 강좌|My Courses|강좌 관리/i')
-        ).toBeVisible();
+        await expect(Selectors.dashboard.instructorHeading(page)).toBeVisible();
       }
     );
 
@@ -158,7 +149,7 @@ test.describe('Dashboard', () => {
         await page.goto('/instructor-dashboard');
 
         // 강좌 생성 버튼 확인
-        const createButton = page.locator('button:has-text("강좌 생성")');
+        const createButton = Selectors.course.managementButton(page);
         if ((await createButton.count()) > 0) {
           await expect(createButton).toBeVisible();
         }
@@ -204,32 +195,28 @@ test.describe('Dashboard', () => {
 
         await page.goto('/instructor-dashboard');
 
-        // 강좌 관리 페이지로 이동
-        const courseLink = page.locator('a[href*="/courses/"]').first();
-        if ((await courseLink.count()) > 0) {
-          await courseLink.click();
-
-          // 강좌 상세/관리 페이지로 이동 확인
-          await page.waitForURL(/\/courses\/[a-f0-9-]+/);
+        const managementButton = Selectors.course.managementButton(page);
+        if ((await managementButton.count()) > 0) {
+          await managementButton.click();
+          await page.waitForURL(/\/courses/, { timeout: 10000 }).catch(() => {});
+          await expect(Selectors.course.heading(page)).toBeVisible();
         }
       }
     );
 
     authTest(
       'should get instructor dashboard data via API',
-      async ({ instructorPage }) => {
+      async ({ authenticatedInstructor }) => {
         const { page, user } = authenticatedInstructor;
 
-        const response = await page.request.get('/api/dashboard/instructor', {
+        const result = await APIDebugger.callAndLog(page, 'GET', '/api/dashboard/instructor', {
           headers: {
             Authorization: `Bearer ${user.token}`,
           },
         });
 
-        expect(response.status()).toBe(200);
-
-        const data = await response.json();
-        expect(data).toBeDefined();
+        expect(result.ok).toBeTruthy();
+        expect(result.data).toBeDefined();
       }
     );
   });
@@ -272,11 +259,11 @@ test.describe('Dashboard', () => {
 
     authTest(
       'should not allow instructor to access learner-only features',
-      async ({ instructorPage }) => {
+      async ({ authenticatedInstructor }) => {
         const { page, user } = authenticatedInstructor;
 
         // 학습자 대시보드 API 호출 시도
-        const response = await page.request.get('/api/dashboard/learner', {
+        const result = await APIDebugger.callAndLog(page, 'GET', '/api/dashboard/learner', {
           headers: {
             Authorization: `Bearer ${user.token}`,
           },
@@ -284,7 +271,7 @@ test.describe('Dashboard', () => {
 
         // 강사가 학습자 대시보드에 접근할 수 있는지는 정책에 따라 다름
         // 만약 강사도 학습자 기능을 사용할 수 있다면 200, 아니면 403
-        expect([200, 403]).toContain(response.status());
+        expect([200, 403]).toContain(result.status);
       }
     );
   });

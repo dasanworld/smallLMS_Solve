@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { Selectors } from '../shared/selectors';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
@@ -16,17 +17,12 @@ test.describe('강사 워크플로우', () => {
   test('01. 강사 대시보드 접근', async ({ page }) => {
     console.log('\n📌 Test 1: 강사 대시보드 접근');
 
-    await page.goto(`${BASE_URL}/dashboard`);
-
-    await page.waitForLoadState('networkidle', {
-      timeout: 5000,
-    }).catch(() => {
-      // 타임아웃 무시
+    await page.goto(`${BASE_URL}/instructor-dashboard`, {
+      waitUntil: 'domcontentloaded',
     });
+    await page.waitForLoadState('networkidle').catch(() => {});
 
-    // 대시보드 페이지 로드 확인
-    const mainContent = page.locator('[role="main"]');
-    expect((await mainContent.count()) > 0).toBeTruthy();
+    await expect(Selectors.dashboard.instructorHeading(page)).toBeVisible();
 
     console.log('✅ 대시보드 접근 성공');
   });
@@ -37,25 +33,22 @@ test.describe('강사 워크플로우', () => {
   test('02. 강좌 관리 페이지 접근', async ({ page }) => {
     console.log('\n📌 Test 2: 강좌 관리 페이지 접근');
 
-    // 강좌 관리 페이지 이동
-    const coursesLink = page.locator(
-      'a:has-text(/강좌|courses|강좌 관리|course management/i)'
-    );
+    await page.goto(`${BASE_URL}/instructor-dashboard`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await page.waitForLoadState('networkidle').catch(() => {});
 
-    if ((await coursesLink.count()) > 0) {
-      await coursesLink.click();
+    const courseManagementButton = Selectors.course.managementButton(page);
+    if ((await courseManagementButton.count()) > 0) {
+      await courseManagementButton.click();
+      await page.waitForURL(/\/courses/, { timeout: 10000 }).catch(() => {});
     } else {
-      await page.goto(`${BASE_URL}/instructor/courses`);
+      console.log('ℹ️ 코스 관리 버튼을 찾지 못해 직접 이동합니다.');
+      await page.goto(`${BASE_URL}/courses`, { waitUntil: 'domcontentloaded' });
     }
 
-    await page.waitForLoadState('networkidle', {
-      timeout: 5000,
-    }).catch(() => {
-      // 타임아웃 무시
-    });
-
-    const mainContent = page.locator('[role="main"]');
-    expect((await mainContent.count()) > 0).toBeTruthy();
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await expect(Selectors.course.heading(page)).toBeVisible();
 
     console.log('✅ 강좌 관리 페이지 접근 성공');
   });
@@ -68,69 +61,49 @@ test.describe('강사 워크플로우', () => {
 
     const timestamp = Date.now();
 
-    // 강좌 관리 페이지로 이동
-    const coursesLink = page.locator(
-      'a:has-text(/강좌|courses|강좌 관리|course management/i)'
-    );
-
-    if ((await coursesLink.count()) > 0) {
-      await coursesLink.click();
-    } else {
-      await page.goto(`${BASE_URL}/instructor/courses`);
-    }
-
-    await page.waitForLoadState('networkidle', {
-      timeout: 5000,
-    }).catch(() => {
-      // 타임아웃 무시
+    await page.goto(`${BASE_URL}/instructor-dashboard`, {
+      waitUntil: 'domcontentloaded',
     });
 
-    // 강좌 생성 버튼 찾기
-    const createButton = page.locator(
-      'button:has-text(/생성|생성하기|새 강좌|create|new/i)'
-    );
-
-    if ((await createButton.count()) > 0) {
-      await createButton.click();
-      await page.waitForTimeout(1000);
-
-      // 강좌 정보 입력
-      const courseName = `E2E Test Course ${timestamp}`;
-      const courseDescription = `This is a test course created by E2E test`;
-
-      const titleInput = page.locator(
-        'input[placeholder*="이름"], input[placeholder*="제목"], input[placeholder*="name"]'
-      ).first();
-      const descriptionInput = page.locator(
-        'textarea[placeholder*="설명"], textarea[placeholder*="description"]'
-      ).first();
-
-      if ((await titleInput.count()) > 0) {
-        await titleInput.fill(courseName);
-        console.log(`📝 강좌 제목 입력: ${courseName}`);
-      }
-
-      if ((await descriptionInput.count()) > 0) {
-        await descriptionInput.fill(courseDescription);
-        console.log(`📝 강좌 설명 입력: ${courseDescription}`);
-      }
-
-      // 강좌 생성 제출
-      const submitButton = page.locator(
-        'button:has-text(/저장|생성|제출|submit|save/i)'
-      );
-
-      if ((await submitButton.count()) > 0) {
-        await submitButton.click();
-        await page.waitForTimeout(1500);
-
-        console.log('✅ 강좌 생성 제출 완료');
-      } else {
-        console.log('⚠️ 제출 버튼을 찾을 수 없습니다.');
-      }
+    const courseManagementButton = Selectors.course.managementButton(page);
+    if ((await courseManagementButton.count()) > 0) {
+      await courseManagementButton.click();
+      await page.waitForURL(/\/courses/, { timeout: 10000 }).catch(() => {});
     } else {
-      console.log('⚠️ 강좌 생성 버튼을 찾을 수 없습니다.');
+      await page.goto(`${BASE_URL}/courses`, { waitUntil: 'domcontentloaded' });
     }
+
+    await page.waitForLoadState('networkidle').catch(() => {});
+
+    const createTab = Selectors.course.createTab(page);
+    if ((await createTab.count()) > 0) {
+      await createTab.click();
+    }
+
+    const courseName = `E2E Test Course ${timestamp}`;
+    const courseDescription = `This is a test course created by E2E test`;
+
+    const titleInput = page.locator('input[name="title"]').first();
+    const descriptionInput = page.locator('textarea[name="description"]').first();
+
+    if ((await titleInput.count()) === 0) {
+      console.log('⚠️ 제목 입력 필드를 찾지 못했습니다.');
+      return;
+    }
+
+    await titleInput.fill(courseName);
+    if ((await descriptionInput.count()) > 0) {
+      await descriptionInput.fill(courseDescription);
+    }
+
+    const submitButton = page.getByRole('button', { name: /생성|저장|Create/i }).first();
+    await submitButton.click();
+    await page.waitForTimeout(1500);
+
+    const confirmation = page.locator(`text=${courseName}`).first();
+    await expect(confirmation).toBeVisible({ timeout: 5000 });
+
+    console.log('✅ 강좌 생성 제출 완료');
   });
 
   /**
@@ -139,20 +112,11 @@ test.describe('강사 워크플로우', () => {
   test('04. 강좌 목록 확인', async ({ page }) => {
     console.log('\n📌 Test 4: 강좌 목록 확인');
 
-    await page.goto(`${BASE_URL}/instructor/courses`);
+    await page.goto(`${BASE_URL}/courses`, { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle').catch(() => {});
 
-    await page.waitForLoadState('networkidle', {
-      timeout: 5000,
-    }).catch(() => {
-      // 타임아웃 무시
-    });
-
-    // 강좌 목록 확인
-    const courses = page.locator('[class*="course"]');
-    const courseCount = await courses.count();
-
-    console.log(`✅ 강좌 목록 확인: ${courseCount}개의 강좌 발견`);
-    expect(courseCount >= 0).toBeTruthy();
+    await expect(Selectors.course.heading(page)).toBeVisible();
+    console.log('✅ 강좌 페이지 헤더 확인 완료');
   });
 
   /**
