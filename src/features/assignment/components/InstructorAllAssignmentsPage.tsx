@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { useInstructorCoursesQuery } from '@/features/course/hooks/useCourseMutations';
 import { useCourseAssignmentsQuery } from '../hooks/useAssignmentMutations';
+import { apiClient } from '@/lib/remote/api-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Loader2, Plus, Edit2, BookOpen } from 'lucide-react';
+import { AlertCircle, Loader2, Plus, Edit2, BookOpen, Rocket } from 'lucide-react';
 import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -61,6 +63,7 @@ const CourseAssignmentsLoader: React.FC<CourseAssignmentsLoaderProps> = ({
 
 export const InstructorAllAssignmentsPage = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useInstructorCoursesQuery();
   const [courseAssignmentsMap, setCourseAssignmentsMap] = useState<Record<string, AssignmentWithCourse[]>>({});
   const [loadedCourseIds, setLoadedCourseIds] = useState<Set<string>>(new Set());
@@ -68,6 +71,7 @@ export const InstructorAllAssignmentsPage = () => {
   const [selectedAssignment, setSelectedAssignment] = useState<AssignmentResponse | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<{ id: string; name: string } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [publishingAssignmentIds, setPublishingAssignmentIds] = useState<Set<string>>(new Set());
 
   // 개별 코스의 과제 데이터 로드
   const handleCourseDataLoad = useCallback((courseId: string, assignments: AssignmentWithCourse[]) => {
@@ -116,6 +120,38 @@ export const InstructorAllAssignmentsPage = () => {
       setSelectedCourse(null);
     }
   }, []);
+
+  // 초안 과제 발행
+  const handlePublishDraft = useCallback(
+    async (assignment: AssignmentWithCourse) => {
+      setPublishingAssignmentIds((prev) => new Set([...prev, assignment.id]));
+
+      try {
+        await apiClient.patch(
+          `/api/courses/${assignment.courseId}/assignments/${assignment.id}/status`,
+          { status: 'published' }
+        );
+
+        // 과제 목록 캐시 무효화
+        queryClient.invalidateQueries({
+          queryKey: ['assignments', 'list', assignment.courseId],
+        });
+
+        setPublishingAssignmentIds((prev) => {
+          const updated = new Set(prev);
+          updated.delete(assignment.id);
+          return updated;
+        });
+      } catch (error) {
+        setPublishingAssignmentIds((prev) => {
+          const updated = new Set(prev);
+          updated.delete(assignment.id);
+          return updated;
+        });
+      }
+    },
+    [queryClient]
+  );
 
   // 모든 과제 수집
   const allAssignments = Object.values(courseAssignmentsMap).flat();
@@ -278,6 +314,25 @@ export const InstructorAllAssignmentsPage = () => {
                         <Button
                           size="sm"
                           variant="default"
+                          onClick={() => handlePublishDraft(assignment)}
+                          disabled={publishingAssignmentIds.has(assignment.id)}
+                          className="flex-1"
+                        >
+                          {publishingAssignmentIds.has(assignment.id) ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              발행중...
+                            </>
+                          ) : (
+                            <>
+                              <Rocket className="mr-2 h-4 w-4" />
+                              발행
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleEditDraft(assignment)}
                           className="flex-1"
                         >

@@ -18,6 +18,7 @@ import {
   gradeSubmissionService,
   getUserSubmissionService,
   deleteAssignmentService,
+  updateAssignmentStatusService,
 } from './service';
 
 export const registerAssignmentRoutes = (app: Hono<AppEnv>) => {
@@ -328,6 +329,58 @@ export const registerAssignmentRoutes = (app: Hono<AppEnv>) => {
       return respond(
         c,
         failure(500, assignmentErrorCodes.SUBMISSION_UPDATE_ERROR, String(error))
+      );
+    }
+  });
+
+  // PATCH /api/courses/:courseId/assignments/:assignmentId/status - 과제 상태 변경 (강사용)
+  app.patch('/api/courses/:courseId/assignments/:assignmentId/status', async (c) => {
+    try {
+      const assignmentId = c.req.param('assignmentId');
+      const user = getUser(c);
+
+      if (!user) {
+        return respond(
+          c,
+          failure(401, assignmentErrorCodes.UNAUTHORIZED, 'User not authenticated')
+        );
+      }
+
+      if (user.role !== 'instructor') {
+        return respond(
+          c,
+          failure(
+            403,
+            assignmentErrorCodes.NOT_INSTRUCTOR,
+            'Only instructors can change assignment status'
+          )
+        );
+      }
+
+      const body = await c.req.json();
+      const validation = UpdateAssignmentStatusRequestSchema.safeParse(body);
+
+      if (!validation.success) {
+        return respond(
+          c,
+          failure(400, assignmentErrorCodes.VALIDATION_ERROR, 'Invalid request data', {
+            errors: validation.error.flatten(),
+          })
+        );
+      }
+
+      const supabase = c.get('supabase');
+      const result = await updateAssignmentStatusService(
+        supabase,
+        assignmentId,
+        user.id,
+        validation.data.status
+      );
+      return respond(c, result);
+    } catch (error) {
+      return respond(
+        c,
+        failure(500, assignmentErrorCodes.ASSIGNMENT_UPDATE_ERROR, String(error))
       );
     }
   });

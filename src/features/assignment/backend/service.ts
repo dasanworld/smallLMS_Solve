@@ -65,7 +65,6 @@ export const getCourseAssignmentsService = async (
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('[getCourseAssignmentsService] Supabase error:', error);
       return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, error.message);
     }
 
@@ -76,7 +75,6 @@ export const getCourseAssignmentsService = async (
       total: assignments.length,
     });
   } catch (error) {
-    console.error('[getCourseAssignmentsService] Unexpected error:', error);
     return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, String(error));
   }
 };
@@ -116,14 +114,6 @@ export const createAssignmentService = async (
   data: CreateAssignmentRequest
 ): Promise<HandlerResult<AssignmentResponse, AssignmentErrorCode>> => {
   try {
-    console.log('[createAssignmentService] Creating assignment:', {
-      courseId,
-      instructorId,
-      title: data.title,
-      dueDate: data.dueDate,
-      pointsWeight: data.pointsWeight,
-    });
-
     const { data: assignment, error } = await supabase
       .from('assignments')
       .insert([
@@ -142,14 +132,11 @@ export const createAssignmentService = async (
       .single();
 
     if (error) {
-      console.error('[createAssignmentService] Supabase error:', error);
       return failure(500, assignmentErrorCodes.ASSIGNMENT_CREATION_ERROR, error.message);
     }
 
-    console.log('[createAssignmentService] Assignment created successfully:', assignment.id);
     return success(convertAssignmentToResponse(assignment), 201);
   } catch (error) {
-    console.error('[createAssignmentService] Exception:', error);
     return failure(500, assignmentErrorCodes.ASSIGNMENT_CREATION_ERROR, String(error));
   }
 };
@@ -315,6 +302,49 @@ export const getUserSubmissionService = async (
     return success(convertSubmissionToResponse(data));
   } catch (error) {
     return failure(500, assignmentErrorCodes.SUBMISSION_NOT_FOUND, String(error));
+  }
+};
+
+/**
+ * Update assignment status
+ */
+export const updateAssignmentStatusService = async (
+  supabase: SupabaseClient,
+  assignmentId: string,
+  instructorId: string,
+  newStatus: 'draft' | 'published' | 'closed'
+): Promise<HandlerResult<AssignmentResponse, AssignmentErrorCode>> => {
+  try {
+    const updateData: Record<string, any> = {
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    };
+
+    // 발행할 때 publishedAt 설정
+    if (newStatus === 'published') {
+      updateData.published_at = new Date().toISOString();
+    }
+
+    // 마감할 때 closedAt 설정
+    if (newStatus === 'closed') {
+      updateData.closed_at = new Date().toISOString();
+    }
+
+    const { data: assignment, error } = await supabase
+      .from('assignments')
+      .update(updateData)
+      .eq('id', assignmentId)
+      .eq('instructor_id', instructorId)
+      .select()
+      .single();
+
+    if (error || !assignment) {
+      return failure(404, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, 'Assignment not found or unauthorized');
+    }
+
+    return success(convertAssignmentToResponse(assignment));
+  } catch (error) {
+    return failure(500, assignmentErrorCodes.ASSIGNMENT_UPDATE_ERROR, String(error));
   }
 };
 

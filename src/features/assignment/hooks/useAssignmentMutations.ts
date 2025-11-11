@@ -17,26 +17,10 @@ export const useCourseAssignmentsQuery = (courseId: string) => {
   return useQuery({
     queryKey: assignmentQueryKeys.list(courseId),
     queryFn: async () => {
-      console.log(`[useCourseAssignmentsQuery] Fetching assignments for course: ${courseId}`);
-      try {
-        const response = await apiClient.get<AssignmentListResponse>(
-          `/api/courses/${courseId}/assignments`
-        );
-        console.log(`[useCourseAssignmentsQuery] Raw response for course ${courseId}:`, response);
-        console.log(`[useCourseAssignmentsQuery] Response.data for course ${courseId}:`, response.data);
-
-        // 응답 데이터 구조 확인
-        if (response.data) {
-          console.log(`[useCourseAssignmentsQuery] Data type:`, typeof response.data);
-          console.log(`[useCourseAssignmentsQuery] Data keys:`, Object.keys(response.data));
-          console.log(`[useCourseAssignmentsQuery] Assignments:`, response.data.assignments);
-        }
-
-        return response.data;
-      } catch (error) {
-        console.error(`[useCourseAssignmentsQuery] Error for course ${courseId}:`, error);
-        throw error;
-      }
+      const response = await apiClient.get<AssignmentListResponse>(
+        `/api/courses/${courseId}/assignments`
+      );
+      return response.data;
     },
     enabled: !!courseId,
   });
@@ -102,6 +86,35 @@ export const useUpdateAssignmentMutation = (courseId: string, assignmentId: stri
       });
       queryClient.invalidateQueries({
         queryKey: assignmentQueryKeys.detail(assignmentId),
+      });
+    },
+  });
+};
+
+/**
+ * 과제 상태 변경 (발행, 마감 등)
+ */
+export const useUpdateAssignmentStatusMutation = (courseId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      assignmentId,
+      status,
+    }: {
+      assignmentId: string;
+      status: 'draft' | 'published' | 'closed';
+    }) => {
+      const response = await apiClient.patch<AssignmentResponse>(
+        `/api/courses/${courseId}/assignments/${assignmentId}/status`,
+        { status }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      // 과제 목록과 상세 캐시 무효화
+      queryClient.invalidateQueries({
+        queryKey: assignmentQueryKeys.list(courseId),
       });
     },
   });

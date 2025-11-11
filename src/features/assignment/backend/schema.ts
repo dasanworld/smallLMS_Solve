@@ -18,7 +18,7 @@ export const UpdateAssignmentRequestSchema = z.object({
 });
 
 export const UpdateAssignmentStatusRequestSchema = z.object({
-  status: z.enum(['open', 'closed', 'draft']),
+  status: z.enum(['draft', 'published', 'closed']),
 });
 
 // Submission Request Schemas
