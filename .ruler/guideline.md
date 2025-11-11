@@ -170,3 +170,7 @@ When modifying student routes, ensure these assignment pages remain linked and f
 ## Instructor Pages Styling
 All instructor role pages use consistent heading style: `text-3xl font-bold tracking-tight` for h1 and `mt-2 text-gray-600` for subtitle.
 When referencing course/assignment names in instructor pages, use `text-blue-600` for emphasis (e.g., course name in assignment page headers).
+
+## Database Schema Migration Completeness
+Include all DB columns used in service code within migrations. Missing columns cause 500 errors.
+Review service layer insert/update queries before writing migrations to identify all required columns.
