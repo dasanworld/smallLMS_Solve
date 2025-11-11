@@ -36,7 +36,6 @@ export function GlobalNavigation() {
         // respond 함수는 성공 시 데이터를 직접 반환함
         return response.data;
       } catch (err) {
-        console.error('프로필 조회 실패:', extractApiErrorMessage(err, 'Failed to fetch profile'));
         throw err;
       }
     },
@@ -91,7 +90,6 @@ export function GlobalNavigation() {
       // Navigate to login page
       router.push('/login');
     } catch (error) {
-      console.error('Logout failed:', error);
       // Still redirect to login even if logout fails
       router.push('/login');
     }
@@ -149,17 +147,19 @@ export function GlobalNavigation() {
               코스관리
             </Link>
 
-            {/* 메뉴 4 - 과제관리 */}
-            <Link
-              href="/assignments"
-              className={cn(
-                'flex items-center gap-1.5 text-sm font-medium transition-colors',
-                pathname === '/assignments' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
-              )}
-            >
-              <Award className="h-4 w-4" />
-              과제관리
-            </Link>
+            {/* 메뉴 4 - 과제관리 (강사만 표시) */}
+            {isInstructor && (
+              <Link
+                href="/assignments"
+                className={cn(
+                  'flex items-center gap-1.5 text-sm font-medium transition-colors',
+                  pathname === '/assignments' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
+                )}
+              >
+                <Award className="h-4 w-4" />
+                과제관리
+              </Link>
+            )}
 
             {/* 메뉴 5 - 채점관리 (강사만 표시) */}
             {isInstructor && (
@@ -247,13 +247,15 @@ export function GlobalNavigation() {
                     </Link>
                   </DropdownMenuItem>
 
-                  {/* 과제관리 */}
-                  <DropdownMenuItem asChild>
-                    <Link href="/assignments" className="flex items-center gap-2">
-                      <Award className="h-4 w-4" />
-                      과제관리
-                    </Link>
-                  </DropdownMenuItem>
+                  {/* 과제관리 (강사만 표시) */}
+                  {isInstructor && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/assignments" className="flex items-center gap-2">
+                        <Award className="h-4 w-4" />
+                        과제관리
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
 
                   {/* 채점관리 (강사만 표시) */}
                   {isInstructor && (

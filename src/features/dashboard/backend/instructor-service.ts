@@ -143,10 +143,7 @@ export const getInstructorDashboardService = async (
         .select('id, name, email')
         .in('id', submissionUserIds);
 
-      if (userError) {
-        console.warn('Failed to fetch user information:', userError.message);
-        // Continue without user names
-      } else {
+      if (!userError) {
         students = userData || [];
       }
     }
@@ -182,10 +179,7 @@ export const getInstructorDashboardService = async (
       .in('course_id', courseIds)
       .eq('status', 'active'); // Only count active enrollments
 
-    if (enrollmentError) {
-      console.error('Failed to fetch enrollments:', enrollmentError.message);
-      // Continue with empty enrollment counts
-    } else {
+    if (!enrollmentError) {
       // Count enrollments by course_id
       enrollmentCountsByCourseid = (allEnrollments || []).reduce(
         (acc, enrollment: any) => {

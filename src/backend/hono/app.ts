@@ -7,6 +7,7 @@ import { registerAuthRoutes } from '@/features/auth/backend/route';
 import { registerDashboardRoutes } from '@/features/dashboard/backend/route';
 import { registerInstructorDashboardRoutes } from '@/features/dashboard/backend/instructor-route';
 import { registerCourseRoutes } from '@/features/course/backend/route';
+import { registerLearnerCourseRoutes } from '@/features/course/backend/learner-route';
 import { registerEnrollmentRoutes } from '@/features/enrollment/backend/route';
 import { registerAssignmentRoutes } from '@/features/assignment/backend/route';
 import { registerGradeRoutes } from '@/features/grade/backend/route';
@@ -32,6 +33,7 @@ export const createHonoApp = () => {
   registerDashboardRoutes(app);
   registerInstructorDashboardRoutes(app);
   registerCourseRoutes(app);
+  registerLearnerCourseRoutes(app);
   registerEnrollmentRoutes(app);
   // Grade routes must come before assignment routes to ensure specific routes match first
   // /api/submissions/:id/grade (specific) must be registered before /api/submissions/:id (generic)

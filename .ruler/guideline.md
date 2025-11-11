@@ -178,3 +178,7 @@ Review service layer insert/update queries before writing migrations to identify
 ## Authentication Logout Implementation
 Client-side Supabase `signOut()` must be called first to clear session before API logout. Server-side API cannot fully remove user sessions.
 Always call `supabase.auth.signOut()` on client, then refresh user context state, finally redirect to login.
+
+## Role-Based Page Modifications
+Isolate student-page changes to student-specific components/hooks/endpoints; never modify shared API logic without role branching.
+Test instructor pages after any shared layer changes to ensure instructor functionality is unaffected.

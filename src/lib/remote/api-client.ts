@@ -18,12 +18,9 @@ apiClient.interceptors.request.use(
 
       if (session?.access_token) {
         config.headers.Authorization = `Bearer ${session.access_token}`;
-        console.log(`[API] Request to ${config.url} with auth token`);
-      } else {
-        console.warn(`[API] Request to ${config.url} without auth token`);
       }
     } catch (err) {
-      console.error('[API] Error getting session:', err);
+      // Silent error handling
     }
 
     return config;
@@ -33,23 +30,12 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor for debugging
+// Add response interceptor
 apiClient.interceptors.response.use(
   (response) => {
-    console.log(`[API] Response from ${response.config.url}:`, {
-      status: response.status,
-      dataType: typeof response.data,
-      dataKeys: response.data ? Object.keys(response.data) : 'N/A',
-      data: response.data,
-    });
     return response;
   },
   (error) => {
-    if (error.response) {
-      console.error(`[API] Error from ${error.config.url}:`, error.response.status, error.response.data);
-    } else {
-      console.error('[API] Error:', error.message);
-    }
     return Promise.reject(error);
   }
 );

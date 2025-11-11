@@ -51,7 +51,6 @@ export default function SubmissionsListPage() {
         const response = await apiClient.get('/api/auth/profile');
         return response.data;
       } catch (err) {
-        console.error('프로필 조회 실패:', err);
         throw err;
       }
     },

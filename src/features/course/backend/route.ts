@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { AppEnv, getUser } from '@/backend/hono/context';
 import { respond, failure, success } from '@/backend/http/response';
+import { authenticate } from '@/backend/middleware/auth';
 import { courseErrorCodes } from './error';
 import {
   CreateCourseRequestSchema,
@@ -19,7 +20,7 @@ import {
 
 export const registerCourseRoutes = (app: Hono<AppEnv>) => {
   // GET /api/courses/my - 강사의 코스 목록 조회
-  app.get('/api/courses/my', async (c) => {
+  app.get('/api/courses/my', authenticate, async (c) => {
     try {
       const user = getUser(c);
 
@@ -58,7 +59,7 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
   });
 
   // POST /api/courses - 새 코스 생성
-  app.post('/api/courses', async (c) => {
+  app.post('/api/courses', authenticate, async (c) => {
     try {
       const user = getUser(c);
 
@@ -125,7 +126,7 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
   });
 
   // PUT /api/courses/:id - 코스 정보 수정
-  app.put('/api/courses/:id', async (c) => {
+  app.put('/api/courses/:id', authenticate, async (c) => {
     try {
       const courseId = c.req.param('id');
       const user = getUser(c);
@@ -177,7 +178,7 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
   });
 
   // PATCH /api/courses/:id/status - 코스 상태 변경
-  app.patch('/api/courses/:id/status', async (c) => {
+  app.patch('/api/courses/:id/status', authenticate, async (c) => {
     try {
       const courseId = c.req.param('id');
       const user = getUser(c);
@@ -233,7 +234,7 @@ export const registerCourseRoutes = (app: Hono<AppEnv>) => {
   });
 
   // DELETE /api/courses/:id - 코스 소프트 삭제
-  app.delete('/api/courses/:id', async (c) => {
+  app.delete('/api/courses/:id', authenticate, async (c) => {
     try {
       const courseId = c.req.param('id');
       const user = getUser(c);

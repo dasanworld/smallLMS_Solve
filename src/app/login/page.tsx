@@ -15,7 +15,7 @@ export default function LoginPage({ params }: LoginPageProps) {
   void params;
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { refresh, isAuthenticated } = useCurrentUser();
+  const { refresh, isAuthenticated, user } = useCurrentUser();
   const [formState, setFormState] = useState({ email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -23,13 +23,21 @@ export default function LoginPage({ params }: LoginPageProps) {
   // 리다이렉트 정책 (docs/REDIRECT_POLICY.md 참고):
   // 로그인 성공 후:
   // 1. redirectedFrom 파라미터가 있으면 → 원래 경로로 복귀
-  // 2. redirectedFrom 파라미터가 없으면 → / (홈)으로 이동
+  // 2. redirectedFrom 파라미터가 없으면 → 역할에 맞는 대시보드로 이동
+  //    - instructor → /instructor-dashboard
+  //    - learner → /dashboard
   useEffect(() => {
     if (isAuthenticated) {
-      const redirectedFrom = searchParams.get("redirectedFrom") ?? "/";
-      router.replace(redirectedFrom);
+      const redirectedFrom = searchParams.get("redirectedFrom");
+
+      if (redirectedFrom) {
+        router.replace(redirectedFrom);
+      } else {
+        const dashboard = user?.role === 'instructor' ? '/instructor-dashboard' : '/dashboard';
+        router.replace(dashboard);
+      }
     }
-  }, [isAuthenticated, router, searchParams]);
+  }, [isAuthenticated, user, router, searchParams]);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,8 +66,15 @@ export default function LoginPage({ params }: LoginPageProps) {
 
         if (nextAction === "success") {
           await refresh();
-          const redirectedFrom = searchParams.get("redirectedFrom") ?? "/";
-          router.replace(redirectedFrom);
+          const redirectedFrom = searchParams.get("redirectedFrom");
+
+          if (redirectedFrom) {
+            router.replace(redirectedFrom);
+          } else {
+            // 역할에 따른 리다이렉트 (user는 refresh() 후 업데이트됨)
+            // 기본값은 /dashboard로 설정
+            router.replace("/dashboard");
+          }
         } else {
           setErrorMessage(nextAction);
         }

@@ -73,8 +73,8 @@ export const LearnerDashboard = () => {
           <p className="text-slate-500 mb-4">
             강의를 수강신청하고 학습을 시작해보세요
           </p>
-          <a 
-            href="/courses" 
+          <a
+            href="/explore-courses"
             className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             강의 둘러보기

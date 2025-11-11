@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { LearnerCoursesCatalog } from '@/features/course/components/LearnerCoursesCatalog';
 import { CoursesPage as InstructorCoursesPage } from '@/features/course/components/CoursesPage';
@@ -13,16 +12,6 @@ import { CoursesPage as InstructorCoursesPage } from '@/features/course/componen
 export default function CoursesPage() {
   const { user, isLoading } = useCurrentUser();
 
-  useEffect(() => {
-    console.log('[CoursesPage] User info:', {
-      user,
-      isLoading,
-      role: user?.role,
-      userMetadata: user?.userMetadata,
-      appMetadata: user?.appMetadata,
-    });
-  }, [user, isLoading]);
-
   if (isLoading) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -31,12 +20,8 @@ export default function CoursesPage() {
     );
   }
 
-  const userRole = user?.role;
-  console.log('[CoursesPage] Checking role:', { userRole, isInstructor: userRole === 'instructor' });
-
   // 강사: 강사 코스 관리 페이지 표시
-  if (user && userRole === 'instructor') {
-    console.log('[CoursesPage] Rendering instructor view');
+  if (user && (user as any).role === 'instructor') {
     return (
       <div className="mx-auto max-w-6xl px-4 py-8">
         <InstructorCoursesPage />
@@ -45,7 +30,6 @@ export default function CoursesPage() {
   }
 
   // 학습자: 코스 카탈로그 표시
-  console.log('[CoursesPage] Rendering learner view (role:', userRole, ')');
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <LearnerCoursesCatalog />
