@@ -182,3 +182,7 @@ Always call `supabase.auth.signOut()` on client, then refresh user context state
 ## Role-Based Page Modifications
 Isolate student-page changes to student-specific components/hooks/endpoints; never modify shared API logic without role branching.
 Test instructor pages after any shared layer changes to ensure instructor functionality is unaffected.
+
+## Client-Side Route Link Consistency
+Verify that all internal navigation links point to routes that are actually defined in the app router. Always match link href paths with corresponding page.tsx files.
+When updating route paths, search entire codebase for hardcoded navigation links and update them consistently to prevent 404 errors from broken client-side navigation.

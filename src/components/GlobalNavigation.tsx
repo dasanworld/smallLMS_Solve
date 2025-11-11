@@ -147,19 +147,19 @@ export function GlobalNavigation() {
               코스관리
             </Link>
 
-            {/* 메뉴 4 - 과제관리 (강사만 표시) */}
-            {isInstructor && (
-              <Link
-                href="/assignments"
-                className={cn(
-                  'flex items-center gap-1.5 text-sm font-medium transition-colors',
-                  pathname === '/assignments' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
-                )}
-              >
-                <Award className="h-4 w-4" />
-                과제관리
-              </Link>
-            )}
+            {/* 메뉴 4 - 과제관리 (강사: /assignments, 학생: /my-assignments) */}
+            <Link
+              href={isInstructor ? '/assignments' : '/my-assignments'}
+              className={cn(
+                'flex items-center gap-1.5 text-sm font-medium transition-colors',
+                (pathname === '/assignments' || pathname === '/my-assignments')
+                  ? 'text-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              )}
+            >
+              <Award className="h-4 w-4" />
+              과제관리
+            </Link>
 
             {/* 메뉴 5 - 채점관리 (강사만 표시) */}
             {isInstructor && (
@@ -247,15 +247,13 @@ export function GlobalNavigation() {
                     </Link>
                   </DropdownMenuItem>
 
-                  {/* 과제관리 (강사만 표시) */}
-                  {isInstructor && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/assignments" className="flex items-center gap-2">
-                        <Award className="h-4 w-4" />
-                        과제관리
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
+                  {/* 과제관리 (강사: /assignments, 학생: /my-assignments) */}
+                  <DropdownMenuItem asChild>
+                    <Link href={isInstructor ? '/assignments' : '/my-assignments'} className="flex items-center gap-2">
+                      <Award className="h-4 w-4" />
+                      과제관리
+                    </Link>
+                  </DropdownMenuItem>
 
                   {/* 채점관리 (강사만 표시) */}
                   {isInstructor && (

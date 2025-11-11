@@ -377,3 +377,81 @@ export const deleteAssignmentService = async (
     return failure(500, assignmentErrorCodes.ASSIGNMENT_DELETE_ERROR, String(error));
   }
 };
+
+/**
+ * Get all assignments for learner across all enrolled courses
+ * Includes submission status for each assignment
+ */
+export const getLearnerAllAssignmentsService = async (
+  supabase: SupabaseClient,
+  learnerId: string
+): Promise<HandlerResult<{ assignments: any[] }, AssignmentErrorCode>> => {
+  try {
+    // Step 1: Get all enrolled courses for the learner
+    const { data: enrollments, error: enrollmentError } = await supabase
+      .from('enrollments')
+      .select('course_id')
+      .eq('user_id', learnerId)
+      .eq('status', 'active');
+
+    if (enrollmentError) {
+      return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, enrollmentError.message);
+    }
+
+    const courseIds = (enrollments || []).map((e) => e.course_id);
+    if (courseIds.length === 0) {
+      return success({ assignments: [] });
+    }
+
+    // Step 2: Get all published assignments from those courses
+    const { data: assignments, error: assignmentError } = await supabase
+      .from('assignments')
+      .select('*')
+      .in('course_id', courseIds)
+      .eq('status', 'published')
+      .is('deleted_at', null)
+      .order('due_date', { ascending: true });
+
+    if (assignmentError) {
+      return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, assignmentError.message);
+    }
+
+    // Step 3: Get submissions for this learner
+    const { data: submissions, error: submissionError } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('user_id', learnerId)
+      .in('assignment_id', (assignments || []).map((a) => a.id));
+
+    if (submissionError) {
+      return failure(500, assignmentErrorCodes.SUBMISSION_NOT_FOUND, submissionError.message);
+    }
+
+    // Step 4: Get course information for assignments
+    const { data: courses, error: courseError } = await supabase
+      .from('courses')
+      .select('id, title')
+      .in('id', courseIds);
+
+    if (courseError) {
+      return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, courseError.message);
+    }
+
+    // Step 5: Combine assignments with submission and course data
+    const submissionMap = new Map(
+      (submissions || []).map((s) => [s.assignment_id, convertSubmissionToResponse(s)])
+    );
+
+    const courseMap = new Map((courses || []).map((c) => [c.id, c]));
+
+    const enrichedAssignments = (assignments || []).map((assignment) => ({
+      ...convertAssignmentToResponse(assignment),
+      course: courseMap.get(assignment.course_id) || null,
+      submission: submissionMap.get(assignment.id) || null,
+    }));
+
+    return success({ assignments: enrichedAssignments });
+  } catch (error) {
+    return failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, String(error));
+  }
+};

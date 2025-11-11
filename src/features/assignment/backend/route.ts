@@ -19,6 +19,7 @@ import {
   getUserSubmissionService,
   deleteAssignmentService,
   updateAssignmentStatusService,
+  getLearnerAllAssignmentsService,
 } from './service';
 
 export const registerAssignmentRoutes = (app: Hono<AppEnv>) => {
@@ -381,6 +382,40 @@ export const registerAssignmentRoutes = (app: Hono<AppEnv>) => {
       return respond(
         c,
         failure(500, assignmentErrorCodes.ASSIGNMENT_UPDATE_ERROR, String(error))
+      );
+    }
+  });
+
+  // GET /api/learner/assignments - 학습자의 모든 과제 조회
+  app.get('/api/learner/assignments', async (c) => {
+    try {
+      const user = getUser(c);
+
+      if (!user) {
+        return respond(
+          c,
+          failure(401, assignmentErrorCodes.UNAUTHORIZED, 'User not authenticated')
+        );
+      }
+
+      if (user.role !== 'learner') {
+        return respond(
+          c,
+          failure(
+            403,
+            assignmentErrorCodes.NOT_LEARNER,
+            'Only learners can access this endpoint'
+          )
+        );
+      }
+
+      const supabase = c.get('supabase');
+      const result = await getLearnerAllAssignmentsService(supabase, user.id);
+      return respond(c, result);
+    } catch (error) {
+      return respond(
+        c,
+        failure(500, assignmentErrorCodes.ASSIGNMENT_NOT_FOUND, String(error))
       );
     }
   });

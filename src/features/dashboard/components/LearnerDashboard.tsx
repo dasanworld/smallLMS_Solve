@@ -93,7 +93,15 @@ export const LearnerDashboard = () => {
 
       {hasUpcomingAssignments && (
         <section className="mb-10">
-          <h2 className="mb-4 text-xl font-semibold">다가오는 과제</h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">다가오는 과제</h2>
+            <a
+              href="/my-assignments"
+              className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
+              모든 과제 보기 →
+            </a>
+          </div>
           <UpcomingAssignments assignments={data?.upcomingAssignments || []} />
         </section>
       )}

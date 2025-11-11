@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { AssignmentList } from '@/features/assignment/components/AssignmentList';
 
 interface CourseDetailComponentProps {
   courseId: string;
@@ -49,9 +48,6 @@ export const CourseDetailComponent = ({ courseId }: CourseDetailComponentProps) 
             </div>
           </CardContent>
         </Card>
-
-        {/* 과제 목록 */}
-        <AssignmentList courseId={courseId} />
       </div>
     </div>
   );
