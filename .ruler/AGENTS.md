@@ -192,6 +192,11 @@ use following libraries for specific functionalities:
 - do not run supabase locally
 - store migration query for `.sql` file. in /supabase/migrations/
 
+## Zod Schema Validation
+
+- Avoid using `z.string().datetime()` for flexible ISO 8601 formats; use `z.string().refine((val) => !isNaN(Date.parse(val)), 'Invalid date format')` instead for broader compatibility.
+- When converting HTML `datetime-local` input to ISO 8601, use string concatenation: `${value}:00Z` to avoid timezone offset issues (e.g., `"2025-12-15T23:59"` → `"2025-12-15T23:59:00Z"`).
+
 ## Hono Backend Routing
 
 - Never create custom service client imports outside middleware (e.g., avoid `@/lib/supabase/service-client`). Always use context injection: `getSupabase(c)` from `@/backend/hono/context` to access pre-initialized Supabase instances.
