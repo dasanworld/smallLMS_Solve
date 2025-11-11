@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, Plus, Loader2 } from 'lucide-react';
+import { AlertCircle, Plus, Loader2, RefreshCw } from 'lucide-react';
 import { CourseForm } from './CourseForm';
 import { CourseCard } from './CourseCard';
 import { CourseStatusDialog } from './CourseStatusDialog';
@@ -22,12 +22,23 @@ export const CoursesPage = () => {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [selectedCourseForStatus, setSelectedCourseForStatus] = useState<Course | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useInstructorCoursesQuery();
+  const { data: courses = [], isLoading: coursesLoading, error: coursesError, refetch } = useInstructorCoursesQuery();
 
   useEffect(() => {
     console.log('[CoursesPage] Rendered with courses:', { courses, isLoading: coursesLoading, error: coursesError });
   }, [courses, coursesLoading, coursesError]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const createMutation = useCreateCourseMutation();
   const updateMutation = useUpdateCourseMutation(editingCourse?.id || '');
   const statusMutation = useUpdateCourseStatusMutation(selectedCourseForStatus?.id || '');
@@ -74,7 +85,19 @@ export const CoursesPage = () => {
   return (
     <div className="w-full space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">코스 관리</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight">코스 관리</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-10 w-10"
+            title="데이터 새로고침"
+          >
+            <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
         <p className="mt-2 text-gray-600">
           강의할 코스를 생성하고 관리합니다
         </p>

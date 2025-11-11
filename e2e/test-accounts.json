@@ -1,0 +1,12 @@
+{
+  "instructor": {
+    "email": "inst-demo@test.com",
+    "password": "test123!",
+    "name": "Instructor Demo"
+  },
+  "learner": {
+    "email": "learn-demo@test.com",
+    "password": "test123!",
+    "name": "Learner Demo"
+  }
+}

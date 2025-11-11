@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Eye, Clock, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Eye, Clock, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -42,6 +42,7 @@ export default function SubmissionsListPage() {
   const { user, isLoading: userLoading } = useCurrentUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // 사용자 프로필 조회 (역할 확인)
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -68,7 +69,7 @@ export default function SubmissionsListPage() {
   }, [profile, userLoading, profileLoading, router]);
 
   // 제출물 목록 조회
-  const { data: submissions, isLoading, error } = useQuery({
+  const { data: submissions, isLoading, error, refetch } = useQuery({
     queryKey: ['instructor-submissions', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -81,6 +82,15 @@ export default function SubmissionsListPage() {
     },
     enabled: !!user?.id && profile?.role === 'instructor',
   });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // 필터링된 제출물
   const filteredSubmissions = (submissions || []).filter(submission => {
@@ -125,7 +135,19 @@ export default function SubmissionsListPage() {
       <GlobalNavigation />
       <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">제출물 평가</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold mb-2">제출물 평가</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-10 w-10"
+            title="데이터 새로고침"
+          >
+            <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
         <p className="text-slate-500">학생들의 제출물을 검토하고 평가합니다</p>
       </div>
 

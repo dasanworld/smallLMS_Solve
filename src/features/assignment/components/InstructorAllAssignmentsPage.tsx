@@ -9,7 +9,7 @@ import { apiClient } from '@/lib/remote/api-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Loader2, Plus, Edit2, BookOpen, Rocket } from 'lucide-react';
+import { AlertCircle, Loader2, Plus, Edit2, BookOpen, Rocket, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -64,7 +64,7 @@ const CourseAssignmentsLoader: React.FC<CourseAssignmentsLoaderProps> = ({
 export const InstructorAllAssignmentsPage = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useInstructorCoursesQuery();
+  const { data: courses = [], isLoading: coursesLoading, error: coursesError, refetch: refetchCourses } = useInstructorCoursesQuery();
   const [courseAssignmentsMap, setCourseAssignmentsMap] = useState<Record<string, AssignmentWithCourse[]>>({});
   const [loadedCourseIds, setLoadedCourseIds] = useState<Set<string>>(new Set());
   const [courseErrors, setCourseErrors] = useState<Record<string, Error>>({});
@@ -72,6 +72,7 @@ export const InstructorAllAssignmentsPage = () => {
   const [selectedCourse, setSelectedCourse] = useState<{ id: string; name: string } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [publishingAssignmentIds, setPublishingAssignmentIds] = useState<Set<string>>(new Set());
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // 개별 코스의 과제 데이터 로드
   const handleCourseDataLoad = useCallback((courseId: string, assignments: AssignmentWithCourse[]) => {
@@ -153,6 +154,24 @@ export const InstructorAllAssignmentsPage = () => {
     [queryClient]
   );
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // 코스 데이터 새로고침
+      await refetchCourses();
+      // 캐시 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['assignments', 'list'],
+      });
+      // 상태 초기화
+      setCourseAssignmentsMap({});
+      setLoadedCourseIds(new Set());
+      setCourseErrors({});
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // 모든 과제 수집
   const allAssignments = Object.values(courseAssignmentsMap).flat();
 
@@ -213,7 +232,19 @@ export const InstructorAllAssignmentsPage = () => {
 
       {/* 페이지 헤더 */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">전체 과제 관리</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight">전체 과제 관리</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-10 w-10"
+            title="데이터 새로고침"
+          >
+            <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
         <p className="mt-2 text-gray-600">
           모든 코스의 과제를 한 곳에서 관리합니다
         </p>

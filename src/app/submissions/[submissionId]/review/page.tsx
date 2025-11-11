@@ -8,7 +8,7 @@ import { GradeSubmissionForm } from '@/features/grade/components/grade-submissio
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle2, RefreshCw } from 'lucide-react';
 import { apiClient } from '@/lib/remote/api-client';
 import { useGradeSubmission } from '@/features/grade/hooks/useGradeSubmission';
 import { SubmissionGradingData } from '@/features/grade/types';
@@ -21,11 +21,26 @@ export default function ReviewSubmissionPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { mutateAsync: gradeSubmission, isPending: isSubmitting } = useGradeSubmission();
 
   // Ensure submissionId is a string
   const submissionIdString = Array.isArray(submissionId) ? submissionId[0] : submissionId;
+
+  const handleRefresh = async () => {
+    if (!submissionIdString) return;
+
+    setIsRefreshing(true);
+    try {
+      const response = await apiClient.get<SubmissionGradingData>(`/api/submissions/${submissionIdString}`);
+      setSubmission(response.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     if (!submissionIdString) return;
@@ -143,7 +158,19 @@ export default function ReviewSubmissionPage() {
           <ArrowLeft className="h-4 w-4" />
           돌아가기
         </Button>
-        <h1 className="text-3xl font-bold">제출물 검토</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold">제출물 검토</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-10 w-10"
+            title="데이터 새로고침"
+          >
+            <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
         <p className="text-slate-500 mt-2">
           과제: {submission.assignment_title} | 강의: {submission.course_title}
         </p>

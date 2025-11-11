@@ -5,10 +5,22 @@ import { GradeOverview } from '@/features/grade/components/GradeOverview';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { RefreshCw } from 'lucide-react';
+import { useState } from 'react';
 
 export default function GradesPage() {
   const router = useRouter();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { data, isLoading, error, refetch } = useGrades();
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -60,8 +72,20 @@ export default function GradesPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Grade & Feedback</h1>
-        <p className="text-gray-600 mt-2">
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Grade & Feedback</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-10 w-10"
+            title="데이터 새로고침"
+          >
+            <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+        <p className="mt-2 text-gray-600">
           View your assignment grades, instructor feedback, and course totals
         </p>
       </div>

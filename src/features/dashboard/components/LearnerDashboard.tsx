@@ -6,10 +6,22 @@ import { UpcomingAssignments } from '@/features/dashboard/components/UpcomingAss
 import { RecentFeedback } from '@/features/dashboard/components/RecentFeedback';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 
 export const LearnerDashboard = () => {
-  const { data, isLoading, isError, error } = useLearnerDashboardQuery();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { data, isLoading, isError, error, refetch } = useLearnerDashboardQuery();
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (isError) {
     return (
@@ -61,8 +73,20 @@ export const LearnerDashboard = () => {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <header className="mb-8 space-y-2">
-        <h1 className="text-3xl font-bold">학습자 대시보드</h1>
-        <p className="text-slate-500">
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight">학습자 대시보드</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-10 w-10"
+            title="데이터 새로고침"
+          >
+            <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+        <p className="text-gray-600">
           현재 수강 중인 강의와 과제 현황을 확인하세요
         </p>
       </header>

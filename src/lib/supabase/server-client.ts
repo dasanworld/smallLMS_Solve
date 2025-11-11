@@ -30,12 +30,12 @@ export const createSupabaseServerClient = async (): Promise<
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            if (typeof cookieStore.set === "function") {
-              cookieStore.set({ name, value, ...options });
-            }
-          });
+        // Next.js 15 수정: Server Component (Layout/Page)에서는 쿠키를 수정할 수 없음
+        // setAll 콜백에서 쿠키 설정 시도 시 에러가 발생하므로 조용히 무시
+        // Supabase는 세션 갱신을 시도하지만, Server Component에서는 이를 처리할 수 없음
+        setAll() {
+          // 의도적으로 비워둠: Server Component에서 쿠키 수정 불가
+          // 쿠키 갱신이 필요한 경우 Route Handler에서 처리해야 함
         },
       },
     }

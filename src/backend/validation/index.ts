@@ -17,7 +17,7 @@ export const paginationSchema = z.object({
 });
 
 // Common validation schemas
-export const emailSchema = z.string().email({ message: 'Invalid email format' });
+export const emailSchema = z.string().min(1, { message: 'Email is required' });
 
 export const passwordSchema = z
   .string()

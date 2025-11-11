@@ -9,11 +9,23 @@ import { RecentSubmissionsList, type RecentSubmissionsListProps } from '@/featur
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Users, BookOpen, FileText, Clock } from 'lucide-react';
+import { AlertCircle, Users, BookOpen, FileText, Clock, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 
 export default function InstructorDashboard() {
-  const { data, isLoading, error } = useInstructorDashboardQuery<InstructorDashboardResponse>();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { data, isLoading, error, refetch } = useInstructorDashboardQuery<InstructorDashboardResponse>();
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (error) {
     return (
@@ -79,7 +91,19 @@ export default function InstructorDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">강사 대시보드</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight">강사 대시보드</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-10 w-10"
+            title="데이터 새로고침"
+          >
+            <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
         <p className="text-muted-foreground">코스와 과제를 관리하세요</p>
       </div>
 

@@ -27,7 +27,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { z } from 'zod';
 
 const roleSelectionFormSchema = z.object({
-  email: z.string().email({ message: '유효한 이메일 주소를 입력해주세요.' }),
+  email: z.string().min(1, { message: '이메일 주소를 입력해주세요.' }),
   password: z.string().min(8, { message: '비밀번호는 최소 8자 이상이어야 합니다.' }),
   confirmPassword: z.string().min(1, { message: '비밀번호 확인을 입력해주세요.' }),
   role: z.enum(['learner', 'instructor'], {
@@ -75,9 +75,11 @@ export const RoleSelectionForm = () => {
       const result = await signupMutation.mutateAsync(signupData);
 
       // Auto-login after successful signup
+      // Normalize email to match backend normalization
+      const normalizedEmail = email.includes('@') ? email : `${email}@example.com`;
       const supabase = getSupabaseBrowserClient();
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password,
       });
 

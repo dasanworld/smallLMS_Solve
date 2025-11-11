@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useLearnerAssignmentsQuery, AssignmentWithSubmission } from '../hooks/useLearnerAssignmentsQuery';
 import {
   getAssignmentGroupStatus,
@@ -14,11 +15,21 @@ import AssignmentList from './AssignmentList';
 import AssignmentDetailModal from './AssignmentDetailModal';
 
 export default function LearnerAssignmentManagementPage() {
-  const { data, isLoading, error } = useLearnerAssignmentsQuery();
+  const { data, isLoading, error, refetch } = useLearnerAssignmentsQuery();
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState<AssignmentGroupStatus>('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // 모든 코스 목록 추출
   const courses = useMemo(() => {
@@ -99,10 +110,22 @@ export default function LearnerAssignmentManagementPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
       {/* 헤더 */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">과제 관리</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight">과제 관리</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-10 w-10"
+            title="데이터 새로고침"
+          >
+            <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
         <p className="mt-2 text-gray-600">수강 중인 과제를 한 곳에서 관리하세요</p>
       </div>
 

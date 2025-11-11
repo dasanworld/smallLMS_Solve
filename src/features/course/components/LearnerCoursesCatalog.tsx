@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Loader2, Heart, ArrowRight } from 'lucide-react';
+import { AlertCircle, Loader2, Heart, ArrowRight, RefreshCw } from 'lucide-react';
 import { useAvailableCoursesQuery, useEnrollCourseMutation } from '../hooks/useLearnerCourseQueries';
 import { extractApiErrorMessage } from '@/lib/remote/api-client';
 import Link from 'next/link';
@@ -17,9 +17,19 @@ import Link from 'next/link';
 export const LearnerCoursesCatalog = () => {
   const [page, setPage] = useState(1);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { data, isLoading, error } = useAvailableCoursesQuery(page, 10);
+  const { data, isLoading, error, refetch } = useAvailableCoursesQuery(page, 10);
   const enrollMutation = useEnrollCourseMutation();
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const courses = data?.courses || [];
   const totalPages = data ? Math.ceil(data.total / data.pageSize) : 0;
@@ -48,7 +58,19 @@ export const LearnerCoursesCatalog = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">코스 둘러보기</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">코스 둘러보기</h1>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="h-10 w-10"
+              title="데이터 새로고침"
+            >
+              <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
           <p className="mt-2 text-gray-600">
             모든 활성 코스를 확인하고 수강신청하세요
           </p>
@@ -70,7 +92,19 @@ export const LearnerCoursesCatalog = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">코스 둘러보기</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight">코스 둘러보기</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-10 w-10"
+            title="데이터 새로고침"
+          >
+            <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
         <p className="mt-2 text-gray-600">
           {data ? `총 ${data.total}개의 코스` : '모든 활성 코스를 확인하고 수강신청하세요'}
         </p>
@@ -98,7 +132,12 @@ export const LearnerCoursesCatalog = () => {
         <>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {courses.map((course) => (
-              <Card key={course.id} className="flex flex-col hover:shadow-lg transition-shadow">
+              <Card
+                key={course.id}
+                className="flex flex-col hover:shadow-lg transition-shadow"
+                data-testid="course-card"
+                data-course-id={course.id}
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -114,16 +153,24 @@ export const LearnerCoursesCatalog = () => {
                           </Badge>
                         )}
                       </div>
-                      <CardTitle className="line-clamp-2 text-lg">
-                        {course.title}
-                      </CardTitle>
-                      <CardDescription className="mt-2 line-clamp-1 text-xs">
-                        강사: {course.instructor_name}
-                      </CardDescription>
+                        <CardTitle
+                          className="line-clamp-2 text-lg"
+                          data-testid="course-title"
+                        >
+                          {course.title}
+                        </CardTitle>
+                        <CardDescription
+                          className="mt-2 line-clamp-1 text-xs"
+                          data-testid="course-instructor"
+                        >
+                          강사: {course.instructor_name}
+                        </CardDescription>
                     </div>
                     <button
+                      type="button"
                       onClick={() => toggleFavorite(course.id)}
                       className="flex-shrink-0"
+                      data-testid="favorite-button"
                     >
                       <Heart
                         className={`h-5 w-5 transition-colors ${
@@ -146,6 +193,7 @@ export const LearnerCoursesCatalog = () => {
                   <div className="pt-4 border-t space-y-3">
                     <div className="flex gap-2">
                       <Button
+                        data-testid="enroll-button"
                         onClick={() => handleEnroll(course.id)}
                         disabled={enrollMutation.isPending || course.is_enrolled}
                         className="flex-1"
@@ -180,6 +228,7 @@ export const LearnerCoursesCatalog = () => {
                 variant="outline"
                 disabled={page === 1}
                 onClick={() => setPage(page - 1)}
+                data-testid="prev-page-button"
               >
                 이전
               </Button>
@@ -199,6 +248,7 @@ export const LearnerCoursesCatalog = () => {
                 variant="outline"
                 disabled={page === totalPages}
                 onClick={() => setPage(page + 1)}
+                data-testid="next-page-button"
               >
                 다음
               </Button>

@@ -55,8 +55,14 @@ export default function LoginPage({ params }: LoginPageProps) {
       const supabase = getSupabaseBrowserClient();
 
       try {
+        // Normalize email to match signup normalization
+        // If email doesn't have @, append domain
+        const normalizedEmail = formState.email.includes('@')
+          ? formState.email
+          : `${formState.email}@example.com`;
+
         const result = await supabase.auth.signInWithPassword({
-          email: formState.email,
+          email: normalizedEmail,
           password: formState.password,
         });
 
