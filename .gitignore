@@ -9,6 +9,9 @@
 # END Ruler Generated Files
 
 e2e/
+test-results/
+tests/
+
 
 /Docs/prd.md
 /Docs/Userflow.md
