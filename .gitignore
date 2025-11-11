@@ -8,8 +8,10 @@
 /CLAUDE.md.bak
 # END Ruler Generated Files
 
-./e2e/ 
-e2e/
+# E2E Tests (불필요한 파일들)
+e2e/test-accounts.json
+e2e/token-store.json
+e2e/integration-test-data.json
 test-results/
 tests/
 

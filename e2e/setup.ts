@@ -1,4 +1,5 @@
-import { test as setup, expect, type StorageState } from '@playwright/test';
+import { test as setup, expect } from '@playwright/test';
+import type { StorageState } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 import { TokenManager } from './shared/token-manager';
