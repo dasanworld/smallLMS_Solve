@@ -135,8 +135,14 @@ export const AssignmentForm = ({
                           : ''
                       }
                       onChange={(e) => {
-                        const date = new Date(e.target.value);
-                        field.onChange(date.toISOString());
+                        const value = e.target.value;
+                        if (!value) {
+                          field.onChange('');
+                          return;
+                        }
+                        // datetime-local 입력값을 ISO 8601로 변환
+                        // 예: "2025-12-15T23:59" → "2025-12-15T23:59:00Z"
+                        field.onChange(`${value}:00Z`);
                       }}
                       disabled={isLoading}
                     />

@@ -4,7 +4,10 @@ import { z } from 'zod';
 export const CreateAssignmentRequestSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().min(1),
-  dueDate: z.string().datetime(),
+  dueDate: z.string().refine(
+    (val) => !isNaN(Date.parse(val)),
+    'Invalid date format'
+  ),
   pointsWeight: z.number().min(0).max(100),
   instructions: z.string().optional(),
 });
@@ -12,7 +15,10 @@ export const CreateAssignmentRequestSchema = z.object({
 export const UpdateAssignmentRequestSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   description: z.string().min(1).optional(),
-  dueDate: z.string().datetime().optional(),
+  dueDate: z.string().refine(
+    (val) => !isNaN(Date.parse(val)),
+    'Invalid date format'
+  ).optional(),
   pointsWeight: z.number().min(0).max(100).optional(),
   instructions: z.string().optional(),
 });
